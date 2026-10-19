@@ -65,6 +65,22 @@ h2 small{font-family:var(--body);font-size:13px;color:var(--muted);letter-spacin
 .edit label.tbtn{display:inline-flex;align-items:center}
 .edit input[type=file]{display:none}
 .changed{font-size:12px;color:var(--warn);font-weight:700}
+.fhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fold{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:10px;font-family:var(--display);font-size:22px}
+.fold:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+.fold .chev{display:inline-block;transition:transform .2s;font-size:16px;color:var(--muted)}
+section.closed .chev{transform:rotate(90deg)}
+section.closed .grid{display:none}
+.fold small{font-family:var(--body);font-size:13px;color:var(--muted);letter-spacing:.02em}
+.fedit{display:none;gap:6px;flex-wrap:wrap;align-items:center}
+.editing .fedit{display:flex}
+.editing .fold small,.editing .fold span:not(.chev){display:none}
+.fedit input{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:min(220px,60vw)}
+.sbtn{font:inherit;font-weight:700;min-width:44px;min-height:40px;padding:0 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.sbtn:disabled{opacity:.35;cursor:default}
+.move{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.move select{font:inherit;font-size:15px;min-height:40px;padding:0 8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);max-width:100%}
+.dropzone{border:2px dashed var(--line);border-radius:14px;padding:18px;color:var(--muted);text-align:center}
 #msg:empty{display:none}#msg{color:var(--warn);font-weight:600;margin:0}
 footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:16px}
 </style>
@@ -84,6 +100,7 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
   </header>
   <div class="editbar">
     <p>מצב עריכה. השינויים נשמרים במכשיר הזה. כדי שיופיעו בכל מכשיר, הורד קובץ שינויים ושלח אותו ל-Claude.</p>
+    <button id="newFolderBtn" class="tbtn" type="button">תיקייה חדשה</button>
     <button id="exportBtn" class="tbtn" type="button">הורד קובץ שינויים</button>
     <label class="tbtn" for="importFile" style="display:inline-flex;align-items:center">טען קובץ שינויים</label>
     <input id="importFile" type="file" accept=".json,application/json" hidden>
@@ -93,28 +110,50 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
   <footer>פרויקטים גדולים יושבים במאגר משלהם. פרויקטים קטנים יושבים כאן כתיקייה, כמו אתגר המספרים.</footer>
 </main>
 <script>
-const GH='https://mazivco-design.github.io/', REPO='https://github.com/mazivco-design/', KEY='hub-edits-v1';
-let data={groups:[],projects:[]}, edits={};
+const GH='https://mazivco-design.github.io/', REPO='https://github.com/mazivco-design/';
+const KEY='hub-edits-v1', LKEY='hub-layout-v1', CKEY='hub-closed-v1';
+let data={groups:[],projects:[]}, edits={}, layout=null, closed={};
 const $=s=>document.querySelector(s), board=$('#board'), q=$('#q'), msg=$('#msg');
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function say(t){msg.textContent=t; if(t) setTimeout(()=>{if(msg.textContent===t)msg.textContent=''},4000)}
-function loadEdits(){try{edits=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){edits={}}}
-function saveEdits(){try{localStorage.setItem(KEY,JSON.stringify(edits));return true}catch(e){say('אין מספיק מקום במכשיר לשמירה. נסה תמונה קטנה יותר.');return false}}
+function get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}}
+function put(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){say('אין מספיק מקום במכשיר לשמירה. נסה תמונה קטנה יותר.');return false}}
 function view(p){const e=edits[p.id]||{};return {...p,desc:e.desc??p.desc,image:e.image??p.image,changed:!!(e.desc!=null||e.image!=null)}}
 
-function tile(p0){
-  const p=view(p0), url=p.url||(p.repo?GH+p.repo+'/':null);
+// layout = folders (with their order) and the order of projects inside each folder
+function fullLayout(){
+  const base=layout||{folders:data.groups.map(g=>({id:g.id,title:g.title,note:g.note,items:[]}))};
+  const L={folders:base.folders.map(f=>({...f,items:[...(f.items||[])]}))};
+  const known=new Set(data.projects.map(p=>p.id)), placed=new Set();
+  L.folders.forEach(f=>{f.items=f.items.filter(id=>known.has(id)&&!placed.has(id)&&placed.add(id))});
+  for(const p of data.projects){ if(placed.has(p.id)) continue;
+    let f=L.folders.find(f=>f.id===p.group)||L.folders[0];
+    if(!f){f={id:'misc',title:'שונות',note:'',items:[]};L.folders.push(f)}
+    f.items.push(p.id); placed.add(p.id);
+  }
+  return L;
+}
+function saveLayout(L){layout=L; return put(LKEY,L)}
+
+function tile(p0,fi,ii,L){
+  const p=view(p0), url=p.url||(p.repo?GH+p.repo+'/':null), f=L.folders[fi];
   let a='';
   if(url) a+=`<a class="btn open" href="${esc(url)}" target="_blank" rel="noopener">פתח</a>`;
   if(p.extra) a+=`<a class="btn code" href="${esc(p.extra.url)}" target="_blank" rel="noopener">${esc(p.extra.label)}</a>`;
   if(p.repo) a+=`<a class="btn code" href="${REPO+p.repo}" target="_blank" rel="noopener">קוד</a>`;
   const tags=p.tags.map(t=>`<span class="tag${p.idea?' warn':''}">${esc(t)}</span>`).join('');
+  const opts=L.folders.map((g,k)=>`<option value="${esc(g.id)}"${k===fi?' selected':''}>${esc(g.title)}</option>`).join('');
   return `<article class="tile" data-id="${p.id}">
    <img class="cover" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">
    <div class="body">
     <h3>${esc(p.name)}</h3>
     <p class="view-desc">${esc(p.desc)}</p>
     <div class="edit">
+      <div class="move">
+        <button class="sbtn" type="button" data-act="up" aria-label="הזז קודם"${ii===0?' disabled':''}>→</button>
+        <button class="sbtn" type="button" data-act="down" aria-label="הזז אחר כך"${ii===f.items.length-1?' disabled':''}>←</button>
+        <select id="m-${p.id}" data-act="folder" aria-label="העבר לתיקייה">${opts}</select>
+      </div>
       <textarea id="d-${p.id}" aria-label="תיאור ${esc(p.name)}">${esc(p.desc)}</textarea>
       <div class="row">
         <button class="tbtn" type="button" data-act="save">שמור תיאור</button>
@@ -129,47 +168,74 @@ function tile(p0){
    </div></article>`;
 }
 function render(){
-  const term=q.value.trim().toLowerCase(); let html='',n=0;
-  for(const g of data.groups){
-    const items=data.projects.filter(p=>p.group===g.id).map(view)
-      .filter(p=>!term||(p.name+p.desc+p.tags.join(' ')).toLowerCase().includes(term));
-    if(!items.length) continue; n+=items.length;
-    html+=`<section class="${g.id==='ideas'?'ideas':''}"><h2>${g.title}<small>${g.note} · ${items.length}</small></h2><div class="grid">${items.map(tile).join('')}</div></section>`;
-  }
-  board.innerHTML=n?`<div style="display:flex;flex-direction:column;gap:36px">${html}</div>`:'<p class="empty">לא נמצא פרויקט בשם הזה.</p>';
+  const L=fullLayout(), term=q.value.trim().toLowerCase(), editing=document.body.classList.contains('editing');
+  const byId=Object.fromEntries(data.projects.map(p=>[p.id,p]));
+  let html='',n=0;
+  L.folders.forEach((f,fi)=>{
+    const ids=f.items.filter(id=>{const p=view(byId[id]);return !term||(p.name+p.desc+p.tags.join(' ')).toLowerCase().includes(term)});
+    if(!ids.length&&!editing) return; n+=ids.length;
+    const isIdea=f.items.length&&f.items.every(id=>byId[id].idea);
+    const isClosed=closed[f.id]&&!term&&!editing;
+    html+=`<section class="${isIdea?'ideas':''}${isClosed?' closed':''}" data-folder="${esc(f.id)}">
+      <div class="fhead">
+        <button class="fold" type="button" data-act="toggle" aria-expanded="${!isClosed}"><span class="chev">▾</span><span>${esc(f.title)}</span><small>${f.note?esc(f.note)+' · ':''}${ids.length}</small></button>
+        <div class="fedit">
+          <input id="t-${esc(f.id)}" value="${esc(f.title)}" aria-label="שם התיקייה" data-act="rename">
+          <button class="sbtn" type="button" data-act="fup" aria-label="תיקייה למעלה"${fi===0?' disabled':''}>↑</button>
+          <button class="sbtn" type="button" data-act="fdown" aria-label="תיקייה למטה"${fi===L.folders.length-1?' disabled':''}>↓</button>
+          <button class="sbtn" type="button" data-act="fdel"${f.items.length?' disabled title="אפשר למחוק רק תיקייה ריקה"':''}>מחק תיקייה</button>
+        </div>
+      </div>
+      ${ids.length?`<div class="grid">${ids.map(id=>tile(byId[id],fi,f.items.indexOf(id),L)).join('')}</div>`:'<div class="dropzone">תיקייה ריקה. העבר אליה פרויקטים בעזרת הרשימה שבכרטיס.</div>'}
+    </section>`;
+  });
+  board.innerHTML=n||editing?`<div style="display:flex;flex-direction:column;gap:36px">${html}</div>`:'<p class="empty">לא נמצא פרויקט בשם הזה.</p>';
 }
-// shrink an uploaded picture so it fits in device storage
 function shrink(file){return new Promise((ok,bad)=>{const img=new Image(),u=URL.createObjectURL(file);
   img.onload=()=>{const W=640,s=Math.min(1,W/img.width),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
     c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',0.8))};
   img.onerror=()=>bad();img.src=u})}
+function swap(a,i,j){[a[i],a[j]]=[a[j],a[i]]}
 
 board.addEventListener('click',e=>{
-  const b=e.target.closest('[data-act]'); if(!b||b.type==='file') return;
-  const id=b.closest('.tile').dataset.id;
-  if(b.dataset.act==='save'){edits[id]={...edits[id],desc:$('#d-'+id).value.trim()}; if(saveEdits()){render();say('התיאור נשמר')}}
-  if(b.dataset.act==='reset'){delete edits[id]; saveEdits(); render(); say('הוחזר למקור')}
+  const b=e.target.closest('[data-act]'); if(!b||b.disabled||b.tagName==='INPUT'||b.tagName==='SELECT') return;
+  const act=b.dataset.act, sec=b.closest('section'), fid=sec&&sec.dataset.folder, tileEl=b.closest('.tile'), id=tileEl&&tileEl.dataset.id;
+  if(act==='toggle'){ if(document.body.classList.contains('editing')) return; closed[fid]=!closed[fid]; put(CKEY,closed); render(); return }
+  const L=fullLayout(), fi=L.folders.findIndex(f=>f.id===fid), f=L.folders[fi];
+  if(act==='up'||act==='down'){const i=f.items.indexOf(id), j=act==='up'?i-1:i+1; if(j<0||j>=f.items.length) return; swap(f.items,i,j); saveLayout(L); render(); return}
+  if(act==='fup'||act==='fdown'){const j=act==='fup'?fi-1:fi+1; swap(L.folders,fi,j); saveLayout(L); render(); return}
+  if(act==='fdel'){ if(f.items.length) return; L.folders.splice(fi,1); saveLayout(L); render(); say('התיקייה נמחקה'); return}
+  if(act==='save'){edits[id]={...edits[id],desc:$('#d-'+id).value.trim()}; if(put(KEY,edits)){render();say('התיאור נשמר')}}
+  if(act==='reset'){delete edits[id]; put(KEY,edits); render(); say('הוחזר למקור')}
 });
 board.addEventListener('change',async e=>{
-  const f=e.target; if(f.dataset.act!=='img'||!f.files[0]) return;
-  const id=f.closest('.tile').dataset.id;
-  try{const url=await shrink(f.files[0]); edits[id]={...edits[id],image:url}; if(saveEdits()){render();say('התמונה הוחלפה')}}
-  catch(err){say('לא הצלחתי לקרוא את התמונה. נסה קובץ אחר.')}
+  const el=e.target, act=el.dataset.act;
+  if(act==='folder'){const id=el.closest('.tile').dataset.id, L=fullLayout();
+    L.folders.forEach(f=>f.items=f.items.filter(x=>x!==id)); const t=L.folders.find(f=>f.id===el.value); t.items.push(id);
+    saveLayout(L); render(); say(`הועבר לתיקייה "${t.title}"`); return}
+  if(act==='rename'){const L=fullLayout(), f=L.folders.find(f=>f.id===el.closest('section').dataset.folder), v=el.value.trim();
+    if(!v){el.value=f.title;return} f.title=v; saveLayout(L); render(); say('שם התיקייה עודכן'); return}
+  if(act==='img'&&el.files[0]){const id=el.closest('.tile').dataset.id;
+    try{const url=await shrink(el.files[0]); edits[id]={...edits[id],image:url}; if(put(KEY,edits)){render();say('התמונה הוחלפה')}}
+    catch(err){say('לא הצלחתי לקרוא את התמונה. נסה קובץ אחר.')}}
 });
-$('#editBtn').onclick=()=>{const on=document.body.classList.toggle('editing');$('#editBtn').classList.toggle('on',on);$('#editBtn').textContent=on?'סיום עריכה':'עריכה'};
+$('#newFolderBtn').onclick=()=>{const L=fullLayout(); let k=1; while(L.folders.some(f=>f.id==='f'+k)) k++;
+  L.folders.unshift({id:'f'+k,title:'תיקייה חדשה',note:'',items:[]}); saveLayout(L); render();
+  const inp=document.getElementById('t-f'+k); if(inp){inp.focus();inp.select()} say('נוספה תיקייה למעלה. תן לה שם.')};
+$('#editBtn').onclick=()=>{const on=document.body.classList.toggle('editing');$('#editBtn').classList.toggle('on',on);$('#editBtn').textContent=on?'סיום עריכה':'עריכה';render()};
 $('#exportBtn').onclick=()=>{
-  const blob=new Blob([JSON.stringify({kind:'hub-edits',date:new Date().toISOString(),edits},null,1)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({kind:'hub-edits',date:new Date().toISOString(),edits,layout:fullLayout()},null,1)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hub-edits.json';document.body.appendChild(a);a.click();a.remove();
   say('הקובץ hub-edits.json ירד');
 };
 $('#importFile').onchange=async e=>{
-  try{const o=JSON.parse(await e.target.files[0].text()); if(!o.edits) throw 0; edits={...edits,...o.edits}; if(saveEdits()){render();say('השינויים נטענו')}}
+  try{const o=JSON.parse(await e.target.files[0].text()); if(!o.edits) throw 0; edits={...edits,...o.edits}; put(KEY,edits); if(o.layout) saveLayout(o.layout); render(); say('השינויים נטענו')}
   catch(err){say('הקובץ הזה הוא לא קובץ שינויים של האתר.')}
   e.target.value='';
 };
 q.addEventListener('input',render);
-loadEdits();
-fetch('projects.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{data=d;render()})
+edits=get(KEY,{}); layout=get(LKEY,null); closed=get(CKEY,{});
+fetch('projects.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{data=d; if(d.layout&&!layout) layout=d.layout; render()})
  .catch(()=>{board.innerHTML='<p class="empty">לא הצלחתי לטעון את רשימת הפרויקטים. רענן את הדף.</p>'});
 </script>
 </body>
