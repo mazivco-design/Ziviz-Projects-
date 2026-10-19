@@ -127,7 +127,8 @@ function fullLayout(){
   const known=new Set(data.projects.map(p=>p.id)), placed=new Set();
   L.folders.forEach(f=>{f.items=f.items.filter(id=>known.has(id)&&!placed.has(id)&&placed.add(id))});
   for(const p of data.projects){ if(placed.has(p.id)) continue;
-    let f=L.folders.find(f=>f.id===p.group)||L.folders[0];
+    let f=L.folders.find(f=>f.id===p.group);
+    if(!f){const g=data.groups.find(g=>g.id===p.group); if(g){f={id:g.id,title:g.title,note:g.note,items:[]};L.folders.push(f)} else f=L.folders[0]}
     if(!f){f={id:'misc',title:'שונות',note:'',items:[]};L.folders.push(f)}
     f.items.push(p.id); placed.add(p.id);
   }
@@ -140,6 +141,7 @@ function tile(p0,fi,ii,L){
   let a='';
   if(url) a+=`<a class="btn open" href="${esc(url)}" target="_blank" rel="noopener">פתח</a>`;
   if(p.extra) a+=`<a class="btn code" href="${esc(p.extra.url)}" target="_blank" rel="noopener">${esc(p.extra.label)}</a>`;
+  (p.links||[]).forEach(l=>{a+=`<a class="btn code" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`});
   if(p.repo) a+=`<a class="btn code" href="${REPO+p.repo}" target="_blank" rel="noopener">קוד</a>`;
   const tags=p.tags.map(t=>`<span class="tag${p.idea?' warn':''}">${esc(t)}</span>`).join('');
   const opts=L.folders.map((g,k)=>`<option value="${esc(g.id)}"${k===fi?' selected':''}>${esc(g.title)}</option>`).join('');

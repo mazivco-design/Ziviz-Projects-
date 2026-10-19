@@ -16,6 +16,11 @@
    "note": "יצירה ומדע"
   },
   {
+   "id": "claude",
+   "title": "ניסויים ב-Claude",
+   "note": "דפים שנבנו בשיחות"
+  },
+  {
    "id": "ideas",
    "title": "רעיונות בדרך",
    "note": "עוד לא בנויים"
@@ -32,7 +37,17 @@
     "יוטיוב"
    ],
    "image": "images/noam.svg",
-   "repo": "NINJGO-GAME-HEBREW-WRITING"
+   "repo": "NINJGO-GAME-HEBREW-WRITING",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/RtdqRhUtMM8czBzwUHTH4L"
+    },
+    {
+     "label": "מטוס האותיות",
+     "url": "https://claude.ai/artifact/22PATEeFThvVM8z3ZPq7SC"
+    }
+   ]
   },
   {
    "id": "noam-backup",
@@ -94,7 +109,13 @@
     "חשבון"
    ],
    "image": "images/numbers.svg",
-   "url": "numbers/"
+   "url": "numbers/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/PUxBNBXQvPeRhAxreqJ851"
+    }
+   ]
   },
   {
    "id": "israel-map",
@@ -106,7 +127,13 @@
     "תלת־ממד"
    ],
    "image": "images/israel-map.svg",
-   "repo": "israel-map"
+   "repo": "israel-map",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/W9pGvDiz5BiQtg8GXojvfJ"
+    }
+   ]
   },
   {
    "id": "canvas",
@@ -117,7 +144,13 @@
     "ציור"
    ],
    "image": "images/canvas.svg",
-   "repo": "canvas-sheli"
+   "repo": "canvas-sheli",
+   "links": [
+    {
+     "label": "מחברת עיפרון",
+     "url": "https://claude.ai/artifact/3K6pmReKUtybpNfaD6hLDB"
+    }
+   ]
   },
   {
    "id": "hat",
@@ -132,25 +165,35 @@
   },
   {
    "id": "illusions",
-   "group": "ideas",
+   "group": "games",
    "name": "גשר האשליות",
    "desc": "משחק תנועה על גריד איזומטרי עם אשליות עומק וסיבוב העולם.",
    "tags": [
-    "רעיון"
+    "אב טיפוס"
    ],
    "image": "images/illusions.svg",
-   "idea": true
+   "url": "https://claude.ai/artifact/U9dhzfDFETYTmKSw3x61kJ",
+   "links": [
+    {
+     "label": "הליכה על הגריד",
+     "url": "https://claude.ai/artifact/LvwBUkrvczVAeX7GndyW1G"
+    },
+    {
+     "label": "כל קיר הוא רצפה",
+     "url": "https://claude.ai/artifact/MmEz2KT12mhJ6rHUPGLrD9"
+    }
+   ]
   },
   {
    "id": "sphere-tag",
-   "group": "ideas",
+   "group": "games",
    "name": "תופסת על כדור",
    "desc": "תופסת תלת־ממדית על כדור עם מחילות נסתרות.",
    "tags": [
-    "רעיון"
+    "אב טיפוס"
    ],
    "image": "images/sphere-tag.svg",
-   "idea": true
+   "url": "https://claude.ai/artifact/Fkeqy4iByb5ydKmfzHhYei"
   },
   {
    "id": "math-visual",
@@ -162,6 +205,112 @@
    ],
    "image": "images/math-visual.svg",
    "idea": true
+  },
+  {
+   "id": "sudoku",
+   "group": "claude",
+   "name": "מעבדת סודוקו",
+   "desc": "מעבדה לפתרון ולחקירה של סודוקו.",
+   "tags": [
+    "חשבון",
+    "חשיבה"
+   ],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/1n8928qM9J4W6CvN4VFsuL"
+  },
+  {
+   "id": "towers",
+   "group": "claude",
+   "name": "מגדלים ליעד",
+   "desc": "משחק מספרים: בונים מגדלים כדי להגיע למספר יעד.",
+   "tags": [
+    "חשבון"
+   ],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/53He2CMRouC63BqkxWW7go"
+  },
+  {
+   "id": "niqqud-snake",
+   "group": "claude",
+   "name": "נחש הניקוד",
+   "desc": "משחק נחש לתרגול ניקוד.",
+   "tags": [
+    "קריאה",
+    "ניקוד"
+   ],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/HhKHKi3VdfDtS4FyWWZFJq"
+  },
+  {
+   "id": "good-point",
+   "group": "claude",
+   "name": "נקודה טובה",
+   "desc": "עוד אין תיאור. אפשר להוסיף במצב עריכה.",
+   "tags": [],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/JbRe2zqc6NQ14RGppj49vz"
+  },
+  {
+   "id": "abc-cards",
+   "group": "claude",
+   "name": "קלפי ABC נינג׳גו",
+   "desc": "קלפי אותיות באנגלית בעיצוב נינג׳גו.",
+   "tags": [
+    "אנגלית"
+   ],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/PupyG6LCe2xksmM3AQ6bMz"
+  },
+  {
+   "id": "ninja-dojo",
+   "group": "claude",
+   "name": "Ninja English Dojo",
+   "desc": "תרגול אנגלית בסגנון נינג׳ה.",
+   "tags": [
+    "אנגלית"
+   ],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/2WEKDTTbAjp1uwfwen3yxD"
+  },
+  {
+   "id": "subtitle-tool",
+   "group": "claude",
+   "name": "כלי סנכרון ותיקון כתוביות",
+   "desc": "מכין כתוביות לפרויקט נועם: תיקון איות, סנכרון זמנים וחלוקה למשפטים.",
+   "tags": [
+    "כלי",
+    "כתוביות"
+   ],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/L3uoDJT7xVkFBJCEPsGG5B"
+  },
+  {
+   "id": "pencil-learning",
+   "group": "claude",
+   "name": "אפליקציית לימוד עם עיפרון",
+   "desc": "אפליקציית לימוד לעיפרון של אפל. יש שתי גרסאות.",
+   "tags": [
+    "כתיבה"
+   ],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/LXmgkLntM4qRuEnHsYKAdN",
+   "links": [
+    {
+     "label": "גרסה 2",
+     "url": "https://claude.ai/artifact/6pD9ogEw1c4KC2BbGRvzpW"
+    }
+   ]
+  },
+  {
+   "id": "guitar",
+   "group": "claude",
+   "name": "מאמן גיטרה",
+   "desc": "תרגול גיטרה.",
+   "tags": [
+    "מוזיקה"
+   ],
+   "image": "images/artifact.svg",
+   "url": "https://claude.ai/artifact/Uqb5wLTLtXyEzkuZaWMou7"
   }
  ]
 }
