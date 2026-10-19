@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="הפרויקטים שלי">
+<title>הפרויקטים שלי</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&display=swap">
+<style>
+/* Layout: launcher board — grouped tiles by kind, big touch targets for iPad, RTL */
+:root{
+  --bg:#f3f4ef; --surface:#ffffff; --ink:#1e2a2f; --muted:#5f6b6e; --line:#d9ddd3;
+  --accent:#1f6f6b; --accent-soft:#e1efe9; --warn:#a2621b; --warn-soft:#f7ead8;
+  --display:"Secular One","Assistant",system-ui,sans-serif;
+  --body:"Assistant",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a1c; --surface:#1d2528; --ink:#e7ece8; --muted:#9aa6a6; --line:#2f3a3d;
+  --accent:#5fc1b5; --accent-soft:#1f3634; --warn:#e3a35a; --warn-soft:#3a2c1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a1c; --surface:#1d2528; --ink:#e7ece8; --muted:#9aa6a6; --line:#2f3a3d;
+  --accent:#5fc1b5; --accent-soft:#1f3634; --warn:#e3a35a; --warn-soft:#3a2c1b; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+main{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:36px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,5vw,40px);margin:0;line-height:1.1;text-wrap:balance}
+.sub{color:var(--muted);margin:6px 0 0}
+#q{font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);width:min(260px,100%)}
+#q:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:14px}
+h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;display:flex;align-items:baseline;gap:10px}
+h2 small{font-family:var(--body);font-size:13px;color:var(--muted);letter-spacing:.02em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.tile h3{margin:0;font-size:19px;font-weight:700;line-height:1.25}
+.tile p{margin:0;color:var(--muted);font-size:15px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px}
+.btn.open{background:var(--accent);color:var(--bg)}
+.btn.code{border:1px solid var(--line);color:var(--ink)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.missing{font-size:14px;color:var(--warn);font-weight:600;align-self:center}
+.ideas .tile{background:transparent;border-style:dashed}
+.empty{color:var(--muted)}
+footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:16px}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*{box-sizing:border-box}body{margin:0}</style>
+</head>
+<body>
+
+<main dir="rtl" lang="he">
+  <header>
+    <div>
+      <h1>הפרויקטים שלי</h1>
+      <p class="sub">כל הפרויקטים מבוססי הווב במקום אחד</p>
+    </div>
+    <input id="q" type="search" placeholder="חיפוש פרויקט…" aria-label="חיפוש פרויקט">
+  </header>
+  <div id="board"></div>
+  <footer>פרויקטים גדולים יושבים במאגר משלהם. פרויקטים קטנים יושבים כאן כתיקייה, כמו אתגר המספרים.</footer>
+</main>
+
+<script>
+const GH='https://mazivco-design.github.io/', REPO='https://github.com/mazivco-design/';
+const groups=[
+ {id:'read',title:'קריאה וכתיבה',note:'לימוד לילדים',items:[
+  {name:'פרויקט נועם',desc:'סרטוני יוטיוב הופכים למשחקי הקלדה, העתקה וכתיבה חופשית.',tags:['כתיבה','יוטיוב'],repo:'NINJGO-GAME-HEBREW-WRITING'},
+  {name:'פרויקט נועם — עותק גיבוי',desc:'עותק נפרד של הפרויקט במאגר משלו.',tags:['גיבוי'],repo:'Noam-writing-game-claude'},
+  {name:'דף קריאה חכם',desc:'קריאה בקול עם זיהוי דיבור. המילה הנוכחית מסומנת וממשיכים רק כשנקראה נכון.',tags:['קריאה','זיהוי דיבור'],repo:'Smart-reading-page'},
+  {name:'ספר חי',desc:'ספרייה של ספרי ילדים. כשהעמוד נקרא נכון, האיור מתעורר לחיים.',tags:['קריאה','אנימציה'],repo:'live-book'}]},
+ {id:'games',title:'משחקים',note:'חשבון ואנגלית',items:[
+  {name:'משחק הנינג׳ה הקולי',desc:'ארקייד באנגלית בשליטה קולית: JUMP, DOWN ועוד, בשלבים.',tags:['אנגלית','זיהוי דיבור'],repo:'ninja-voice-game',extra:{label:'גרסה יציבה',url:GH+'ninja-voice-game/stable/'}},
+  {name:'אתגר המספרים',desc:'משחק המספרים של Countdown עם ציר מספרים וקפיצות.',tags:['חשבון'],url:'numbers/'}]},
+ {id:'tools',title:'כלים וחקירות',note:'יצירה ומדע',items:[
+  {name:'מפת התבליט של ישראל',desc:'מפה טופוגרפית תלת־ממדית עם גובה בכל נקודה וסיור מעוף.',tags:['מפות','תלת־ממד'],repo:'israel-map'},
+  {name:'canvas-sheli',desc:'אפליקציית ציור לעיפרון של אפל, עם שכבות ומברשות מותאמות.',tags:['ציור'],repo:'canvas-sheli'},
+  {name:'אריח הכובע',desc:'ריצוף לא־מחזורי מהאריח היחיד, עם אוטומטים תאיים שרצים עליו.',tags:['מתמטיקה'],url:'https://claude.ai/artifact/WDdqpJEK6LQMjzfXJ7aCNF'}]},
+ {id:'ideas',title:'רעיונות בדרך',note:'עוד לא בנויים',cls:'ideas',items:[
+  {name:'גשר האשליות',desc:'משחק תנועה על גריד איזומטרי עם אשליות עומק וסיבוב העולם.',tags:['רעיון'],idea:true},
+  {name:'תופסת על כדור',desc:'תופסת תלת־ממדית על כדור עם מחילות נסתרות.',tags:['רעיון'],idea:true},
+  {name:'אפליקציית חשבון ויזואלית',desc:'תרגילי חשבון עם חלק חזותי שעוזר להבין. לגילאי 6–11.',tags:['רעיון'],idea:true}]}
+];
+const board=document.getElementById('board'), q=document.getElementById('q');
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function tile(p){
+  const url=p.url||(p.repo?GH+p.repo+'/':null);
+  let a='';
+  if(url) a+=`<a class="btn open" href="${url}" target="_blank" rel="noopener">פתח</a>`;
+  if(p.extra) a+=`<a class="btn code" href="${p.extra.url}" target="_blank" rel="noopener">${p.extra.label}</a>`;
+  if(p.repo) a+=`<a class="btn code" href="${REPO+p.repo}" target="_blank" rel="noopener">קוד</a>`;
+  if(p.missing) a+=`<span class="missing">קישור חסר</span>`;
+  const tags=p.tags.map(t=>`<span class="tag${p.idea?' warn':''}">${esc(t)}</span>`).join('');
+  return `<article class="tile"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><div class="tags">${tags}</div>${a?`<div class="actions">${a}</div>`:''}</article>`;
+}
+function render(){
+  const term=q.value.trim().toLowerCase(); let html='', n=0;
+  for(const g of groups){
+    const items=g.items.filter(p=>!term||(p.name+p.desc+p.tags.join(' ')).toLowerCase().includes(term));
+    if(!items.length) continue; n+=items.length;
+    html+=`<section class="${g.cls||''}"><h2>${g.title}<small>${g.note} · ${items.length}</small></h2><div class="grid">${items.map(tile).join('')}</div></section>`;
+  }
+  board.innerHTML=n?`<div style="display:flex;flex-direction:column;gap:36px">${html}</div>`:'<p class="empty">לא נמצא פרויקט בשם הזה.</p>';
+}
+q.addEventListener('input',render); render();
+</script>
+</body>
+</html>
