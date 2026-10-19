@@ -47,66 +47,130 @@ h2 small{font-family:var(--body);font-size:13px;color:var(--muted);letter-spacin
 .missing{font-size:14px;color:var(--warn);font-weight:600;align-self:center}
 .ideas .tile{background:transparent;border-style:dashed}
 .empty{color:var(--muted)}
+.tile{padding:0;overflow:hidden}
+.tile .body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
+.cover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--line);max-width:100%}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tbtn{font:inherit;font-weight:700;font-size:15px;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.tbtn.on{background:var(--warn);border-color:var(--warn);color:var(--bg)}
+.tbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.editbar{display:none;background:var(--warn-soft);color:var(--ink);border-radius:12px;padding:12px 16px;gap:10px;flex-wrap:wrap;align-items:center}
+.editing .editbar{display:flex}
+.editbar p{margin:0;flex:1 1 260px;font-size:15px}
+.edit{display:none;flex-direction:column;gap:8px}
+.editing .edit{display:flex}
+.editing .view-desc{display:none}
+.edit textarea{font:inherit;font-size:15px;width:100%;min-height:84px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical}
+.edit .row{display:flex;flex-wrap:wrap;gap:8px}
+.edit label.tbtn{display:inline-flex;align-items:center}
+.edit input[type=file]{display:none}
+.changed{font-size:12px;color:var(--warn);font-weight:700}
+#msg:empty{display:none}#msg{color:var(--warn);font-weight:600;margin:0}
 footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:16px}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*{box-sizing:border-box}body{margin:0}</style>
 </head>
 <body>
-
-<main dir="rtl" lang="he">
+<main>
   <header>
     <div>
       <h1>הפרויקטים שלי</h1>
       <p class="sub">כל הפרויקטים מבוססי הווב במקום אחד</p>
     </div>
-    <input id="q" type="search" placeholder="חיפוש פרויקט…" aria-label="חיפוש פרויקט">
+    <div class="tools">
+      <input id="q" type="search" placeholder="חיפוש פרויקט…" aria-label="חיפוש פרויקט">
+      <button id="editBtn" class="tbtn" type="button">עריכה</button>
+    </div>
   </header>
+  <div class="editbar">
+    <p>מצב עריכה. השינויים נשמרים במכשיר הזה. כדי שיופיעו בכל מכשיר, הורד קובץ שינויים ושלח אותו ל-Claude.</p>
+    <button id="exportBtn" class="tbtn" type="button">הורד קובץ שינויים</button>
+    <label class="tbtn" for="importFile" style="display:inline-flex;align-items:center">טען קובץ שינויים</label>
+    <input id="importFile" type="file" accept=".json,application/json" hidden>
+  </div>
+  <p id="msg" role="status"></p>
   <div id="board"></div>
   <footer>פרויקטים גדולים יושבים במאגר משלהם. פרויקטים קטנים יושבים כאן כתיקייה, כמו אתגר המספרים.</footer>
 </main>
-
 <script>
-const GH='https://mazivco-design.github.io/', REPO='https://github.com/mazivco-design/';
-const groups=[
- {id:'read',title:'קריאה וכתיבה',note:'לימוד לילדים',items:[
-  {name:'פרויקט נועם',desc:'סרטוני יוטיוב הופכים למשחקי הקלדה, העתקה וכתיבה חופשית.',tags:['כתיבה','יוטיוב'],repo:'NINJGO-GAME-HEBREW-WRITING'},
-  {name:'פרויקט נועם — עותק גיבוי',desc:'עותק נפרד של הפרויקט במאגר משלו.',tags:['גיבוי'],repo:'Noam-writing-game-claude'},
-  {name:'דף קריאה חכם',desc:'קריאה בקול עם זיהוי דיבור. המילה הנוכחית מסומנת וממשיכים רק כשנקראה נכון.',tags:['קריאה','זיהוי דיבור'],repo:'Smart-reading-page'},
-  {name:'ספר חי',desc:'ספרייה של ספרי ילדים. כשהעמוד נקרא נכון, האיור מתעורר לחיים.',tags:['קריאה','אנימציה'],repo:'live-book'}]},
- {id:'games',title:'משחקים',note:'חשבון ואנגלית',items:[
-  {name:'משחק הנינג׳ה הקולי',desc:'ארקייד באנגלית בשליטה קולית: JUMP, DOWN ועוד, בשלבים.',tags:['אנגלית','זיהוי דיבור'],repo:'ninja-voice-game',extra:{label:'גרסה יציבה',url:GH+'ninja-voice-game/stable/'}},
-  {name:'אתגר המספרים',desc:'משחק המספרים של Countdown עם ציר מספרים וקפיצות.',tags:['חשבון'],url:'numbers/'}]},
- {id:'tools',title:'כלים וחקירות',note:'יצירה ומדע',items:[
-  {name:'מפת התבליט של ישראל',desc:'מפה טופוגרפית תלת־ממדית עם גובה בכל נקודה וסיור מעוף.',tags:['מפות','תלת־ממד'],repo:'israel-map'},
-  {name:'canvas-sheli',desc:'אפליקציית ציור לעיפרון של אפל, עם שכבות ומברשות מותאמות.',tags:['ציור'],repo:'canvas-sheli'},
-  {name:'אריח הכובע',desc:'ריצוף לא־מחזורי מהאריח היחיד, עם אוטומטים תאיים שרצים עליו.',tags:['מתמטיקה'],url:'https://claude.ai/artifact/WDdqpJEK6LQMjzfXJ7aCNF'}]},
- {id:'ideas',title:'רעיונות בדרך',note:'עוד לא בנויים',cls:'ideas',items:[
-  {name:'גשר האשליות',desc:'משחק תנועה על גריד איזומטרי עם אשליות עומק וסיבוב העולם.',tags:['רעיון'],idea:true},
-  {name:'תופסת על כדור',desc:'תופסת תלת־ממדית על כדור עם מחילות נסתרות.',tags:['רעיון'],idea:true},
-  {name:'אפליקציית חשבון ויזואלית',desc:'תרגילי חשבון עם חלק חזותי שעוזר להבין. לגילאי 6–11.',tags:['רעיון'],idea:true}]}
-];
-const board=document.getElementById('board'), q=document.getElementById('q');
-function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function tile(p){
-  const url=p.url||(p.repo?GH+p.repo+'/':null);
+const GH='https://mazivco-design.github.io/', REPO='https://github.com/mazivco-design/', KEY='hub-edits-v1';
+let data={groups:[],projects:[]}, edits={};
+const $=s=>document.querySelector(s), board=$('#board'), q=$('#q'), msg=$('#msg');
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function say(t){msg.textContent=t; if(t) setTimeout(()=>{if(msg.textContent===t)msg.textContent=''},4000)}
+function loadEdits(){try{edits=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){edits={}}}
+function saveEdits(){try{localStorage.setItem(KEY,JSON.stringify(edits));return true}catch(e){say('אין מספיק מקום במכשיר לשמירה. נסה תמונה קטנה יותר.');return false}}
+function view(p){const e=edits[p.id]||{};return {...p,desc:e.desc??p.desc,image:e.image??p.image,changed:!!(e.desc!=null||e.image!=null)}}
+
+function tile(p0){
+  const p=view(p0), url=p.url||(p.repo?GH+p.repo+'/':null);
   let a='';
-  if(url) a+=`<a class="btn open" href="${url}" target="_blank" rel="noopener">פתח</a>`;
-  if(p.extra) a+=`<a class="btn code" href="${p.extra.url}" target="_blank" rel="noopener">${p.extra.label}</a>`;
+  if(url) a+=`<a class="btn open" href="${esc(url)}" target="_blank" rel="noopener">פתח</a>`;
+  if(p.extra) a+=`<a class="btn code" href="${esc(p.extra.url)}" target="_blank" rel="noopener">${esc(p.extra.label)}</a>`;
   if(p.repo) a+=`<a class="btn code" href="${REPO+p.repo}" target="_blank" rel="noopener">קוד</a>`;
-  if(p.missing) a+=`<span class="missing">קישור חסר</span>`;
   const tags=p.tags.map(t=>`<span class="tag${p.idea?' warn':''}">${esc(t)}</span>`).join('');
-  return `<article class="tile"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><div class="tags">${tags}</div>${a?`<div class="actions">${a}</div>`:''}</article>`;
+  return `<article class="tile" data-id="${p.id}">
+   <img class="cover" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">
+   <div class="body">
+    <h3>${esc(p.name)}</h3>
+    <p class="view-desc">${esc(p.desc)}</p>
+    <div class="edit">
+      <textarea id="d-${p.id}" aria-label="תיאור ${esc(p.name)}">${esc(p.desc)}</textarea>
+      <div class="row">
+        <button class="tbtn" type="button" data-act="save">שמור תיאור</button>
+        <label class="tbtn" for="f-${p.id}">החלף תמונה</label>
+        <input id="f-${p.id}" type="file" accept="image/*" data-act="img">
+        ${p.changed?'<button class="tbtn" type="button" data-act="reset">החזר למקור</button>':''}
+      </div>
+      ${p.changed?'<span class="changed">שונה במכשיר הזה</span>':''}
+    </div>
+    <div class="tags">${tags}</div>
+    ${a?`<div class="actions">${a}</div>`:''}
+   </div></article>`;
 }
 function render(){
-  const term=q.value.trim().toLowerCase(); let html='', n=0;
-  for(const g of groups){
-    const items=g.items.filter(p=>!term||(p.name+p.desc+p.tags.join(' ')).toLowerCase().includes(term));
+  const term=q.value.trim().toLowerCase(); let html='',n=0;
+  for(const g of data.groups){
+    const items=data.projects.filter(p=>p.group===g.id).map(view)
+      .filter(p=>!term||(p.name+p.desc+p.tags.join(' ')).toLowerCase().includes(term));
     if(!items.length) continue; n+=items.length;
-    html+=`<section class="${g.cls||''}"><h2>${g.title}<small>${g.note} · ${items.length}</small></h2><div class="grid">${items.map(tile).join('')}</div></section>`;
+    html+=`<section class="${g.id==='ideas'?'ideas':''}"><h2>${g.title}<small>${g.note} · ${items.length}</small></h2><div class="grid">${items.map(tile).join('')}</div></section>`;
   }
   board.innerHTML=n?`<div style="display:flex;flex-direction:column;gap:36px">${html}</div>`:'<p class="empty">לא נמצא פרויקט בשם הזה.</p>';
 }
-q.addEventListener('input',render); render();
+// shrink an uploaded picture so it fits in device storage
+function shrink(file){return new Promise((ok,bad)=>{const img=new Image(),u=URL.createObjectURL(file);
+  img.onload=()=>{const W=640,s=Math.min(1,W/img.width),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',0.8))};
+  img.onerror=()=>bad();img.src=u})}
+
+board.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b||b.type==='file') return;
+  const id=b.closest('.tile').dataset.id;
+  if(b.dataset.act==='save'){edits[id]={...edits[id],desc:$('#d-'+id).value.trim()}; if(saveEdits()){render();say('התיאור נשמר')}}
+  if(b.dataset.act==='reset'){delete edits[id]; saveEdits(); render(); say('הוחזר למקור')}
+});
+board.addEventListener('change',async e=>{
+  const f=e.target; if(f.dataset.act!=='img'||!f.files[0]) return;
+  const id=f.closest('.tile').dataset.id;
+  try{const url=await shrink(f.files[0]); edits[id]={...edits[id],image:url}; if(saveEdits()){render();say('התמונה הוחלפה')}}
+  catch(err){say('לא הצלחתי לקרוא את התמונה. נסה קובץ אחר.')}
+});
+$('#editBtn').onclick=()=>{const on=document.body.classList.toggle('editing');$('#editBtn').classList.toggle('on',on);$('#editBtn').textContent=on?'סיום עריכה':'עריכה'};
+$('#exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify({kind:'hub-edits',date:new Date().toISOString(),edits},null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hub-edits.json';document.body.appendChild(a);a.click();a.remove();
+  say('הקובץ hub-edits.json ירד');
+};
+$('#importFile').onchange=async e=>{
+  try{const o=JSON.parse(await e.target.files[0].text()); if(!o.edits) throw 0; edits={...edits,...o.edits}; if(saveEdits()){render();say('השינויים נטענו')}}
+  catch(err){say('הקובץ הזה הוא לא קובץ שינויים של האתר.')}
+  e.target.value='';
+};
+q.addEventListener('input',render);
+loadEdits();
+fetch('projects.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{data=d;render()})
+ .catch(()=>{board.innerHTML='<p class="empty">לא הצלחתי לטעון את רשימת הפרויקטים. רענן את הדף.</p>'});
 </script>
 </body>
 </html>

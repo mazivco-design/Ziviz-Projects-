@@ -1,0 +1,167 @@
+{
+ "groups": [
+  {
+   "id": "read",
+   "title": "קריאה וכתיבה",
+   "note": "לימוד לילדים"
+  },
+  {
+   "id": "games",
+   "title": "משחקים",
+   "note": "חשבון ואנגלית"
+  },
+  {
+   "id": "tools",
+   "title": "כלים וחקירות",
+   "note": "יצירה ומדע"
+  },
+  {
+   "id": "ideas",
+   "title": "רעיונות בדרך",
+   "note": "עוד לא בנויים"
+  }
+ ],
+ "projects": [
+  {
+   "id": "noam",
+   "group": "read",
+   "name": "פרויקט נועם",
+   "desc": "סרטוני יוטיוב הופכים למשחקי הקלדה, העתקה וכתיבה חופשית.",
+   "tags": [
+    "כתיבה",
+    "יוטיוב"
+   ],
+   "image": "images/noam.svg",
+   "repo": "NINJGO-GAME-HEBREW-WRITING"
+  },
+  {
+   "id": "noam-backup",
+   "group": "read",
+   "name": "פרויקט נועם — עותק גיבוי",
+   "desc": "עותק נפרד של הפרויקט במאגר משלו.",
+   "tags": [
+    "גיבוי"
+   ],
+   "image": "images/noam-backup.svg",
+   "repo": "Noam-writing-game-claude"
+  },
+  {
+   "id": "smart-reading",
+   "group": "read",
+   "name": "דף קריאה חכם",
+   "desc": "קריאה בקול עם זיהוי דיבור. המילה הנוכחית מסומנת וממשיכים רק כשנקראה נכון.",
+   "tags": [
+    "קריאה",
+    "זיהוי דיבור"
+   ],
+   "image": "images/smart-reading.svg",
+   "repo": "Smart-reading-page"
+  },
+  {
+   "id": "live-book",
+   "group": "read",
+   "name": "ספר חי",
+   "desc": "ספרייה של ספרי ילדים. כשהעמוד נקרא נכון, האיור מתעורר לחיים.",
+   "tags": [
+    "קריאה",
+    "אנימציה"
+   ],
+   "image": "images/live-book.svg",
+   "repo": "live-book"
+  },
+  {
+   "id": "ninja",
+   "group": "games",
+   "name": "משחק הנינג׳ה הקולי",
+   "desc": "ארקייד באנגלית בשליטה קולית: JUMP, DOWN ועוד, בשלבים.",
+   "tags": [
+    "אנגלית",
+    "זיהוי דיבור"
+   ],
+   "image": "images/ninja.svg",
+   "repo": "ninja-voice-game",
+   "extra": {
+    "label": "גרסה יציבה",
+    "url": "https://mazivco-design.github.io/ninja-voice-game/stable/"
+   }
+  },
+  {
+   "id": "numbers",
+   "group": "games",
+   "name": "אתגר המספרים",
+   "desc": "משחק המספרים של Countdown עם ציר מספרים וקפיצות.",
+   "tags": [
+    "חשבון"
+   ],
+   "image": "images/numbers.svg",
+   "url": "numbers/"
+  },
+  {
+   "id": "israel-map",
+   "group": "tools",
+   "name": "מפת התבליט של ישראל",
+   "desc": "מפה טופוגרפית תלת־ממדית עם גובה בכל נקודה וסיור מעוף.",
+   "tags": [
+    "מפות",
+    "תלת־ממד"
+   ],
+   "image": "images/israel-map.svg",
+   "repo": "israel-map"
+  },
+  {
+   "id": "canvas",
+   "group": "tools",
+   "name": "canvas-sheli",
+   "desc": "אפליקציית ציור לעיפרון של אפל, עם שכבות ומברשות מותאמות.",
+   "tags": [
+    "ציור"
+   ],
+   "image": "images/canvas.svg",
+   "repo": "canvas-sheli"
+  },
+  {
+   "id": "hat",
+   "group": "tools",
+   "name": "אריח הכובע",
+   "desc": "ריצוף לא־מחזורי מהאריח היחיד, עם אוטומטים תאיים שרצים עליו.",
+   "tags": [
+    "מתמטיקה"
+   ],
+   "image": "images/hat.svg",
+   "url": "https://claude.ai/artifact/WDdqpJEK6LQMjzfXJ7aCNF"
+  },
+  {
+   "id": "illusions",
+   "group": "ideas",
+   "name": "גשר האשליות",
+   "desc": "משחק תנועה על גריד איזומטרי עם אשליות עומק וסיבוב העולם.",
+   "tags": [
+    "רעיון"
+   ],
+   "image": "images/illusions.svg",
+   "idea": true
+  },
+  {
+   "id": "sphere-tag",
+   "group": "ideas",
+   "name": "תופסת על כדור",
+   "desc": "תופסת תלת־ממדית על כדור עם מחילות נסתרות.",
+   "tags": [
+    "רעיון"
+   ],
+   "image": "images/sphere-tag.svg",
+   "idea": true
+  },
+  {
+   "id": "math-visual",
+   "group": "ideas",
+   "name": "אפליקציית חשבון ויזואלית",
+   "desc": "תרגילי חשבון עם חלק חזותי שעוזר להבין. לגילאי 6–11.",
+   "tags": [
+    "רעיון"
+   ],
+   "image": "images/math-visual.svg",
+   "idea": true
+  }
+ ]
+}
