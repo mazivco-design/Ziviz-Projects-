@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>קלפי ABC נינג'גו</title>
+<style>
+  :root { --primary:#d32f2f; --dark:#212121; --gold:#ffb300; --bg:#f5f5f5; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:20px; color:var(--dark); }
+  .controls-bar { max-width:1050px; margin:0 auto 25px auto; background:#fff; padding:15px 25px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.08);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; }
+  .controls-bar h1 { margin:0; font-size:24px; color:var(--primary); }
+  .btn-group { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button, .btn { background:var(--primary); color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; transition:.2s; text-decoration:none; font-family:inherit; }
+  button:hover, .btn:hover { background:#b71c1c; }
+  button.secondary, .btn.secondary { background:#555; }
+  button.secondary:hover, .btn.secondary:hover { background:#333; }
+  #syncBtn.on { background:#2e7d32; }
+  #status { font-size:13px; color:#666; min-width:9em; }
+  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:20px; max-width:1250px; margin:0 auto; }
+  .card { background:#fff; border:3px solid #222; border-radius:12px; padding:15px; box-shadow:0 4px 10px rgba(0,0,0,.05); display:flex; flex-direction:column; justify-content:space-between; position:relative; box-sizing:border-box; }
+  .card-header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #eee; padding-bottom:10px; }
+  .letters-group { display:flex; align-items:center; gap:8px; direction:ltr; }
+  .letter-box { font-size:26px; font-weight:900; font-family:'Courier New',monospace; width:44px; height:44px; display:flex; align-items:center; justify-content:center; border-radius:8px; cursor:pointer; transition:transform .1s,background .2s; user-select:none; }
+  .letter-box:hover { transform:scale(1.08); }
+  .letter-upper { background:#fff3e0; border:2px solid var(--gold); color:#e65100; }
+  .letter-lower { background:#e8f5e9; border:2px solid #66bb6a; color:#2e7d32; }
+  .ninjago-name-container { display:flex; align-items:center; gap:6px; direction:ltr; }
+  .ninjago-name { font-size:18px; font-weight:bold; color:var(--primary); outline:none; }
+  .action-icon-btn { background:#f0f0f0; border:1px solid #ccc; border-radius:6px; padding:4px 7px; cursor:pointer; font-size:14px; color:#222; text-decoration:none; }
+  .action-icon-btn:hover { background:#e0e0e0; }
+  .image-container { width:100%; height:205px; border:2px dashed #bbb; border-radius:8px; margin:12px 0; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; background:#fafafa; overflow:hidden; outline:none; cursor:pointer; }
+  .image-container:focus, .image-container.dragover { border-color:var(--primary); background:#fff8e1; }
+  .image-container img { width:100%; height:100%; object-fit:contain; background:#fff; }
+  .delete-img-btn { position:absolute; top:8px; left:8px; background:rgba(211,47,47,.9); color:#fff; border:none; border-radius:50%; width:28px; height:28px; padding:0; font-size:13px; display:flex; align-items:center; justify-content:center; z-index:5; }
+  .image-placeholder-text { font-size:13px; color:#777; text-align:center; line-height:1.5; padding:10px; pointer-events:none; }
+  .img-toolbar { position:absolute; bottom:6px; background:rgba(255,255,255,.94); padding:3px 10px; border-radius:6px; display:flex; gap:8px; font-size:11px; border:1px solid #ddd; z-index:4; }
+  .img-toolbar a, .img-toolbar span { color:#333; text-decoration:none; cursor:pointer; font-weight:bold; }
+  .extra-section { border-top:1px solid #eee; padding-top:10px; }
+  .extra-title { font-size:12px; font-weight:bold; color:#666; margin-bottom:6px; }
+  .words-list { display:flex; flex-direction:column; gap:8px; }
+  .word-row { display:flex; align-items:center; gap:6px; direction:ltr; }
+  .word-input { flex:1; border:1px solid #ddd; border-radius:4px; padding:6px 8px; font-size:16px; outline:none; min-width:0; }
+  .word-input:focus { border-color:var(--primary); background:#fffde7; }
+  #importBox { max-width:1050px; margin:0 auto 20px; background:#fff; border-radius:12px; padding:15px 25px; box-shadow:0 4px 12px rgba(0,0,0,.08); display:none; }
+  #importBox.open { display:block; }
+  #importBox textarea { width:100%; box-sizing:border-box; min-height:90px; font-size:14px; }
+  @media print {
+    body { background:#fff; padding:0; }
+    .controls-bar, #importBox, .img-toolbar, .action-icon-btn, .image-placeholder-text, .delete-img-btn { display:none !important; }
+    .cards-grid { grid-template-columns:1fr 1fr; gap:15mm; width:100%; }
+    .card { break-inside:avoid; box-shadow:none; border:2px solid #000; height:125mm; }
+    .word-input { border:none; border-bottom:1px dotted #555; border-radius:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls-bar">
+  <div>
+    <h1>קלפי ABC נינג'גו 🔊</h1>
+    <small>הכול נשמר אוטומטית. הדבקת תמונה, גרירה או בחירה מהמכשיר.</small>
+  </div>
+  <div class="btn-group">
+    <span id="status" role="status"></span>
+    <button id="syncBtn" type="button" hidden>☁️ התחבר לסנכרון</button>
+    <button class="secondary" type="button" onclick="document.getElementById('importBox').classList.toggle('open')">📥 העברה מהגרסה הישנה</button>
+    <button class="secondary" type="button" onclick="window.print()">🖨️ הדפס קלפים</button>
+    <a class="btn secondary" href="../">כל הפרויקטים</a>
+  </div>
+</div>
+
+<div id="importBox">
+  <p style="margin-top:0">בגרסה הישנה (ב-Claude) לחץ <b>"העתק להעברה"</b>, ואז הדבק כאן ולחץ <b>"טען"</b>. קלפים שכבר מילאת כאן לא יידרסו אם הם ריקים בגרסה הישנה.</p>
+  <textarea id="importText" placeholder="הדבק כאן…"></textarea>
+  <p><button type="button" id="importBtn">טען</button></p>
+</div>
+
+<div class="cards-grid" id="cardsGrid"></div>
+
+<script>
+const data = [
+  { upper:'A', lower:'a', name:'Airjitzu' }, { upper:'B', lower:'b', name:'Borg' }, { upper:'C', lower:'c', name:'Cole' },
+  { upper:'D', lower:'d', name:'Dareth' }, { upper:'E', lower:'e', name:'Elemental Masters' }, { upper:'F', lower:'f', name:'First Spinjitzu Master' },
+  { upper:'G', lower:'g', name:'Garmadon' }, { upper:'H', lower:'h', name:'Harumi' }, { upper:'I', lower:'i', name:'Ice Dragon' },
+  { upper:'J', lower:'j', name:'Jay' }, { upper:'K', lower:'k', name:'Kai' }, { upper:'L', lower:'l', name:'Lloyd' },
+  { upper:'M', lower:'m', name:'Misako' }, { upper:'N', lower:'n', name:'Nya' }, { upper:'O', lower:'o', name:'Overlord' },
+  { upper:'P', lower:'p', name:'Pixal' }, { upper:'Q', lower:'q', name:'Quiet One' }, { upper:'R', lower:'r', name:'Ronin' },
+  { upper:'S', lower:'s', name:'Spinjitzu' }, { upper:'T', lower:'t', name:'Tournament of Elements' }, { upper:'U', lower:'u', name:'Ultra Dragon' },
+  { upper:'V', lower:'v', name:'Vex' }, { upper:'W', lower:'w', name:'Master Wu' }, { upper:'X', lower:'x', name:'Samurai X' },
+  { upper:'Y', lower:'y', name:'Master Yang' }, { upper:'Z', lower:'z', name:'Zane' }
+];
+const KEY = 'ninjago_abc_v3';
+const $ = id => document.getElementById(id);
+function status(t){ $('status').textContent = t; }
+
+/* ---------- voice ---------- */
+let voices = [];
+function loadVoices(){ if ('speechSynthesis' in window) voices = speechSynthesis.getVoices(); }
+loadVoices();
+if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+function getBestVoice(){
+  if (!voices.length) loadVoices();
+  return voices.find(v => v.lang.startsWith('en') && /Natural|Online|Neural|Google US English/.test(v.name))
+      || voices.find(v => v.lang.startsWith('en') && /Google|Microsoft|Samantha/.test(v.name))
+      || voices.find(v => v.lang.startsWith('en')) || null;
+}
+function speak(text){
+  if (!text || !text.trim() || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.trim());
+  u.lang = 'en-US'; u.rate = .88; u.pitch = 1.05;
+  const v = getBestVoice(); if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+
+/* ---------- saved state: one record per card, with the time it changed ---------- */
+function loadAll(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ return {}; } }
+let cards = loadAll();
+function cardOf(i){ const c = cards['card_' + i] || {}; return { words:[(c.words||[])[0]||'', (c.words||[])[1]||''], img:c.img||'', name:c.name||'', t:c.t||0 }; }
+function persist(){
+  try { localStorage.setItem(KEY, JSON.stringify(cards)); return true; }
+  catch(e){ status('אין מקום במכשיר. מחק תמונה או השתמש בתמונה קטנה יותר.'); return false; }
+}
+
+/* ---------- build cards ---------- */
+const grid = $('cardsGrid');
+data.forEach((item, i) => {
+  const id = 'card_' + i;
+  const card = document.createElement('div');
+  card.className = 'card'; card.id = id;
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="letters-group">
+        <div class="letter-box letter-upper" data-say="${item.upper}">${item.upper}</div>
+        <div class="letter-box letter-lower" data-say="${item.lower}">${item.lower}</div>
+      </div>
+      <div class="ninjago-name-container">
+        <span class="ninjago-name" id="title_${id}" contenteditable="true"></span>
+        <button class="action-icon-btn" type="button" data-say-el="title_${id}" title="השמע מילה">🔊</button>
+      </div>
+    </div>
+    <div class="image-container" id="img_wrap_${id}" tabindex="0" title="לחץ כאן והדבק תמונה, או גרור תמונה">
+      <button class="delete-img-btn" id="del_${id}" type="button" title="מחק תמונה">✕</button>
+      <img id="img_${id}" alt="">
+      <div class="image-placeholder-text" id="placeholder_${id}">לחץ כאן והדבק תמונה<br>או גרור תמונה 🖼️</div>
+      <div class="img-toolbar">
+        <a id="search_${id}" href="#" target="_blank" rel="noopener">🔍 חפש תמונה בגוגל</a>
+        <span>|</span>
+        <label for="file_${id}" style="cursor:pointer;font-weight:bold">📁 מהמכשיר</label>
+        <input type="file" id="file_${id}" accept="image/*" style="display:none">
+      </div>
+    </div>
+    <div class="extra-section">
+      <div class="extra-title">מילים נוספות באות:</div>
+      <div class="words-list">
+        ${[0,1].map(k => `<div class="word-row">
+          <input type="text" class="word-input" id="inp_${id}_${k}" placeholder="מילה ${k+1}..." autocomplete="off">
+          <button class="action-icon-btn" type="button" data-say-el="inp_${id}_${k}">🔊</button>
+          <a class="action-icon-btn" href="#" target="_blank" rel="noopener" data-search-el="inp_${id}_${k}" title="חפש תמונה למילה זו">🔍</a>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  grid.appendChild(card);
+  fillCard(i);
+  setupPasteAndDrop(i);
+  $('title_' + id).addEventListener('input', () => { updateSearch(i); changed(i); });
+  [0,1].forEach(k => $(`inp_${id}_${k}`).addEventListener('input', () => changed(i)));
+  $('del_' + id).addEventListener('click', e => { e.stopPropagation(); setImg(i, ''); changed(i); });
+  $('file_' + id).addEventListener('change', e => { const f = e.target.files[0]; if (f) readFile(i, f); e.target.value = ''; });
+});
+grid.addEventListener('click', e => {
+  const s = e.target.closest('[data-say]'); if (s) return speak(s.dataset.say);
+  const se = e.target.closest('[data-say-el]'); if (se) { const el = $(se.dataset.sayEl); return speak(el.value != null ? el.value : el.innerText); }
+  const q = e.target.closest('[data-search-el]');
+  if (q) { const w = $(q.dataset.searchEl).value.trim(); if (!w) { e.preventDefault(); return; } q.href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(w); }
+});
+
+function fillCard(i){
+  const id = 'card_' + i, c = cardOf(i);
+  const title = $('title_' + id), name = c.name || data[i].name;
+  if (title.innerText !== name && document.activeElement !== title) title.innerText = name;
+  [0,1].forEach(k => { const el = $(`inp_${id}_${k}`); if (document.activeElement !== el) el.value = c.words[k]; });
+  setImg(i, c.img);
+  updateSearch(i);
+}
+function setImg(i, src){
+  const id = 'card_' + i, img = $('img_' + id);
+  if (src) img.src = src; else img.removeAttribute('src');
+  img.style.display = src ? 'block' : 'none';
+  $('placeholder_' + id).style.display = src ? 'none' : 'block';
+  $('del_' + id).style.display = src ? 'flex' : 'none';
+}
+function updateSearch(i){
+  const id = 'card_' + i, word = ($('title_' + id).innerText || '').trim();
+  $('search_' + id).href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(word ? 'lego ninjago ' + word : 'lego ninjago');
+}
+function readCard(i){
+  const id = 'card_' + i, img = $('img_' + id);
+  const name = ($('title_' + id).innerText || '').trim();
+  return { words:[$(`inp_${id}_0`).value, $(`inp_${id}_1`).value],
+           img: img.style.display !== 'none' ? (img.getAttribute('src') || '') : '',
+           name: name && name !== data[i].name ? name : '' };
+}
+
+/* autosave */
+const dirty = new Set(); let saveTimer = null;
+function changed(i){ dirty.add(i); status('שומר…'); clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700); }
+function flush(){
+  const now = Date.now(), ids = [...dirty]; dirty.clear();
+  ids.forEach(i => { cards['card_' + i] = { ...readCard(i), t: now }; });
+  if (persist()) status('נשמר ✓');
+  ids.forEach(i => pushCard(i));
+}
+
+/* pictures: shrink before saving so they fit on the device and in the account */
+function shrink(src){
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => {
+      const s = Math.min(1, 700 / Math.max(im.width, im.height));
+      const c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      try { res(c.toDataURL('image/jpeg', .82)); } catch(e) { res(src); }
+    };
+    im.onerror = () => res(src);
+    im.src = src;
+  });
+}
+function readFile(i, file){
+  const r = new FileReader();
+  r.onload = async ev => { setImg(i, await shrink(ev.target.result)); changed(i); };
+  r.readAsDataURL(file);
+}
+function setupPasteAndDrop(i){
+  const wrap = $('img_wrap_card_' + i);
+  wrap.addEventListener('paste', e => {
+    const items = (e.clipboardData || {}).items || [];
+    for (const it of items) if (it.type.indexOf('image') !== -1) { readFile(i, it.getAsFile()); e.preventDefault(); return; }
+    const text = e.clipboardData.getData('text');
+    if (text && /^https?:\/\//.test(text)) { setImg(i, text); changed(i); e.preventDefault(); }
+  });
+  wrap.addEventListener('dragover', e => { e.preventDefault(); wrap.classList.add('dragover'); });
+  wrap.addEventListener('dragleave', () => wrap.classList.remove('dragover'));
+  wrap.addEventListener('drop', e => {
+    e.preventDefault(); wrap.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) return readFile(i, e.dataTransfer.files[0]);
+    const m = (e.dataTransfer.getData('text/html') || '').match(/src=["'](.*?)["']/);
+    if (m && m[1]) { setImg(i, m[1]); changed(i); }
+  });
+}
+
+/* transfer from the old version in Claude */
+$('importBtn').onclick = async () => {
+  let o; try { o = JSON.parse($('importText').value.trim()); } catch(e) { return status('הטקסט שהודבק לא תקין. נסה להעתיק שוב.'); }
+  if (o && o.cards) o = o.cards;
+  if (!o || typeof o !== 'object') return status('הטקסט שהודבק לא תקין.');
+  let n = 0;
+  for (let i = 0; i < data.length; i++) {
+    const src = o['card_' + i]; if (!src) continue;
+    const words = src.words || [], hasAny = src.img || words[0] || words[1];
+    if (!hasAny) continue;
+    const img = src.img && src.img.startsWith('data:') ? await shrink(src.img) : (src.img || '');
+    cards['card_' + i] = { words:[words[0]||'', words[1]||''], img, name: src.name || '', t: Date.now() };
+    fillCard(i); n++;
+  }
+  persist(); for (let i = 0; i < data.length; i++) pushCard(i);
+  $('importText').value = ''; $('importBox').classList.remove('open');
+  status(`הועברו ${n} קלפים ✓`);
+};
+
+/* ---------- sync (shared ZSync from the projects site) ---------- */
+const APP = 'abc-cards';
+let Z = null, ready = false, unsub = null, remote = {};
+function pushCard(i){
+  if (!ready || !Z || !Z.user) return;
+  const k = 'card_' + i, c = cards[k]; if (!c) return;
+  const v = JSON.stringify(c);
+  if (remote[k] === v) return;
+  if (v.length > 1000000) return status('תמונה גדולה מדי לסנכרון.');
+  Z.saveItem(APP, k, v).catch(() => status('הסנכרון נכשל. השינוי נשמר במכשיר.'));
+}
+function onRemote(items){
+  remote = items;
+  let took = false;
+  for (let i = 0; i < data.length; i++) {
+    const k = 'card_' + i;
+    let r = null; try { r = items[k] ? JSON.parse(items[k]) : null; } catch(e) {}
+    const l = cards[k];
+    if (r && (!l || (r.t || 0) > (l.t || 0))) { cards[k] = r; if (!dirty.has(i)) fillCard(i); took = true; }
+  }
+  if (took) persist();
+  if (!ready) { ready = true; for (let i = 0; i < data.length; i++) pushCard(i); } // first time: send what's newer here
+}
+function setSyncUI(){
+  const b = $('syncBtn'); b.hidden = false;
+  if (Z.user) { b.textContent = '☁️ מסונכרן'; b.classList.add('on'); b.title = Z.user.email || ''; }
+  else { b.textContent = '☁️ התחבר לסנכרון'; b.classList.remove('on'); b.title = ''; }
+}
+$('syncBtn').onclick = async () => {
+  if (!Z) return;
+  if (Z.user) return status('מחובר בתור ' + (Z.user.email || ''));
+  try { await Z.signIn(); } catch(e) { if (!e || e.code !== 'auth/popup-closed-by-user') status('הכניסה לא הצליחה. נסה שוב.'); }
+};
+function hook(){
+  if (Z || !window.ZSync) return; Z = window.ZSync;
+  Z.onUser(u => {
+    if (unsub) { unsub(); unsub = null; }
+    ready = false; remote = {}; setSyncUI();
+    if (u) unsub = Z.watchItems(APP, onRemote);
+  });
+}
+window.addEventListener('zsync-ready', hook); hook();
+</script>
+<script src="../firebase-config.js"></script>
+<script type="module" src="../sync.js"></script>
+</body>
+</html>

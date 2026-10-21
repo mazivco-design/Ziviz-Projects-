@@ -258,14 +258,20 @@
   },
   {
    "id": "abc-cards",
-   "group": "claude",
+   "group": "games",
    "name": "קלפי ABC נינג׳גו",
-   "desc": "קלפי אותיות באנגלית בעיצוב נינג׳גו.",
+   "desc": "קלפי אותיות באנגלית בעיצוב נינג׳גו, עם השמעה, תמונה ומילים לכל אות. מסתנכרן בין המכשירים.",
    "tags": [
     "אנגלית"
    ],
    "image": "images/artifact.svg",
-   "url": "https://claude.ai/artifact/PupyG6LCe2xksmM3AQ6bMz"
+   "url": "abc-cards/",
+   "links": [
+    {
+     "label": "גרסה ישנה ב-Claude",
+     "url": "https://claude.ai/artifact/PupyG6LCe2xksmM3AQ6bMz"
+    }
+   ]
   },
   {
    "id": "ninja-dojo",
