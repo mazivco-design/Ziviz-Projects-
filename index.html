@@ -88,6 +88,8 @@ section.closed .grid{display:none}
 .linkform input,.linkform textarea,.linkform select{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
 .linkform .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 .linkform .row{display:flex;gap:8px;flex-wrap:wrap}
+.sync{display:inline-flex;align-items:center;gap:6px}
+.tbtn.synced{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 #msg:empty{display:none}#msg{color:var(--warn);font-weight:600;margin:0}
 footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:16px}
 </style>
@@ -103,15 +105,17 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
     <div class="tools">
       <input id="q" type="search" placeholder="חיפוש פרויקט…" aria-label="חיפוש פרויקט">
       <a class="tbtn" href="github.html" style="display:inline-flex;align-items:center;text-decoration:none">GitHub</a>
+      <button id="syncBtn" class="tbtn" type="button" hidden>התחבר לסנכרון</button>
       <button id="editBtn" class="tbtn" type="button">עריכה</button>
     </div>
   </header>
   <div class="editbar">
-    <p>מצב עריכה. השינויים נשמרים במכשיר הזה. כדי שיופיעו בכל מכשיר, הורד קובץ שינויים ושלח אותו ל-Claude.</p>
+    <p id="editNote">מצב עריכה. השינויים נשמרים במכשיר הזה בלבד. כדי לסנכרן בין המכשירים, לחץ "התחבר לסנכרון" למעלה.</p>
     <button id="newLinkBtn" class="tbtn" type="button">קישור חדש</button>
     <button id="newFolderBtn" class="tbtn" type="button">תיקייה חדשה</button>
-    <button id="exportBtn" class="tbtn" type="button">הורד קובץ שינויים</button>
-    <label class="tbtn" for="importFile" style="display:inline-flex;align-items:center">טען קובץ שינויים</label>
+    <button id="exportBtn" class="tbtn" type="button">הורד גיבוי</button>
+    <label class="tbtn" for="importFile" style="display:inline-flex;align-items:center">טען גיבוי</label>
+    <button id="signOutBtn" class="tbtn" type="button" hidden>התנתק</button>
     <input id="importFile" type="file" accept=".json,application/json" hidden>
   </div>
   <form class="linkform" id="linkForm" novalidate>
@@ -137,7 +141,8 @@ const $=s=>document.querySelector(s), board=$('#board'), q=$('#q'), msg=$('#msg'
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function say(t){msg.textContent=t; if(t) setTimeout(()=>{if(msg.textContent===t)msg.textContent=''},4000)}
 function get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}}
-function put(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){say('אין מספיק מקום במכשיר לשמירה. נסה תמונה קטנה יותר.');return false}}
+function putLocal(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function put(k,v){const ok=putLocal(k,v); schedulePush(); if(!ok&&!online()) say('אין מספיק מקום במכשיר לשמירה. נסה תמונה קטנה יותר.'); return ok||online()}
 function view(p){const e=edits[p.id]||{};return {...p,desc:e.desc??p.desc,image:e.image??p.image,changed:!!(e.desc!=null||e.image!=null)}}
 
 // layout = folders (with their order) and the order of projects inside each folder
@@ -284,6 +289,75 @@ form.onsubmit=e=>{
 edits=get(KEY,{}); layout=get(LKEY,null); closed=get(CKEY,{}); links=get(XKEY,[]);
 fetch('projects.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{data=d; base=d.projects; rebuild(); if(d.layout&&!layout) layout=d.layout; render()})
  .catch(()=>{board.innerHTML='<p class="empty">לא הצלחתי לטעון את רשימת הפרויקטים. רענן את הדף.</p>'});
+
+/* ---------- sync with Firebase (via sync.js) ---------- */
+const APP='hub';
+let Z=null, pushTimer=null, applyingRemote=false, pushedImages={}, unsub=[];
+const online=()=>!!(Z&&Z.user);
+function stripImages(e){const o={};for(const[k,v] of Object.entries(e)){const{image,...rest}=v;if(Object.keys(rest).length)o[k]=rest}return o}
+function schedulePush(){ if(!online()||applyingRemote) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushRemote,600) }
+async function pushRemote(){
+  if(!online()) return;
+  try{
+    await Z.save(APP,{edits:stripImages(edits),links,layout:layout||null,closed});
+    const now={}; for(const[k,v] of Object.entries(edits)) if(v.image) now[k]=v.image;
+    for(const[k,v] of Object.entries(now)) if(pushedImages[k]!==v) await Z.saveItem(APP,'img-'+k,v);
+    for(const k of Object.keys(pushedImages)) if(!(k in now)) await Z.deleteItem(APP,'img-'+k);
+    pushedImages=now;
+  }catch(e){console.error(e); say('הסנכרון נכשל. השינוי נשמר במכשיר וינסה שוב בשינוי הבא.')}
+}
+function applyRemote(d,imgs){
+  applyingRemote=true;
+  const keepImg={}; for(const[k,v] of Object.entries(edits)) if(v.image) keepImg[k]=v.image;
+  if(d){ edits=d.edits||{}; links=d.links||[]; layout=d.layout||null; closed=d.closed||closed }
+  const images=imgs||keepImg;
+  if(imgs) for(const k of Object.keys(edits)) if(edits[k].image){const{image,...r}=edits[k]; edits[k]=r}
+  for(const[k,v] of Object.entries(images)) edits[k]={...edits[k],image:v};
+  putLocal(KEY,edits); putLocal(XKEY,links); putLocal(LKEY,layout); putLocal(CKEY,closed);
+  rebuild(); render(); applyingRemote=false;
+}
+function setSyncUI(){
+  const b=$('#syncBtn'); b.hidden=false;
+  if(online()){ b.textContent='מסונכרן ✓'; b.classList.add('synced'); b.title=Z.user.email||'';
+    $('#signOutBtn').hidden=false;
+    $('#editNote').textContent=`מצב עריכה. כל שינוי נשמר ומסתנכרן לכל המכשירים שמחוברים עם ${Z.user.email||'החשבון שלך'}.`;
+  } else { b.textContent='התחבר לסנכרון'; b.classList.remove('synced'); b.title='';
+    $('#signOutBtn').hidden=true;
+    $('#editNote').textContent='מצב עריכה. השינויים נשמרים במכשיר הזה בלבד. כדי לסנכרן בין המכשירים, לחץ "התחבר לסנכרון" למעלה.';
+  }
+}
+async function startSync(u){
+  unsub.forEach(f=>f()); unsub=[];
+  setSyncUI(); if(!u) return;
+  try{
+    const remote=await Z.load(APP);
+    if(!remote){ await pushRemote(); say('החשבון חובר. מעכשיו השינויים מסתנכרנים.') }
+    else {
+      // keep links that were added here before signing in
+      const have=new Set((remote.links||[]).map(x=>x.id)), extra=links.filter(x=>!have.has(x.id));
+      if(extra.length) remote.links=(remote.links||[]).concat(extra);
+      applyRemote(remote,null); if(extra.length) schedulePush();
+    }
+    let lastDoc=remote, lastImgs=null, firstItems=!!remote;
+    const localImgs={}; for(const[k,v] of Object.entries(edits)) if(v.image) localImgs[k]=v.image;
+    unsub.push(Z.watch(APP,(d,pending)=>{ if(pending||!d) return; lastDoc=d; applyRemote(d,lastImgs) }));
+    unsub.push(Z.watchItems(APP,items=>{
+      const imgs={}; for(const[k,v] of Object.entries(items)) if(k.startsWith('img-')) imgs[k.slice(4)]=v;
+      if(firstItems){ firstItems=false; // upload pictures that were changed here before signing in
+        for(const[k,v] of Object.entries(localImgs)) if(!(k in imgs)){ imgs[k]=v; Z.saveItem(APP,'img-'+k,v) } }
+      lastImgs=imgs; pushedImages={...imgs}; applyRemote(null,imgs);
+    }));
+  }catch(e){console.error(e); say('לא הצלחתי להתחבר לסנכרון. בדוק את החיבור לאינטרנט ונסה שוב.')}
+}
+$('#syncBtn').onclick=async()=>{
+  if(!Z) return; if(online()) { say(`מחובר בתור ${Z.user.email}`); return }
+  try{ await Z.signIn() }catch(e){ if(e&&e.code!=='auth/popup-closed-by-user') say('הכניסה לא הצליחה. נסה שוב.') }
+};
+$('#signOutBtn').onclick=async()=>{ if(Z){ await Z.signOut(); say('התנתקת. השינויים יישמרו מעכשיו רק במכשיר הזה.') } };
+function hookSync(){ if(Z||!window.ZSync) return; Z=window.ZSync; Z.onUser(startSync) }
+window.addEventListener('zsync-ready',hookSync); hookSync();
 </script>
+<script src="firebase-config.js"></script>
+<script type="module" src="sync.js"></script>
 </body>
 </html>
