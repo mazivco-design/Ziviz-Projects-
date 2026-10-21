@@ -98,7 +98,13 @@
    "extra": {
     "label": "גרסה יציבה",
     "url": "https://mazivco-design.github.io/ninja-voice-game/stable/"
-   }
+   },
+   "links": [
+    {
+     "label": "הכפר (אב טיפוס)",
+     "url": "https://mazivco-design.github.io/ninja-voice-game/village.html"
+    }
+   ]
   },
   {
    "id": "numbers",
