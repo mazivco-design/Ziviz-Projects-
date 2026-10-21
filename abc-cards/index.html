@@ -26,7 +26,9 @@
   .letter-upper { background:#fff3e0; border:2px solid var(--gold); color:#e65100; }
   .letter-lower { background:#e8f5e9; border:2px solid #66bb6a; color:#2e7d32; }
   .ninjago-name-container { display:flex; align-items:center; gap:6px; direction:ltr; }
-  .ninjago-name { font-size:18px; font-weight:bold; color:var(--primary); outline:none; }
+  .ninjago-name { font-size:18px; font-weight:bold; color:var(--primary); outline:none; min-width:70px; display:inline-block; }
+  .ninjago-name:empty::before { content:'name...'; color:#bbb; font-weight:normal; }
+  .ninjago-name:focus { border-bottom:2px solid var(--gold); }
   .action-icon-btn { background:#f0f0f0; border:1px solid #ccc; border-radius:6px; padding:4px 7px; cursor:pointer; font-size:14px; color:#222; text-decoration:none; }
   .action-icon-btn:hover { background:#e0e0e0; }
   .image-container { width:100%; height:205px; border:2px dashed #bbb; border-radius:8px; margin:12px 0; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; background:#fafafa; overflow:hidden; outline:none; cursor:pointer; }
@@ -36,12 +38,15 @@
   .image-placeholder-text { font-size:13px; color:#777; text-align:center; line-height:1.5; padding:10px; pointer-events:none; }
   .img-toolbar { position:absolute; bottom:6px; background:rgba(255,255,255,.94); padding:3px 10px; border-radius:6px; display:flex; gap:8px; font-size:11px; border:1px solid #ddd; z-index:4; }
   .img-toolbar a, .img-toolbar span { color:#333; text-decoration:none; cursor:pointer; font-weight:bold; }
-  .extra-section { border-top:1px solid #eee; padding-top:10px; }
-  .extra-title { font-size:12px; font-weight:bold; color:#666; margin-bottom:6px; }
-  .words-list { display:flex; flex-direction:column; gap:8px; }
-  .word-row { display:flex; align-items:center; gap:6px; direction:ltr; }
-  .word-input { flex:1; border:1px solid #ddd; border-radius:4px; padding:6px 8px; font-size:16px; outline:none; min-width:0; }
-  .word-input:focus { border-color:var(--primary); background:#fffde7; }
+  .tabbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; direction:ltr; margin-bottom:10px; }
+  .tab { display:flex; align-items:center; gap:4px; background:#eee; border:2px solid #ddd; border-radius:8px 8px 0 0; padding:5px 10px; font-size:14px; font-weight:bold; color:#444; cursor:pointer; user-select:none; max-width:160px; }
+  .tab span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tab.active { background:#fff3e0; border-color:var(--gold); color:#e65100; }
+  .tab .x { font-size:11px; color:#999; padding:0 2px; border-radius:4px; }
+  .tab .x:hover { background:#ffcdd2; color:#b71c1c; }
+  .tab.add { background:#e8f5e9; border-color:#66bb6a; color:#2e7d32; font-size:18px; line-height:1; padding:3px 10px; }
+  .pane { display:none; }
+  .pane.active { display:block; }
   #importBox { max-width:1050px; margin:0 auto 20px; background:#fff; border-radius:12px; padding:15px 25px; box-shadow:0 4px 12px rgba(0,0,0,.08); display:none; }
   #importBox.open { display:block; }
   #importBox textarea { width:100%; box-sizing:border-box; min-height:90px; font-size:14px; }
@@ -49,8 +54,10 @@
     body { background:#fff; padding:0; }
     .controls-bar, #importBox, .img-toolbar, .action-icon-btn, .image-placeholder-text, .delete-img-btn { display:none !important; }
     .cards-grid { grid-template-columns:1fr 1fr; gap:15mm; width:100%; }
-    .card { break-inside:avoid; box-shadow:none; border:2px solid #000; height:125mm; }
-    .word-input { border:none; border-bottom:1px dotted #555; border-radius:0; }
+    .tabbar { display:none !important; }
+    .card { display:contents; }
+    .pane { display:block !important; break-inside:avoid; border:2px solid #000; border-radius:12px; padding:15px; height:125mm; box-sizing:border-box; }
+    .pane .image-container { height:95mm; }
   }
 </style>
 </head>
@@ -59,7 +66,7 @@
 <div class="controls-bar">
   <div>
     <h1>קלפי ABC נינג'גו 🔊</h1>
-    <small>הכול נשמר אוטומטית. הדבקת תמונה, גרירה או בחירה מהמכשיר.</small>
+    <small>הכול נשמר אוטומטית. בכל אות אפשר להוסיף לשוניות עם דמויות ומושגים נוספים (+).</small>
   </div>
   <div class="btn-group">
     <span id="status" role="status"></span>
@@ -114,103 +121,166 @@ function speak(text){
   speechSynthesis.speak(u);
 }
 
-/* ---------- saved state: one record per card, with the time it changed ---------- */
+/* ---------- saved state ----------
+   cards = { 'card_3': {name, img, t},  'card_3_1': {...}, 'card_3_2': {...}, ... }
+   'card_i' is the first tab of letter i, 'card_i_n' are extra tabs. A deleted tab is kept as {del:true, t}
+   so that the deletion also reaches the other devices. */
 function loadAll(){ try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ return {}; } }
 let cards = loadAll();
-function cardOf(i){ const c = cards['card_' + i] || {}; return { words:[(c.words||[])[0]||'', (c.words||[])[1]||''], img:c.img||'', name:c.name||'', t:c.t||0 }; }
 function persist(){
   try { localStorage.setItem(KEY, JSON.stringify(cards)); return true; }
   catch(e){ status('אין מקום במכשיר. מחק תמונה או השתמש בתמונה קטנה יותר.'); return false; }
 }
+const letterOf = key => parseInt(key.split('_')[1], 10);
+const numOf = key => parseInt(key.split('_')[2] || '0', 10);
+const isKeyOf = (key, i) => key === 'card_' + i || key.startsWith('card_' + i + '_');
+function tabOf(key){ const c = cards[key] || {}; return { name:c.name||'', img:c.img||'', t:c.t||0, del:!!c.del }; }
+function defaultName(key){ return numOf(key) === 0 ? data[letterOf(key)].name : ''; }
+function nextKey(i){
+  let n = 0; Object.keys(cards).forEach(k => { if (isKeyOf(k, i)) n = Math.max(n, numOf(k)); });
+  return 'card_' + i + '_' + (n + 1);
+}
+function keysOf(i){ // live tabs of letter i, in order; always at least one
+  const out = Object.keys(cards).filter(k => isKeyOf(k, i) && !cards[k].del).sort((a, b) => numOf(a) - numOf(b));
+  if (!out.length) out.push(cards['card_' + i] ? nextKey(i) : 'card_' + i);
+  return out;
+}
+const active = {}; // letter index -> key of the open tab
 
 /* ---------- build cards ---------- */
 const grid = $('cardsGrid');
 data.forEach((item, i) => {
-  const id = 'card_' + i;
   const card = document.createElement('div');
-  card.className = 'card'; card.id = id;
-  card.innerHTML = `
+  card.className = 'card'; card.id = 'card_' + i;
+  grid.appendChild(card);
+  renderCard(i);
+});
+
+function paneHTML(key){
+  const item = data[letterOf(key)];
+  return `<div class="pane" id="pane_${key}" data-key="${key}">
     <div class="card-header">
       <div class="letters-group">
         <div class="letter-box letter-upper" data-say="${item.upper}">${item.upper}</div>
         <div class="letter-box letter-lower" data-say="${item.lower}">${item.lower}</div>
       </div>
       <div class="ninjago-name-container">
-        <span class="ninjago-name" id="title_${id}" contenteditable="true"></span>
-        <button class="action-icon-btn" type="button" data-say-el="title_${id}" title="השמע מילה">🔊</button>
+        <span class="ninjago-name" id="title_${key}" contenteditable="true" data-name-of="${key}"></span>
+        <button class="action-icon-btn" type="button" data-say-el="title_${key}" title="השמע מילה">🔊</button>
       </div>
     </div>
-    <div class="image-container" id="img_wrap_${id}" tabindex="0" title="לחץ כאן והדבק תמונה, או גרור תמונה">
-      <button class="delete-img-btn" id="del_${id}" type="button" title="מחק תמונה">✕</button>
-      <img id="img_${id}" alt="">
-      <div class="image-placeholder-text" id="placeholder_${id}">לחץ כאן והדבק תמונה<br>או גרור תמונה 🖼️</div>
+    <div class="image-container" id="img_wrap_${key}" tabindex="0" data-img-of="${key}" title="לחץ כאן והדבק תמונה, או גרור תמונה">
+      <button class="delete-img-btn" type="button" data-del-img="${key}" title="מחק תמונה">✕</button>
+      <img id="img_${key}" alt="">
+      <div class="image-placeholder-text" id="placeholder_${key}">לחץ כאן והדבק תמונה<br>או גרור תמונה 🖼️</div>
       <div class="img-toolbar">
-        <a id="search_${id}" href="#" target="_blank" rel="noopener">🔍 חפש תמונה בגוגל</a>
+        <a id="search_${key}" href="#" target="_blank" rel="noopener">🔍 חפש תמונה בגוגל</a>
         <span>|</span>
-        <label for="file_${id}" style="cursor:pointer;font-weight:bold">📁 מהמכשיר</label>
-        <input type="file" id="file_${id}" accept="image/*" style="display:none">
+        <label for="file_${key}" style="cursor:pointer;font-weight:bold">📁 מהמכשיר</label>
+        <input type="file" id="file_${key}" accept="image/*" style="display:none" data-file-of="${key}">
       </div>
     </div>
-    <div class="extra-section">
-      <div class="extra-title">מילים נוספות באות:</div>
-      <div class="words-list">
-        ${[0,1].map(k => `<div class="word-row">
-          <input type="text" class="word-input" id="inp_${id}_${k}" placeholder="מילה ${k+1}..." autocomplete="off">
-          <button class="action-icon-btn" type="button" data-say-el="inp_${id}_${k}">🔊</button>
-          <a class="action-icon-btn" href="#" target="_blank" rel="noopener" data-search-el="inp_${id}_${k}" title="חפש תמונה למילה זו">🔍</a>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  grid.appendChild(card);
-  fillCard(i);
-  setupPasteAndDrop(i);
-  $('title_' + id).addEventListener('input', () => { updateSearch(i); changed(i); });
-  [0,1].forEach(k => $(`inp_${id}_${k}`).addEventListener('input', () => changed(i)));
-  $('del_' + id).addEventListener('click', e => { e.stopPropagation(); setImg(i, ''); changed(i); });
-  $('file_' + id).addEventListener('change', e => { const f = e.target.files[0]; if (f) readFile(i, f); e.target.value = ''; });
-});
-grid.addEventListener('click', e => {
-  const s = e.target.closest('[data-say]'); if (s) return speak(s.dataset.say);
-  const se = e.target.closest('[data-say-el]'); if (se) { const el = $(se.dataset.sayEl); return speak(el.value != null ? el.value : el.innerText); }
-  const q = e.target.closest('[data-search-el]');
-  if (q) { const w = $(q.dataset.searchEl).value.trim(); if (!w) { e.preventDefault(); return; } q.href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(w); }
-});
-
-function fillCard(i){
-  const id = 'card_' + i, c = cardOf(i);
-  const title = $('title_' + id), name = c.name || data[i].name;
-  if (title.innerText !== name && document.activeElement !== title) title.innerText = name;
-  [0,1].forEach(k => { const el = $(`inp_${id}_${k}`); if (document.activeElement !== el) el.value = c.words[k]; });
-  setImg(i, c.img);
-  updateSearch(i);
+  </div>`;
 }
-function setImg(i, src){
-  const id = 'card_' + i, img = $('img_' + id);
+function tabLabel(key){ return tabOf(key).name || defaultName(key) || 'חדש'; }
+function renderCard(i){
+  const keys = keysOf(i);
+  if (!keys.includes(active[i])) active[i] = keys[0];
+  const card = $('card_' + i);
+  card.innerHTML = `<div class="tabbar" id="tabs_${i}">` +
+    keys.map(k => `<div class="tab${k === active[i] ? ' active' : ''}" data-tab="${k}"><span>${esc(tabLabel(k))}</span><span class="x" data-del-tab="${k}" title="מחק לשונית">✕</span></div>`).join('') +
+    `<div class="tab add" data-add-tab="${i}" title="הוסף דמות או מושג לאות ${data[i].upper}">+</div></div>` +
+    keys.map(paneHTML).join('');
+  keys.forEach(fillPane);
+  $('pane_' + active[i]).classList.add('active');
+}
+function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fillPane(key){
+  const c = tabOf(key), title = $('title_' + key), name = c.name || defaultName(key);
+  if (title.innerText !== name && document.activeElement !== title) title.innerText = name;
+  setImg(key, c.img);
+  updateSearch(key);
+}
+function setImg(key, src){
+  const img = $('img_' + key);
   if (src) img.src = src; else img.removeAttribute('src');
   img.style.display = src ? 'block' : 'none';
-  $('placeholder_' + id).style.display = src ? 'none' : 'block';
-  $('del_' + id).style.display = src ? 'flex' : 'none';
+  $('placeholder_' + key).style.display = src ? 'none' : 'block';
+  $('pane_' + key).querySelector('.delete-img-btn').style.display = src ? 'flex' : 'none';
 }
-function updateSearch(i){
-  const id = 'card_' + i, word = ($('title_' + id).innerText || '').trim();
-  $('search_' + id).href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(word ? 'lego ninjago ' + word : 'lego ninjago');
+function updateSearch(key){
+  const word = ($('title_' + key).innerText || '').trim();
+  $('search_' + key).href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(word ? 'lego ninjago ' + word : 'lego ninjago');
 }
-function readCard(i){
-  const id = 'card_' + i, img = $('img_' + id);
-  const name = ($('title_' + id).innerText || '').trim();
-  return { words:[$(`inp_${id}_0`).value, $(`inp_${id}_1`).value],
-           img: img.style.display !== 'none' ? (img.getAttribute('src') || '') : '',
-           name: name && name !== data[i].name ? name : '' };
+function readPane(key){
+  const img = $('img_' + key), name = ($('title_' + key).innerText || '').trim();
+  return { img: img.style.display !== 'none' ? (img.getAttribute('src') || '') : '',
+           name: name && name !== defaultName(key) ? name : '' };
+}
+function updateTabLabel(key){
+  const t = $('tabs_' + letterOf(key)).querySelector(`[data-tab="${key}"] span`);
+  if (t) t.textContent = ($('title_' + key).innerText || '').trim() || defaultName(key) || 'חדש';
 }
 
-/* autosave */
+/* ---------- tabs ---------- */
+function addTab(i){
+  const key = nextKey(i);
+  cards[key] = { name:'', img:'', t: Date.now() };
+  active[i] = key; persist(); pushCard(key); renderCard(i);
+  $('title_' + key).focus();
+}
+function deleteTab(key){
+  const i = letterOf(key), c = tabOf(key);
+  const label = c.name || defaultName(key);
+  if (!confirm('למחוק את הלשונית "' + (label || 'חדש') + '"' + (c.img ? ' כולל התמונה' : '') + '?')) return;
+  cards[key] = { del:true, t: Date.now() };
+  dirty.delete(key); persist(); pushCard(key); renderCard(i);
+}
+
+/* ---------- events (one listener for the whole grid) ---------- */
+grid.addEventListener('click', e => {
+  const t = e.target;
+  const say = t.closest('[data-say]'); if (say) return speak(say.dataset.say);
+  const sayEl = t.closest('[data-say-el]'); if (sayEl) return speak($(sayEl.dataset.sayEl).innerText);
+  const delImg = t.closest('[data-del-img]'); if (delImg) { e.stopPropagation(); setImg(delImg.dataset.delImg, ''); return changed(delImg.dataset.delImg); }
+  const delTab = t.closest('[data-del-tab]'); if (delTab) { e.stopPropagation(); return deleteTab(delTab.dataset.delTab); }
+  const add = t.closest('[data-add-tab]'); if (add) return addTab(+add.dataset.addTab);
+  const tab = t.closest('[data-tab]'); if (tab) { const i = letterOf(tab.dataset.tab); active[i] = tab.dataset.tab; return renderCard(i); }
+});
+grid.addEventListener('input', e => {
+  const el = e.target.closest('[data-name-of]'); if (!el) return;
+  const key = el.dataset.nameOf; updateSearch(key); updateTabLabel(key); changed(key);
+});
+grid.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest('[data-name-of]')) { e.preventDefault(); e.target.blur(); } });
+grid.addEventListener('change', e => {
+  const inp = e.target.closest('[data-file-of]'); if (!inp) return;
+  const f = inp.files[0]; if (f) readFile(inp.dataset.fileOf, f); inp.value = '';
+});
+grid.addEventListener('paste', e => {
+  const wrap = e.target.closest('[data-img-of]'); if (!wrap) return;
+  const key = wrap.dataset.imgOf, items = (e.clipboardData || {}).items || [];
+  for (const it of items) if (it.type.indexOf('image') !== -1) { readFile(key, it.getAsFile()); e.preventDefault(); return; }
+  const text = e.clipboardData.getData('text');
+  if (text && /^https?:\/\//.test(text)) { setImg(key, text); changed(key); e.preventDefault(); }
+});
+grid.addEventListener('dragover', e => { const w = e.target.closest('[data-img-of]'); if (w) { e.preventDefault(); w.classList.add('dragover'); } });
+grid.addEventListener('dragleave', e => { const w = e.target.closest('[data-img-of]'); if (w) w.classList.remove('dragover'); });
+grid.addEventListener('drop', e => {
+  const w = e.target.closest('[data-img-of]'); if (!w) return;
+  e.preventDefault(); w.classList.remove('dragover'); const key = w.dataset.imgOf;
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) return readFile(key, e.dataTransfer.files[0]);
+  const m = (e.dataTransfer.getData('text/html') || '').match(/src=["'](.*?)["']/);
+  if (m && m[1]) { setImg(key, m[1]); changed(key); }
+});
+
+/* ---------- autosave ---------- */
 const dirty = new Set(); let saveTimer = null;
-function changed(i){ dirty.add(i); status('שומר…'); clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700); }
+function changed(key){ dirty.add(key); status('שומר…'); clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700); }
 function flush(){
-  const now = Date.now(), ids = [...dirty]; dirty.clear();
-  ids.forEach(i => { cards['card_' + i] = { ...readCard(i), t: now }; });
+  const now = Date.now(), keys = [...dirty]; dirty.clear();
+  keys.forEach(k => { if ($('pane_' + k)) cards[k] = { ...readPane(k), t: now }; });
   if (persist()) status('נשמר ✓');
-  ids.forEach(i => pushCard(i));
+  keys.forEach(pushCard);
 }
 
 /* pictures: shrink before saving so they fit on the device and in the account */
@@ -227,27 +297,10 @@ function shrink(src){
     im.src = src;
   });
 }
-function readFile(i, file){
+function readFile(key, file){
   const r = new FileReader();
-  r.onload = async ev => { setImg(i, await shrink(ev.target.result)); changed(i); };
+  r.onload = async ev => { setImg(key, await shrink(ev.target.result)); changed(key); };
   r.readAsDataURL(file);
-}
-function setupPasteAndDrop(i){
-  const wrap = $('img_wrap_card_' + i);
-  wrap.addEventListener('paste', e => {
-    const items = (e.clipboardData || {}).items || [];
-    for (const it of items) if (it.type.indexOf('image') !== -1) { readFile(i, it.getAsFile()); e.preventDefault(); return; }
-    const text = e.clipboardData.getData('text');
-    if (text && /^https?:\/\//.test(text)) { setImg(i, text); changed(i); e.preventDefault(); }
-  });
-  wrap.addEventListener('dragover', e => { e.preventDefault(); wrap.classList.add('dragover'); });
-  wrap.addEventListener('dragleave', () => wrap.classList.remove('dragover'));
-  wrap.addEventListener('drop', e => {
-    e.preventDefault(); wrap.classList.remove('dragover');
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) return readFile(i, e.dataTransfer.files[0]);
-    const m = (e.dataTransfer.getData('text/html') || '').match(/src=["'](.*?)["']/);
-    if (m && m[1]) { setImg(i, m[1]); changed(i); }
-  });
 }
 
 /* transfer from the old version in Claude */
@@ -257,14 +310,12 @@ $('importBtn').onclick = async () => {
   if (!o || typeof o !== 'object') return status('הטקסט שהודבק לא תקין.');
   let n = 0;
   for (let i = 0; i < data.length; i++) {
-    const src = o['card_' + i]; if (!src) continue;
-    const words = src.words || [], hasAny = src.img || words[0] || words[1];
-    if (!hasAny) continue;
+    const src = o['card_' + i]; if (!src || !(src.img || src.name)) continue;
     const img = src.img && src.img.startsWith('data:') ? await shrink(src.img) : (src.img || '');
-    cards['card_' + i] = { words:[words[0]||'', words[1]||''], img, name: src.name || '', t: Date.now() };
-    fillCard(i); n++;
+    cards['card_' + i] = { img, name: src.name || '', t: Date.now() };
+    renderCard(i); n++;
   }
-  persist(); for (let i = 0; i < data.length; i++) pushCard(i);
+  persist(); Object.keys(cards).forEach(pushCard);
   $('importText').value = ''; $('importBox').classList.remove('open');
   status(`הועברו ${n} קלפים ✓`);
 };
@@ -272,9 +323,9 @@ $('importBtn').onclick = async () => {
 /* ---------- sync (shared ZSync from the projects site) ---------- */
 const APP = 'abc-cards';
 let Z = null, ready = false, unsub = null, remote = {};
-function pushCard(i){
+function pushCard(k){
   if (!ready || !Z || !Z.user) return;
-  const k = 'card_' + i, c = cards[k]; if (!c) return;
+  const c = cards[k]; if (!c) return;
   const v = JSON.stringify(c);
   if (remote[k] === v) return;
   if (v.length > 1000000) return status('תמונה גדולה מדי לסנכרון.');
@@ -282,15 +333,15 @@ function pushCard(i){
 }
 function onRemote(items){
   remote = items;
-  let took = false;
-  for (let i = 0; i < data.length; i++) {
-    const k = 'card_' + i;
-    let r = null; try { r = items[k] ? JSON.parse(items[k]) : null; } catch(e) {}
+  const touched = new Set();
+  Object.keys(items).forEach(k => {
+    if (!/^card_\d+(_\d+)?$/.test(k) || isNaN(letterOf(k)) || !data[letterOf(k)]) return;
+    let r = null; try { r = JSON.parse(items[k]); } catch(e) {}
     const l = cards[k];
-    if (r && (!l || (r.t || 0) > (l.t || 0))) { cards[k] = r; if (!dirty.has(i)) fillCard(i); took = true; }
-  }
-  if (took) persist();
-  if (!ready) { ready = true; for (let i = 0; i < data.length; i++) pushCard(i); } // first time: send what's newer here
+    if (r && (!l || (r.t || 0) > (l.t || 0))) { cards[k] = r; if (!dirty.has(k)) touched.add(letterOf(k)); }
+  });
+  if (touched.size) { persist(); touched.forEach(renderCard); }
+  if (!ready) { ready = true; Object.keys(cards).forEach(pushCard); } // first time: send what's newer here
 }
 function setSyncUI(){
   const b = $('syncBtn'); b.hidden = false;
