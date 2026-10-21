@@ -177,7 +177,9 @@ function paneHTML(key){
       <img id="img_${key}" alt="">
       <div class="image-placeholder-text" id="placeholder_${key}">לחץ כאן והדבק תמונה<br>או גרור תמונה 🖼️</div>
       <div class="img-toolbar">
-        <a id="search_${key}" href="#" target="_blank" rel="noopener">🔍 חפש תמונה בגוגל</a>
+        <a id="search_${key}" href="#" target="_blank" rel="noopener">🔍 חפש בגוגל</a>
+        <span>|</span>
+        <span data-paste-of="${key}" title="הדבק תמונה מהלוח">📋 הדבק</span>
         <span>|</span>
         <label for="file_${key}" style="cursor:pointer;font-weight:bold">📁 מהמכשיר</label>
         <input type="file" id="file_${key}" accept="image/*" style="display:none" data-file-of="${key}">
@@ -247,6 +249,7 @@ grid.addEventListener('click', e => {
   const sayEl = t.closest('[data-say-el]'); if (sayEl) return speak($(sayEl.dataset.sayEl).innerText);
   const delImg = t.closest('[data-del-img]'); if (delImg) { e.stopPropagation(); setImg(delImg.dataset.delImg, ''); return changed(delImg.dataset.delImg); }
   const delTab = t.closest('[data-del-tab]'); if (delTab) { e.stopPropagation(); return deleteTab(delTab.dataset.delTab); }
+  const paste = t.closest('[data-paste-of]'); if (paste) { e.stopPropagation(); return pasteFromClipboard(paste.dataset.pasteOf); }
   const add = t.closest('[data-add-tab]'); if (add) return addTab(+add.dataset.addTab);
   const tab = t.closest('[data-tab]'); if (tab) { const i = letterOf(tab.dataset.tab); active[i] = tab.dataset.tab; return renderCard(i); }
 });
@@ -275,6 +278,27 @@ grid.addEventListener('drop', e => {
   const m = (e.dataTransfer.getData('text/html') || '').match(/src=["'](.*?)["']/);
   if (m && m[1]) { setImg(key, m[1]); changed(key); }
 });
+
+/* paste button: read the clipboard directly (works on iPad, where there is no Ctrl+V) */
+async function pasteFromClipboard(key){
+  if (!navigator.clipboard || !navigator.clipboard.read) {
+    $('img_wrap_' + key).focus(); return status('לחץ על אזור התמונה ואז הדבק (Ctrl+V).');
+  }
+  try {
+    const items = await navigator.clipboard.read();
+    for (const it of items) {
+      const type = it.types.find(t => t.startsWith('image/'));
+      if (type) { readFile(key, await it.getType(type)); return; }
+    }
+    for (const it of items) if (it.types.includes('text/plain')) {
+      const text = (await (await it.getType('text/plain')).text()).trim();
+      if (/^https?:\/\//.test(text)) { setImg(key, text); changed(key); return; }
+    }
+    status('אין תמונה בלוח. העתק תמונה ונסה שוב.');
+  } catch(e) {
+    status(e && e.name === 'NotAllowedError' ? 'ההדבקה לא אושרה. נסה שוב ואשר "הדבק".' : 'לא הצלחתי לקרוא מהלוח.');
+  }
+}
 
 /* ---------- autosave ---------- */
 const dirty = new Set(); let saveTimer = null;
