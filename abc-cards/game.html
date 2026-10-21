@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>משחק ABC נינג'גו – תמונה לאות</title>
+<style>
+  :root { --primary:#d32f2f; --dark:#212121; --gold:#ffb300; --bg:#f5f5f5; --green:#2e7d32; }
+  * { box-sizing:border-box; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:14px; color:var(--dark); min-height:100vh; display:flex; flex-direction:column; align-items:center; }
+  .top { width:100%; max-width:720px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .top h1 { margin:0; font-size:20px; color:var(--primary); }
+  .btn { background:#555; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.primary { background:var(--primary); }
+  .score { font-size:17px; font-weight:bold; color:#444; direction:ltr; }
+  .stage { width:100%; max-width:720px; margin-top:14px; background:#fff; border:3px solid #222; border-radius:16px; padding:16px; display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .picture { width:100%; height:min(46vh,380px); border-radius:12px; background:#fafafa; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .picture img { width:100%; height:100%; object-fit:contain; }
+  .question { font-size:20px; font-weight:bold; color:#444; margin:0; }
+  .choices { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; width:100%; direction:ltr; }
+  .choice { font-size:44px; font-weight:900; font-family:'Courier New',monospace; height:84px; border-radius:14px; border:3px solid var(--gold); background:#fff3e0; color:#e65100; cursor:pointer; transition:transform .1s; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .choice:active { transform:scale(.95); }
+  .choice.right { background:#c8e6c9; border-color:var(--green); color:var(--green); }
+  .choice.wrong { background:#ffcdd2; border-color:#b71c1c; color:#b71c1c; animation:shake .35s; opacity:.6; pointer-events:none; }
+  .choice:disabled { pointer-events:none; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .feedback { min-height:30px; font-size:22px; font-weight:bold; color:var(--green); direction:ltr; text-align:center; }
+  .next { visibility:hidden; }
+  .next.show { visibility:visible; }
+  .end { text-align:center; font-size:22px; line-height:1.6; }
+  .end .big { font-size:48px; }
+  .empty { text-align:center; color:#666; font-size:17px; line-height:1.7; padding:30px 10px; }
+  #status { font-size:13px; color:#666; }
+  @media (max-width:480px) { .choices { gap:8px; } .choice { font-size:36px; height:72px; } }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🎮 תמונה לאות</h1>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+    <span id="status"></span>
+    <span class="score" id="score"></span>
+    <a class="btn" href="./">🃏 לקלפים</a>
+  </div>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<script>
+const data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const NAMES = { A:'Airjitzu', B:'Borg', C:'Cole', D:'Dareth', E:'Elemental Masters', F:'First Spinjitzu Master', G:'Garmadon', H:'Harumi', I:'Ice Dragon',
+  J:'Jay', K:'Kai', L:'Lloyd', M:'Misako', N:'Nya', O:'Overlord', P:'Pixal', Q:'Quiet One', R:'Ronin', S:'Spinjitzu', T:'Tournament of Elements',
+  U:'Ultra Dragon', V:'Vex', W:'Master Wu', X:'Samurai X', Y:'Master Yang', Z:'Zane' };
+const KEY = 'ninjago_abc_v3';
+const $ = id => document.getElementById(id);
+function status(t){ $('status').textContent = t; }
+
+/* ---------- voice ---------- */
+let voices = [];
+function loadVoices(){ if ('speechSynthesis' in window) voices = speechSynthesis.getVoices(); }
+loadVoices();
+if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+function getBestVoice(){
+  if (!voices.length) loadVoices();
+  return voices.find(v => v.lang.startsWith('en') && /Natural|Online|Neural|Google US English/.test(v.name))
+      || voices.find(v => v.lang.startsWith('en') && /Google|Microsoft|Samantha/.test(v.name))
+      || voices.find(v => v.lang.startsWith('en')) || null;
+}
+function speak(text, clear = true){
+  if (!text || !text.trim() || !('speechSynthesis' in window)) return;
+  if (clear) speechSynthesis.cancel();
+  text = text.trim();
+  if (/^[A-Za-z]$/.test(text)) text = text.toLowerCase();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = .88; u.pitch = 1.05;
+  const v = getBestVoice(); if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+
+/* ---------- the pictures: every tab of every letter that has an image ---------- */
+let cards = {};
+try { cards = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e) {}
+function pool(){
+  const out = [];
+  Object.keys(cards).forEach(k => {
+    const m = k.match(/^card_(\d+)(?:_(\d+))?$/); if (!m) return;
+    const c = cards[k]; if (!c || c.del || !c.img) return;
+    const letter = data[+m[1]]; if (!letter) return;
+    out.push({ key:k, letter, name: c.name || (m[2] ? '' : NAMES[letter]), img: c.img });
+  });
+  return out;
+}
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* ---------- game ---------- */
+let round = [], idx = 0, score = 0, firstTry = true;
+function start(){
+  round = shuffle(pool()); idx = 0; score = 0;
+  if (!round.length) {
+    $('score').textContent = '';
+    $('stage').innerHTML = `<div class="empty">עדיין אין תמונות בקלפים.<br>תוסיף תמונות לדמויות בדף הקלפים – והמשחק יתחיל לעבוד מעצמו.<br><br><a class="btn primary" href="./">🃏 לדף הקלפים</a></div>`;
+    return;
+  }
+  show();
+}
+function show(){
+  if (idx >= round.length) return finish();
+  const q = round[idx]; firstTry = true;
+  const others = shuffle(data.filter(l => l !== q.letter)).slice(0, 3);
+  const choices = shuffle([q.letter, ...others]);
+  $('score').textContent = `${idx + 1} / ${round.length}  ·  ⭐ ${score}`;
+  $('stage').innerHTML = `
+    <div class="picture"><img src="${q.img}" alt=""></div>
+    <p class="question">באיזו אות מתחיל השם?</p>
+    <div class="choices">${choices.map(l => `<button class="choice" type="button" data-l="${l}">${l}</button>`).join('')}</div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn primary next" id="next" type="button">הבא ➜</button>`;
+  $('next').onclick = () => { idx++; show(); };
+}
+$('stage').addEventListener('click', e => {
+  const b = e.target.closest('.choice'); if (!b) return;
+  const q = round[idx];
+  if (b.dataset.l === q.letter) {
+    if (firstTry) score++;
+    b.classList.add('right');
+    document.querySelectorAll('.choice').forEach(x => x.disabled = true);
+    $('feedback').textContent = `${q.letter} – ${q.name} ✓`;
+    speak(q.letter); if (q.name) speak(q.name, false);
+    $('score').textContent = `${idx + 1} / ${round.length}  ·  ⭐ ${score}`;
+    $('next').classList.add('show');
+    setTimeout(() => { if (round[idx] === q) { idx++; show(); } }, 2200);
+  } else {
+    firstTry = false; b.classList.add('wrong'); speak(b.dataset.l);
+  }
+});
+function finish(){
+  $('score').textContent = '';
+  const all = score === round.length;
+  $('stage').innerHTML = `<div class="end">
+    <div class="big">${all ? '🏆' : '🎉'}</div>
+    ${all ? 'מושלם! כל התשובות נכונות בניסיון ראשון!' : `ענית נכון בניסיון ראשון על <b>${score}</b> מתוך <b>${round.length}</b>`}
+    <br><br><button class="btn primary" type="button" onclick="start()">🔁 עוד פעם</button></div>`;
+}
+start();
+
+/* ---------- keep the pictures fresh from the account (same data as the cards page) ---------- */
+function hook(){
+  if (!window.ZSync) return;
+  window.ZSync.onUser(u => {
+    if (!u) return;
+    window.ZSync.watchItems('abc-cards', items => {
+      let changed = false;
+      Object.keys(items).forEach(k => {
+        let r = null; try { r = JSON.parse(items[k]); } catch(e) {}
+        const l = cards[k];
+        if (r && (!l || (r.t || 0) > (l.t || 0))) { cards[k] = r; changed = true; }
+      });
+      if (changed) { try { localStorage.setItem(KEY, JSON.stringify(cards)); } catch(e) {} if (!round.length) start(); }
+    });
+  });
+}
+window.addEventListener('zsync-ready', hook); hook();
+</script>
+<script src="../firebase-config.js"></script>
+<script type="module" src="../sync.js"></script>
+</body>
+</html>
