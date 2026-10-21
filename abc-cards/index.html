@@ -115,7 +115,9 @@ function getBestVoice(){
 function speak(text){
   if (!text || !text.trim() || !('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text.trim());
+  text = text.trim();
+  if (/^[A-Za-z]$/.test(text)) text = text.toLowerCase(); // a single letter: say its name only, without "capital"
+  const u = new SpeechSynthesisUtterance(text);
   u.lang = 'en-US'; u.rate = .88; u.pitch = 1.05;
   const v = getBestVoice(); if (v) u.voice = v;
   speechSynthesis.speak(u);
