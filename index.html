@@ -81,6 +81,13 @@ section.closed .grid{display:none}
 .move{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .move select{font:inherit;font-size:15px;min-height:40px;padding:0 8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);max-width:100%}
 .dropzone{border:2px dashed var(--line);border-radius:14px;padding:18px;color:var(--muted);text-align:center}
+.linkform{display:none;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;flex-direction:column;gap:10px}
+.linkform.open{display:flex}
+.linkform h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0}
+.linkform label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
+.linkform input,.linkform textarea,.linkform select{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.linkform .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.linkform .row{display:flex;gap:8px;flex-wrap:wrap}
 #msg:empty{display:none}#msg{color:var(--warn);font-weight:600;margin:0}
 footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:16px}
 </style>
@@ -101,19 +108,31 @@ footer{color:var(--muted);font-size:14px;border-top:1px solid var(--line);paddin
   </header>
   <div class="editbar">
     <p>מצב עריכה. השינויים נשמרים במכשיר הזה. כדי שיופיעו בכל מכשיר, הורד קובץ שינויים ושלח אותו ל-Claude.</p>
+    <button id="newLinkBtn" class="tbtn" type="button">קישור חדש</button>
     <button id="newFolderBtn" class="tbtn" type="button">תיקייה חדשה</button>
     <button id="exportBtn" class="tbtn" type="button">הורד קובץ שינויים</button>
     <label class="tbtn" for="importFile" style="display:inline-flex;align-items:center">טען קובץ שינויים</label>
     <input id="importFile" type="file" accept=".json,application/json" hidden>
   </div>
+  <form class="linkform" id="linkForm" novalidate>
+    <h2>קישור חדש</h2>
+    <div class="two">
+      <label>כתובת<input id="lUrl" type="url" inputmode="url" placeholder="https://…" autocomplete="off" required></label>
+      <label>שם<input id="lName" type="text" placeholder="למשל: אתר ניקוד" required></label>
+    </div>
+    <label>תיאור (לא חובה)<textarea id="lDesc" rows="2"></textarea></label>
+    <label>תיקייה<select id="lFolder"></select></label>
+    <div class="row"><button class="tbtn" type="submit">הוסף</button><button class="tbtn" type="button" id="lCancel">ביטול</button></div>
+  </form>
   <p id="msg" role="status"></p>
   <div id="board"></div>
   <footer>פרויקטים גדולים יושבים במאגר משלהם. פרויקטים קטנים יושבים כאן כתיקייה, כמו אתגר המספרים.</footer>
 </main>
 <script>
 const GH='https://mazivco-design.github.io/', REPO='https://github.com/mazivco-design/';
-const KEY='hub-edits-v1', LKEY='hub-layout-v1', CKEY='hub-closed-v1';
-let data={groups:[],projects:[]}, edits={}, layout=null, closed={};
+const KEY='hub-edits-v1', LKEY='hub-layout-v1', CKEY='hub-closed-v1', XKEY='hub-links-v1';
+let data={groups:[],projects:[]}, base=[], links=[], edits={}, layout=null, closed={};
+function rebuild(){data.projects=base.concat(links)}
 const $=s=>document.querySelector(s), board=$('#board'), q=$('#q'), msg=$('#msg');
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function say(t){msg.textContent=t; if(t) setTimeout(()=>{if(msg.textContent===t)msg.textContent=''},4000)}
@@ -163,6 +182,7 @@ function tile(p0,fi,ii,L){
         <label class="tbtn" for="f-${p.id}">החלף תמונה</label>
         <input id="f-${p.id}" type="file" accept="image/*" data-act="img">
         ${p.changed?'<button class="tbtn" type="button" data-act="reset">החזר למקור</button>':''}
+        ${p.custom?'<button class="tbtn" type="button" data-act="ldel">מחק קישור</button>':''}
       </div>
       ${p.changed?'<span class="changed">שונה במכשיר הזה</span>':''}
     </div>
@@ -208,6 +228,7 @@ board.addEventListener('click',e=>{
   if(act==='up'||act==='down'){const i=f.items.indexOf(id), j=act==='up'?i-1:i+1; if(j<0||j>=f.items.length) return; swap(f.items,i,j); saveLayout(L); render(); return}
   if(act==='fup'||act==='fdown'){const j=act==='fup'?fi-1:fi+1; swap(L.folders,fi,j); saveLayout(L); render(); return}
   if(act==='fdel'){ if(f.items.length) return; L.folders.splice(fi,1); saveLayout(L); render(); say('התיקייה נמחקה'); return}
+  if(act==='ldel'){links=links.filter(x=>x.id!==id); delete edits[id]; put(XKEY,links); put(KEY,edits); rebuild(); render(); say('הקישור נמחק'); return}
   if(act==='save'){edits[id]={...edits[id],desc:$('#d-'+id).value.trim()}; if(put(KEY,edits)){render();say('התיאור נשמר')}}
   if(act==='reset'){delete edits[id]; put(KEY,edits); render(); say('הוחזר למקור')}
 });
@@ -227,18 +248,41 @@ $('#newFolderBtn').onclick=()=>{const L=fullLayout(); let k=1; while(L.folders.s
   const inp=document.getElementById('t-f'+k); if(inp){inp.focus();inp.select()} say('נוספה תיקייה למעלה. תן לה שם.')};
 $('#editBtn').onclick=()=>{const on=document.body.classList.toggle('editing');$('#editBtn').classList.toggle('on',on);$('#editBtn').textContent=on?'סיום עריכה':'עריכה';render()};
 $('#exportBtn').onclick=()=>{
-  const blob=new Blob([JSON.stringify({kind:'hub-edits',date:new Date().toISOString(),edits,layout:fullLayout()},null,1)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({kind:'hub-edits',date:new Date().toISOString(),edits,links,layout:fullLayout()},null,1)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hub-edits.json';document.body.appendChild(a);a.click();a.remove();
   say('הקובץ hub-edits.json ירד');
 };
 $('#importFile').onchange=async e=>{
-  try{const o=JSON.parse(await e.target.files[0].text()); if(!o.edits) throw 0; edits={...edits,...o.edits}; put(KEY,edits); if(o.layout) saveLayout(o.layout); render(); say('השינויים נטענו')}
+  try{const o=JSON.parse(await e.target.files[0].text()); if(!o.edits) throw 0; edits={...edits,...o.edits}; put(KEY,edits); if(Array.isArray(o.links)){const have=new Set(links.map(x=>x.id)); links=links.concat(o.links.filter(x=>!have.has(x.id))); put(XKEY,links); rebuild()} if(o.layout) saveLayout(o.layout); render(); say('השינויים נטענו')}
   catch(err){say('הקובץ הזה הוא לא קובץ שינויים של האתר.')}
   e.target.value='';
 };
 q.addEventListener('input',render);
-edits=get(KEY,{}); layout=get(LKEY,null); closed=get(CKEY,{});
-fetch('projects.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{data=d; if(d.layout&&!layout) layout=d.layout; render()})
+const form=$('#linkForm');
+$('#newLinkBtn').onclick=()=>{
+  const L=fullLayout();
+  $('#lFolder').innerHTML=L.folders.map(f=>`<option value="${esc(f.id)}">${esc(f.title)}</option>`).join('');
+  form.reset(); form.classList.add('open'); $('#lUrl').focus();
+};
+$('#lCancel').onclick=()=>form.classList.remove('open');
+$('#lUrl').addEventListener('change',()=>{ // suggest a name from the address
+  if($('#lName').value.trim()) return;
+  try{$('#lName').value=new URL(normUrl($('#lUrl').value)).hostname.replace(/^www\./,'')}catch(e){}
+});
+function normUrl(u){u=u.trim(); if(u&&!/^https?:\/\//i.test(u)) u='https://'+u; return u}
+form.onsubmit=e=>{
+  e.preventDefault();
+  let url=normUrl($('#lUrl').value), host;
+  try{host=new URL(url).hostname.replace(/^www\./,'')}catch(err){say('הכתובת לא נראית תקינה. בדוק אותה ונסה שוב.');$('#lUrl').focus();return}
+  const name=$('#lName').value.trim()||host, fid=$('#lFolder').value;
+  const id='link-'+Date.now().toString(36);
+  links.push({id,group:fid,name,desc:$('#lDesc').value.trim(),tags:[host],image:'images/link.svg',url,custom:true});
+  const L=fullLayout(); rebuild();
+  L.folders.forEach(f=>f.items=f.items.filter(x=>x!==id)); (L.folders.find(f=>f.id===fid)||L.folders[0]).items.push(id);
+  if(put(XKEY,links)){saveLayout(L); form.classList.remove('open'); render(); say(`הקישור "${name}" נוסף`)}
+};
+edits=get(KEY,{}); layout=get(LKEY,null); closed=get(CKEY,{}); links=get(XKEY,[]);
+fetch('projects.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{data=d; base=d.projects; rebuild(); if(d.layout&&!layout) layout=d.layout; render()})
  .catch(()=>{board.innerHTML='<p class="empty">לא הצלחתי לטעון את רשימת הפרויקטים. רענן את הדף.</p>'});
 </script>
 </body>
