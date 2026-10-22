@@ -88,6 +88,7 @@
     <a class="btn" href="game.html">🎮 משחק: תמונה לאות</a>
     <button class="secondary" type="button" onclick="document.getElementById('importBox').classList.toggle('open')">📥 העברה מהגרסה הישנה</button>
     <button class="secondary" type="button" onclick="window.print()">🖨️ הדפס קלפים</button>
+    <button class="secondary" type="button" id="clearAllBtn" title="מחק את כל התמונות, השמות והלשוניות">🗑️ נקה הכול</button>
     <a class="btn secondary" href="../">כל הפרויקטים</a>
   </div>
 </div>
@@ -342,6 +343,19 @@ function addTab(i){
   active[i] = key; persist(); pushCard(key); renderCard(i);
   $('title_' + key).focus();
 }
+/* wipe the whole board: every picture, name and extra tab, on this device and in the account */
+$('clearAllBtn').onclick = () => {
+  const filled = Object.keys(cards).filter(k => cards[k] && !cards[k].del && (cards[k].img || cards[k].name || numOf(k) > 0)).length;
+  if (!filled) return status('הלוח כבר ריק.');
+  if (!confirm('למחוק את כל הלוח? ' + filled + ' קלפים עם תמונות/שמות יימחקו, גם מהמכשירים האחרים.')) return;
+  if (!confirm('בטוח? אי אפשר לבטל את זה.')) return;
+  const now = Date.now();
+  Object.keys(cards).forEach(k => { cards[k] = numOf(k) === 0 ? { name:'', img:'', t: now } : { del:true, t: now }; });
+  dirty.clear(); persist();
+  data.forEach((_, i) => renderCard(i));
+  Object.keys(cards).forEach(pushCard);
+  status('הלוח נוקה ✓');
+};
 function deleteTab(key){
   const i = letterOf(key), c = tabOf(key);
   const label = c.name || defaultName(key);
