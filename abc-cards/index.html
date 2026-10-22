@@ -17,7 +17,7 @@
   button.secondary:hover, .btn.secondary:hover { background:#333; }
   #syncBtn.on { background:#2e7d32; }
   #status { font-size:13px; color:#666; min-width:9em; }
-  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:20px; max-width:1250px; margin:0 auto; }
+  .cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:20px; max-width:1250px; margin:0 auto; align-items:start; }
   .card { background:#fff; border:3px solid #222; border-radius:12px; padding:15px; box-shadow:0 4px 10px rgba(0,0,0,.05); display:flex; flex-direction:column; justify-content:space-between; position:relative; box-sizing:border-box; }
   .card-header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #eee; padding-bottom:10px; }
   .letters-group { display:flex; align-items:center; gap:8px; direction:ltr; }
@@ -47,13 +47,25 @@
   .tab .x:hover { background:#ffcdd2; color:#b71c1c; }
   .tab.add { background:#e8f5e9; border-color:#66bb6a; color:#2e7d32; font-size:18px; line-height:1; padding:3px 10px; }
   .pane { display:none; }
+  .search-row { display:flex; gap:6px; align-items:center; margin-top:8px; direction:ltr; }
+  .search-row input { flex:1; min-width:0; border:1px solid #ccc; border-radius:8px; padding:7px 10px; font-size:15px; outline:none; }
+  .search-row input:focus { border-color:var(--primary); }
+  .search-row button { padding:7px 12px; font-size:14px; }
+  .results { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-top:8px; }
+  .results:empty { display:none; }
+  .results img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:2px solid #ddd; cursor:pointer; background:#f3f3f3; display:block; }
+  .results img:hover { border-color:var(--primary); transform:scale(1.04); }
+  .results .more { grid-column:1 / -1; }
+  .results .more button { width:100%; background:#555; font-size:13px; padding:6px; }
+  .search-msg { font-size:12px; color:#777; margin-top:4px; }
+  .search-msg:empty { display:none; }
   .pane.active { display:block; }
   #importBox { max-width:1050px; margin:0 auto 20px; background:#fff; border-radius:12px; padding:15px 25px; box-shadow:0 4px 12px rgba(0,0,0,.08); display:none; }
   #importBox.open { display:block; }
   #importBox textarea { width:100%; box-sizing:border-box; min-height:90px; font-size:14px; }
   @media print {
     body { background:#fff; padding:0; }
-    .controls-bar, #importBox, .img-toolbar, .action-icon-btn, .image-placeholder-text, .delete-img-btn { display:none !important; }
+    .controls-bar, #importBox, .img-toolbar, .action-icon-btn, .image-placeholder-text, .delete-img-btn, .search-row, .results, .search-msg { display:none !important; }
     .cards-grid { grid-template-columns:1fr 1fr; gap:15mm; width:100%; }
     .tabbar { display:none !important; }
     .card { display:contents; }
@@ -67,7 +79,7 @@
 <div class="controls-bar">
   <div>
     <h1>קלפי ABC נינג'גו 🔊</h1>
-    <small>הכול נשמר אוטומטית. בכל אות אפשר להוסיף לשוניות עם דמויות ומושגים נוספים (+).</small>
+    <small>הכול נשמר אוטומטית. חפש תמונה מתחת לכל קלף ולחץ עליה – או הדבק/גרור. (+) להוספת דמויות לאות.</small>
   </div>
   <div class="btn-group">
     <span id="status" role="status"></span>
@@ -186,6 +198,12 @@ function paneHTML(key){
         <input type="file" id="file_${key}" accept="image/*" style="display:none" data-file-of="${key}">
       </div>
     </div>
+    <div class="search-row">
+      <input type="search" id="q_${key}" data-q-of="${key}" placeholder="חפש תמונה..." autocomplete="off" enterkeyhint="search">
+      <button type="button" data-search-btn="${key}">🔍 חפש</button>
+    </div>
+    <div class="results" id="res_${key}"></div>
+    <div class="search-msg" id="msg_${key}"></div>
   </div>`;
 }
 function tabLabel(key){ return tabOf(key).name || defaultName(key) || 'חדש'; }
@@ -216,7 +234,62 @@ function setImg(key, src){
 }
 function updateSearch(key){
   const word = ($('title_' + key).innerText || '').trim();
-  $('search_' + key).href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(word ? 'lego ninjago ' + word : 'lego ninjago');
+  const q = word ? 'lego ninjago ' + word : 'lego ninjago';
+  $('search_' + key).href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+  const box = $('q_' + key);
+  if (box && !box.dataset.touched) box.value = q;
+}
+
+/* ---------- image search inside the card (Google Custom Search) ---------- */
+const searchState = {}; // key -> { q, start }
+async function runSearch(key, more){
+  const cfg = window.IMAGE_SEARCH, box = $('q_' + key), res = $('res_' + key), msg = $('msg_' + key);
+  const q = (box.value || '').trim();
+  if (!cfg || !cfg.key) { msg.textContent = 'החיפוש המובנה לא מוגדר.'; return; }
+  if (!q) { msg.textContent = 'כתוב מה לחפש.'; box.focus(); return; }
+  const st = searchState[key] || {};
+  const start = (more && st.q === q) ? st.start : 1;
+  if (!more) res.innerHTML = '';
+  res.querySelectorAll('.more').forEach(n => n.remove());
+  msg.textContent = 'מחפש…';
+  try {
+    const url = 'https://www.googleapis.com/customsearch/v1?key=' + encodeURIComponent(cfg.key) + '&cx=' + encodeURIComponent(cfg.cx)
+      + '&searchType=image&safe=active&num=10&start=' + start + '&q=' + encodeURIComponent(q);
+    const r = await fetch(url); const d = await r.json();
+    if (d.error) throw new Error(d.error.message || 'error');
+    const items = d.items || [];
+    items.forEach(it => {
+      const im = document.createElement('img');
+      im.src = (it.image && it.image.thumbnailLink) || it.link; im.alt = ''; im.title = it.title || '';
+      im.dataset.full = it.link; im.dataset.thumb = im.src; im.dataset.pick = key; im.loading = 'lazy';
+      res.appendChild(im);
+    });
+    searchState[key] = { q, start: start + items.length };
+    const total = d.searchInformation ? +d.searchInformation.totalResults : 0;
+    if (!items.length) msg.textContent = start === 1 ? 'לא נמצאו תמונות. נסה מילים אחרות.' : 'אין עוד תוצאות.';
+    else {
+      msg.textContent = '';
+      if (items.length === 10 && start + 10 <= Math.min(total, 100)) {
+        const w = document.createElement('div'); w.className = 'more';
+        w.innerHTML = '<button type="button" data-more="' + key + '">⬇️ עוד תוצאות</button>'; res.appendChild(w);
+      }
+    }
+  } catch(e) {
+    msg.textContent = /quota|limit/i.test(e.message) ? 'נגמרה מכסת החיפושים להיום (100). נסה מחר.' : 'החיפוש נכשל: ' + e.message;
+  }
+}
+/* chosen picture: fetch it, shrink it and store it like a pasted one; if the site blocks us, keep the thumbnail */
+async function pickResult(key, full, thumb){
+  const msg = $('msg_' + key); msg.textContent = 'טוען תמונה…';
+  const toDataUrl = src => new Promise((ok, bad) => {
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = () => { try { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); ok(c.toDataURL('image/png')); } catch(e) { bad(e); } };
+    im.onerror = () => bad(new Error('load')); im.src = src;
+  });
+  let src = '';
+  try { src = await toDataUrl(full); } catch(e) { try { src = await toDataUrl(thumb); } catch(e2) { src = thumb; } }
+  setImg(key, await shrink(src)); changed(key);
+  msg.textContent = ''; $('res_' + key).innerHTML = '';
 }
 function readPane(key){
   const img = $('img_' + key), name = ($('title_' + key).innerText || '').trim();
@@ -251,6 +324,9 @@ grid.addEventListener('click', e => {
   const delImg = t.closest('[data-del-img]'); if (delImg) { e.stopPropagation(); setImg(delImg.dataset.delImg, ''); return changed(delImg.dataset.delImg); }
   const delTab = t.closest('[data-del-tab]'); if (delTab) { e.stopPropagation(); return deleteTab(delTab.dataset.delTab); }
   const paste = t.closest('[data-paste-of]'); if (paste) { e.stopPropagation(); return pasteFromClipboard(paste.dataset.pasteOf); }
+  const sb = t.closest('[data-search-btn]'); if (sb) return runSearch(sb.dataset.searchBtn, false);
+  const mb = t.closest('[data-more]'); if (mb) return runSearch(mb.dataset.more, true);
+  const pk = t.closest('[data-pick]'); if (pk) return pickResult(pk.dataset.pick, pk.dataset.full, pk.dataset.thumb);
   const add = t.closest('[data-add-tab]'); if (add) return addTab(+add.dataset.addTab);
   const tab = t.closest('[data-tab]'); if (tab) { const i = letterOf(tab.dataset.tab); active[i] = tab.dataset.tab; return renderCard(i); }
 });
@@ -258,7 +334,12 @@ grid.addEventListener('input', e => {
   const el = e.target.closest('[data-name-of]'); if (!el) return;
   const key = el.dataset.nameOf; updateSearch(key); updateTabLabel(key); changed(key);
 });
-grid.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.closest('[data-name-of]')) { e.preventDefault(); e.target.blur(); } });
+grid.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (e.target.closest('[data-name-of]')) { e.preventDefault(); e.target.blur(); }
+  const q = e.target.closest('[data-q-of]'); if (q) { e.preventDefault(); runSearch(q.dataset.qOf, false); }
+});
+grid.addEventListener('input', e => { const q = e.target.closest('[data-q-of]'); if (q) q.dataset.touched = '1'; });
 grid.addEventListener('change', e => {
   const inp = e.target.closest('[data-file-of]'); if (!inp) return;
   const f = inp.files[0]; if (f) readFile(inp.dataset.fileOf, f); inp.value = '';
