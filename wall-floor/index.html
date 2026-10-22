@@ -1,0 +1,192 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>כל קיר הוא רצפה</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&display=swap">
+<style>
+/* Layout: one-screen game — slim header, canvas stage that rotates with gravity, toolbar at thumb reach */
+:root{
+  --bg1:#e3e0ec; --bg2:#f4f2f7; --ink:#262338; --muted:#5f5b74;
+  --lit:#f6f1ea; --mid:#c9b9ae; --shade:#8e7c74; --edge:#6f5f59;
+  --goal:#e6ad3c; --hat:#6a4fb3; --body:#ffffff; --bad:#c2453a;
+  --panel:rgba(255,255,255,.75); --panel-line:rgba(38,35,56,.12); --btn:#ffffff; --btn-on:#262338; --btn-on-ink:#ffffff;
+  --display:"Secular One","Assistant",system-ui,sans-serif; --body-font:"Assistant",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg1:#17152a; --bg2:#2a2742; --ink:#eceaf4; --muted:#a9a5c0;
+  --lit:#e6dcd3; --mid:#a8968c; --shade:#655550; --edge:#463a36;
+  --goal:#f0b84a; --hat:#a68cf0; --body:#f7f5f2; --bad:#e2685d;
+  --panel:rgba(32,30,52,.8); --panel-line:rgba(255,255,255,.1); --btn:#302d4a; --btn-on:#eceaf4; --btn-on-ink:#1c1a2e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg1:#17152a; --bg2:#2a2742; --ink:#eceaf4; --muted:#a9a5c0;
+  --lit:#e6dcd3; --mid:#a8968c; --shade:#655550; --edge:#463a36;
+  --goal:#f0b84a; --hat:#a68cf0; --body:#f7f5f2; --bad:#e2685d;
+  --panel:rgba(32,30,52,.8); --panel-line:rgba(255,255,255,.1); --btn:#302d4a; --btn-on:#eceaf4; --btn-on-ink:#1c1a2e; color-scheme:dark}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--bg2);color:var(--ink);font-family:var(--body-font);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.app{height:100%;display:flex;flex-direction:column;direction:rtl}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-block:12px 4px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.titles{min-width:0}
+h1{font-family:var(--display);font-weight:400;font-size:1.5rem;margin:0;line-height:1.1;text-wrap:balance}
+.lvname{font-size:.95rem;color:var(--muted);margin-top:2px}
+.dots{display:flex;gap:6px;flex-shrink:0;padding-top:6px}
+.dot{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--panel-line);background:var(--btn);color:var(--ink);font:600 .95rem var(--body-font);cursor:pointer}
+.dot[aria-current="true"]{background:var(--btn-on);color:var(--btn-on-ink);border-color:var(--btn-on)}
+.hint{font-size:1rem;line-height:1.45;color:var(--muted);max-width:60ch;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));min-height:2.9em}
+.stage{flex:1;position:relative;min-height:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.toast{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--panel-line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:8px 16px;border-radius:999px;font-weight:600;white-space:nowrap;transition:opacity .3s;pointer-events:none}
+.bar{display:flex;justify-content:center;gap:10px;padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.grp{display:flex;gap:4px;background:var(--panel);border:1px solid var(--panel-line);border-radius:16px;padding:4px}
+button.b{min-width:48px;height:48px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:var(--ink);font:600 1rem var(--body-font);display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+button.b:focus-visible,.dot:focus-visible{outline:2.5px solid var(--hat);outline-offset:2px}
+button.b svg{width:24px;height:24px}
+.win{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.card{background:var(--panel);border:1px solid var(--panel-line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:20px;padding:22px 26px;text-align:center;display:grid;gap:10px;max-width:min(320px,90%)}
+.card h2{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0}
+.card p{margin:0;color:var(--muted)}
+.card button{height:48px;border-radius:12px;border:0;background:var(--btn-on);color:var(--btn-on-ink);font:700 1.05rem var(--body-font);cursor:pointer}
+@media (max-width:520px){h1{font-size:1.25rem}.dot{width:30px;height:30px}}
+</style>
+<div class="app">
+  <header>
+    <div class="titles"><h1>כל קיר הוא רצפה</h1><div class="lvname" id="lvname"></div></div>
+    <div class="dots" id="dots" dir="ltr"></div>
+  </header>
+  <div class="hint" id="hint"></div>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="toast" id="toast" style="opacity:0"></div>
+    <div class="win" id="win" hidden><div class="card"><h2>הגעת!</h2><p id="winTxt"></p><button id="nextBtn" type="button">לשלב הבא</button></div></div>
+  </div>
+  <div class="bar">
+    <div class="grp">
+      <button class="b" id="hintBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>רמז</button>
+      <button class="b" id="reset" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>מההתחלה</button>
+    </div>
+  </div>
+</div>
+<script>
+// ---- gravity-switch engine ----
+const SQ=Math.sqrt(3)/2;
+const GR=[[0,0,-1],[-1,0,0],[0,-1,0]];          // gravity options (index gi)
+const NRM=[[0,0,1],[1,0,0],[0,1,0]];            // visible face normals; floor for gi is NRM[gi]
+const FC=[[[0,0,1],[1,0,1],[1,1,1],[0,1,1]],[[1,0,0],[1,1,0],[1,1,1],[1,0,1]],[[0,1,0],[1,1,0],[1,1,1],[0,1,1]]];
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const K=c=>c[0]+','+c[1]+','+c[2];
+const eq=(a,b)=>a[0]===b[0]&&a[1]===b[1]&&a[2]===b[2];
+function mkWorld(blocks){const w={blocks:blocks.map(b=>b.slice())};w.set=new Set(w.blocks.map(K));let mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(const b of w.blocks)for(let i=0;i<3;i++){mn[i]=Math.min(mn[i],b[i]);mx[i]=Math.max(mx[i],b[i])}w.mn=mn;w.mx=mx;w.c=[(mn[0]+mx[0]+1)/2,(mn[1]+mx[1]+1)/2,(mn[2]+mx[2]+1)/2];return w}
+const solid=(w,c)=>w.set.has(K(c));
+const inB=(w,c)=>c.every((v,i)=>v>=w.mn[i]-1&&v<=w.mx[i]+1);
+function fallPath(w,c,gi){const g=GR[gi];const path=[c];let p=c;for(let k=0;k<60;k++){if(solid(w,add(p,g)))return path;p=add(p,g);if(!inB(w,p))return null;path.push(p)}return null}
+function perp(gi){const g=GR[gi],o=[];for(let a=0;a<3;a++)if(!g[a])for(const s of[1,-1]){const d=[0,0,0];d[a]=s;o.push(d)}return o}
+function stepPath(w,c,gi,d){const t=add(c,d);if(solid(w,t))return null;const f=fallPath(w,t,gi);return f}
+const proj=p=>[(p[0]-p[1])*SQ,(p[0]+p[1])*.5-p[2]];
+function scene(w){const fs=[];const bl=w.blocks.slice().sort((a,b)=>(a[0]+a[1]+a[2])-(b[0]+b[1]+b[2]));
+  for(const b of bl)for(let n=0;n<3;n++){if(solid(w,add(b,NRM[n])))continue;fs.push({b,n,pts:FC[n].map(q=>proj(add(b,q))),cell:add(b,NRM[n])})}return fs}
+function inPoly(pt,poly){let s=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];const cr=(b[0]-a[0])*(pt[1]-a[1])-(b[1]-a[1])*(pt[0]-a[0]);if(Math.abs(cr)<1e-9)return false;const sg=cr>0?1:-1;if(!s)s=sg;else if(sg!==s)return false}return true}
+function hit(fs,pt){let r=null;for(const f of fs)if(inPoly(pt,f.pts))r=f;return r}
+function faceVisible(w,fs,cell,n){const b=add(cell,NRM[n].map(v=>-v));const c=[0,1,2].map(i=>b[i]+.5+NRM[n][i]*.5);const h=hit(fs,proj(c));return h&&eq(h.b,b)&&h.n===n}
+// BFS walking within one gravity; returns list of cells (path) from c to target
+function walkPath(w,c,gi,target){const prev=new Map([[K(c),null]]),q=[c];let found=null;
+  while(q.length){const s=q.shift();if(eq(s,target)){found=s;break}for(const d of perp(gi)){const p=stepPath(w,s,gi,d);if(!p)continue;const e=p[p.length-1];if(!prev.has(K(e))){prev.set(K(e),{from:s,seg:p});q.push(e)}}}
+  if(!found)return null;const segs=[];for(let k=K(found);prev.get(k);k=K(prev.get(k).from))segs.unshift(prev.get(k).seg);return [c].concat(...segs)}
+// full solver: min gravity switches, then steps. returns action list
+function solve(w,c,gi,goal){const sk=(c,g)=>K(c)+'|'+g;const best=new Map([[sk(c,gi),0]]);const st={c,gi,cost:0,prev:null,act:null};const dq=[st],done=new Set();
+  while(dq.length){const s=dq.shift();const k=sk(s.c,s.gi);if(done.has(k))continue;done.add(k);
+    if(eq(s.c,goal.cell)&&s.gi===goal.n){const acts=[];for(let x=s;x.prev;x=x.prev)acts.unshift(x.act);return acts}
+    for(const d of perp(s.gi)){const p=stepPath(w,s.c,s.gi,d);if(!p)continue;const e=p[p.length-1],kk=sk(e,s.gi);if(!done.has(kk)&&(best.get(kk)??1e9)>s.cost){best.set(kk,s.cost);dq.unshift({c:e,gi:s.gi,cost:s.cost,prev:s,act:{t:'walk',to:e}})}}
+    for(let g=0;g<3;g++){if(g===s.gi)continue;const p=fallPath(w,s.c,g);if(!p)continue;const e=p[p.length-1],kk=sk(e,g);if(!done.has(kk)&&(best.get(kk)??1e9)>s.cost+1){best.set(kk,s.cost+1);dq.push({c:e,gi:g,cost:s.cost+1,prev:s,act:{t:'grav',gi:g,to:e}})}}}
+  return null}
+const L1=(()=>{const b=[];for(let y=0;y<3;y++){for(let z=0;z<4;z++)b.push([0,y,z]);for(let x=1;x<5;x++)b.push([x,y,0])}return b})();
+const LEVELS=[
+ {name:'שלב 1 · הקיר הוא רצפה',hint:'הקש על משבצת כדי ללכת. כשאתה צמוד לקיר, הקש על הקיר: הוא יהפוך לרצפה והעולם יסתובב. היעד הזהוב נמצא על הקיר.',
+  start:[4,0,1],goal:{cell:[1,2,3],n:1},blocks:L1},
+ {name:'שלב 2 · נפילה הצידה',hint:'אפשר גם ליפול אל קיר רחוק. הקש על קיר שנמצא בקו ישר מהדמות, והיא תיפול אליו דרך האוויר.',
+  start:[5,7,8],goal:{cell:[4,6,3],n:2},blocks:[[4,5,1],[4,5,2],[4,5,3],[4,5,4],[5,5,1],[5,5,2],[5,5,3],[5,5,4],[6,5,1],[6,5,2],[6,5,3],[6,5,4],[2,2,2],[2,3,2],[5,5,5],[5,5,6],[5,5,7],[5,6,4],[5,6,5],[5,6,6],[5,6,7],[5,7,4],[5,7,5],[5,7,6],[5,7,7]]},
+ {name:'שלב 3 · שלוש רצפות',hint:'כאן צריך להשתמש בכל שלושת הכיוונים. כשנתקעים, כפתור הנורה מראה את הצעד הבא.',
+  start:[3,5,6],goal:{cell:[5,6,2],n:1},blocks:[[3,4,2],[3,4,3],[3,4,4],[3,4,5],[3,5,2],[3,5,3],[3,5,4],[3,5,5],[3,6,2],[3,6,3],[3,6,4],[3,6,5],[3,7,2],[3,7,3],[3,7,4],[3,7,5],[3,3,2],[4,3,2],[4,4,2],[4,5,2],[4,3,1],[4,4,1],[4,5,1],[4,6,1],[4,6,2],[3,2,1],[4,2,1],[5,2,1],[6,2,1]]},
+];
+const PHI=[0,-2*Math.PI/3,2*Math.PI/3];
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let C={},L,world,faces,cell,gi,phi=0,phiAnim=null,move=null,won=false,levelIdx=0,hintFace=null,switches=0,toastT=0,tapMark=null;
+function hex(h){h=h.trim().replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');return [0,2,4].map(i=>parseInt(h.substr(i,2),16))}
+function readTheme(){const cs=getComputedStyle(document.documentElement);for(const k of['bg1','bg2','ink','lit','mid','shade','edge','goal','hat','body','bad'])C[k]=hex(cs.getPropertyValue('--'+k))}
+const rgb=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+readTheme();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readTheme);
+new MutationObserver(readTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+function loadLevel(i){levelIdx=i;L=LEVELS[i];world=mkWorld(L.blocks);faces=scene(world);cell=L.start.slice();gi=0;phi=0;phiAnim=null;move=null;won=false;hintFace=null;switches=0;tapMark=null;
+  $('lvname').textContent=L.name;$('hint').textContent=L.hint;$('win').hidden=true;
+  let r=0;const c=proj(world.c);for(const f of faces)for(const p of f.pts)r=Math.max(r,Math.hypot(p[0]-c[0],p[1]-c[1]));world.R=r+.6;world.pc=c;renderDots()}
+function renderDots(){const d=$('dots');d.innerHTML='';LEVELS.forEach((lv,i)=>{const b=document.createElement('button');b.className='dot';b.type='button';b.textContent=i+1;b.setAttribute('aria-label',lv.name);b.setAttribute('aria-current',i===levelIdx);b.onclick=()=>loadLevel(i);d.appendChild(b)})}
+
+let W=0,H=0,dpr=1,S=40;
+function resize(){const r=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2.5);W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr}
+new ResizeObserver(resize).observe($('stage'));resize();
+function toast(m,ms=2000){const t=$('toast');t.textContent=m;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity=0,ms)}
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const busy=()=>phiAnim||move;
+// world-proj -> screen
+function xf(p){const dx=p[0]-world.pc[0],dy=p[1]-world.pc[1],c=Math.cos(phi),s=Math.sin(phi);return [W/2+(dx*c-dy*s)*S,H/2+(dx*s+dy*c)*S]}
+function inv(x,y){const dx=(x-W/2)/S,dy=(y-H/2)/S,c=Math.cos(-phi),s=Math.sin(-phi);return [world.pc[0]+dx*c-dy*s,world.pc[1]+dx*s+dy*c]}
+const LIGHT=(()=>{const v=[-.35,-1],m=Math.hypot(...v);return[v[0]/m,v[1]/m]})();
+const NSCR=[[0,-1],[SQ,.5],[-SQ,.5]];
+function faceColor(n){const v=NSCR[n],c=Math.cos(phi),s=Math.sin(phi);const d=(v[0]*c-v[1]*s)*LIGHT[0]+(v[0]*s+v[1]*c)*LIGHT[1];
+  return d>0?mix(C.mid,C.lit,Math.min(1,d)):mix(C.mid,C.shade,Math.min(1,-d*1.4))}
+function startMove(path,thenGi){const segs=[];for(let i=1;i<path.length;i++)segs.push({a:path[i-1],b:path[i]});if(!segs.length){afterMove();return}move={segs,i:0,t0:performance.now()}}
+function afterMove(){if(eq(cell,L.goal.cell)&&gi===L.goal.n)win()}
+function win(){won=true;setTimeout(()=>{$('winTxt').textContent=switches===1?'החלפת כוח משיכה פעם אחת.':`החלפת כוח משיכה ${switches} פעמים.`;$('nextBtn').textContent=levelIdx<LEVELS.length-1?'לשלב הבא':'חזרה לשלב 1';$('win').hidden=false},450)}
+$('nextBtn').onclick=()=>loadLevel((levelIdx+1)%LEVELS.length);
+function step(now){
+  if(phiAnim){const t=Math.min(1,(now-phiAnim.t0)/650);phi=phiAnim.a+(phiAnim.b-phiAnim.a)*ease(t);if(t>=1){phi=phiAnim.b;const f=phiAnim.fall;phiAnim=null;startMove(f)}}
+  if(move){const sg=move.segs[move.i];const dur=sg.fall?110:200;
+    if(now-move.t0>=dur){cell=sg.b.slice();move.i++;move.t0=now;if(move.i>=move.segs.length){move=null;afterMove()}}}
+}
+function charPos(now){if(!move)return {p:cell,s:cell[0]+cell[1]+cell[2]};const sg=move.segs[move.i];const t=Math.min(1,(now-move.t0)/200);const p=sg.a.map((v,k)=>v+(sg.b[k]-v)*t);return {p,s:Math.max(sg.a[0]+sg.a[1]+sg.a[2],sg.b[0]+sg.b[1]+sg.b[2])}}
+function drawPoly(pts){ctx.beginPath();pts.forEach((p,i)=>{const q=xf(p);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])});ctx.closePath()}
+function drawChar(p,now,alpha){
+  const g=GR[gi];const base=xf(proj([p[0]+.5+g[0]*.5,p[1]+.5+g[1]*.5,p[2]+.5+g[2]*.5]));const s=S,[x,y]=base;
+  ctx.save();ctx.globalAlpha=alpha;
+  if(alpha===1){ctx.fillStyle=rgb(C.edge,.3);ctx.beginPath();ctx.ellipse(x,y,.24*s,.12*s,0,0,7);ctx.fill()}
+  const by=y+Math.sin(now/380)*.03*s;ctx.fillStyle=rgb(C.body);ctx.strokeStyle=rgb(C.edge,.6);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(x-.2*s,by-.02*s);ctx.quadraticCurveTo(x,by+.05*s,x+.2*s,by-.02*s);ctx.lineTo(x+.06*s,by-.56*s);ctx.lineTo(x-.06*s,by-.56*s);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.arc(x,by-.66*s,.12*s,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=rgb(C.hat);ctx.beginPath();ctx.moveTo(x-.14*s,by-.7*s);ctx.lineTo(x+.14*s,by-.7*s);ctx.lineTo(x+.02*s,by-1.08*s);ctx.closePath();ctx.fill();
+  ctx.restore()}
+function frame(now){
+  step(now);S=Math.min(W,H)/2/world.R;S=Math.min(S,70);
+  ctx.setTransform(dpr,0,0,dpr,0,0);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,rgb(C.bg1));bg.addColorStop(1,rgb(C.bg2));ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  const cp=charPos(now);let drawn=false;ctx.lineJoin='round';
+  for(const f of faces){
+    const bs=f.b[0]+f.b[1]+f.b[2];if(!drawn&&bs>cp.s){drawChar(cp.p,now,1);drawn=true}
+    drawPoly(f.pts);let col=faceColor(f.n);const isGoal=eq(f.cell,L.goal.cell)&&f.n===L.goal.n;
+    if(isGoal)col=mix(C.goal,col,.12+.12*Math.sin(now/300));
+    ctx.fillStyle=rgb(col);ctx.fill();ctx.strokeStyle=rgb(mix(col,C.edge,.45));ctx.lineWidth=Math.max(1,S/60);ctx.stroke();
+    if(hintFace&&f===hintFace&&!busy()){const a=.5+.5*Math.sin(now/200);ctx.strokeStyle=rgb(C.hat,a);ctx.lineWidth=4;drawPoly(f.pts);ctx.stroke()}
+  }
+  if(!drawn)drawChar(cp.p,now,1);
+  drawChar(cp.p,now,.28); // ghost through walls
+  if(tapMark){const age=(now-tapMark.t)/500;if(age>1)tapMark=null;else{ctx.strokeStyle=rgb(C.bad,1-age);ctx.lineWidth=4;drawPoly(tapMark.f.pts);ctx.stroke()}}
+  requestAnimationFrame(frame)}
+function switchGravity(ng){const f=fallPath(world,cell,ng);if(!f)return false;gi=ng;switches++;hintFace=null;
+  let target=PHI[ng];while(target-phi>Math.PI)target-=2*Math.PI;while(target-phi<-Math.PI)target+=2*Math.PI;phiAnim={a:phi,b:target,t0:performance.now(),fall:f};
+  if(move)move=null;return true}
+let down=null;
+cv.addEventListener('pointerdown',e=>{down={x:e.offsetX,y:e.offsetY}});
+cv.addEventListener('pointerup',e=>{if(!down)return;const dx=e.offsetX-down.x,dy=e.offsetY-down.y;down=null;if(dx*dx+dy*dy>200)return;tap(e.offsetX,e.offsetY)});
+function tap(x,y){if(busy()||won)return;const f=hit(faces,inv(x,y));if(!f)return;
+  if(f.n===gi){const p=walkPath(world,cell,gi,f.cell);if(!p){tapMark={f,t:performance.now()};toast('אין לשם דרך הליכה');return}hintFace=null;startMove(p);return}
+  const fp=fallPath(world,cell,f.n);
+  if(fp&&eq(fp[fp.length-1],f.cell)){switchGravity(f.n);return}
+  tapMark={f,t:performance.now()};toast('הקיר הזה לא בקו ישר מהדמות')}
+$('hintBtn').onclick=()=>{if(busy()||won)return;const sol=solve(world,cell,gi,L.goal);if(!sol){toast('אין דרך מכאן. נסה להתחיל מחדש');return}
+  let a=sol[0];if(a.t==='walk'){for(const b of sol){if(b.t!=='walk')break;a=b}hintFace=faces.find(f=>f.n===gi&&eq(f.cell,a.to));toast('הקש על המשבצת המסומנת',2500)}
+  else{hintFace=faces.find(f=>f.n===a.gi&&eq(f.cell,a.to));toast('הקש על הקיר המסומן',2500)}};
+$('reset').onclick=()=>loadLevel(levelIdx);
+loadLevel(0);requestAnimationFrame(frame);
+</script>
+
+</body></html>

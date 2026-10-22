@@ -1,0 +1,171 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>הליכה על הגריד</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&display=swap">
+<style>
+/* Layout: one-screen game — header, bare-grid canvas, hex direction pad at thumb reach */
+:root{
+  --bg:#f3f4f1; --ink:#22262b; --muted:#5d6570; --grid:#c9cec6; --floor:#e3e7df;
+  --ax:#cf5b43; --ay:#3576c9; --az:#2c9466; --star:#e2a72e; --ball:#22262b;
+  --panel:rgba(255,255,255,.8); --line:rgba(34,38,43,.12); --btn:#ffffff; --btn-on:#22262b; --btn-on-ink:#fff;
+  --display:"Secular One","Assistant",system-ui,sans-serif; --body-font:"Assistant",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1a1d21; --ink:#eceee9; --muted:#a3aab3; --grid:#3a3f45; --floor:#262a2f;
+  --ax:#ec7d63; --ay:#6ea4ee; --az:#4fc28f; --star:#f2bf4f; --ball:#eceee9;
+  --panel:rgba(36,40,45,.85); --line:rgba(255,255,255,.1); --btn:#2b3036; --btn-on:#eceee9; --btn-on-ink:#1a1d21; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1a1d21; --ink:#eceee9; --muted:#a3aab3; --grid:#3a3f45; --floor:#262a2f;
+  --ax:#ec7d63; --ay:#6ea4ee; --az:#4fc28f; --star:#f2bf4f; --ball:#eceee9;
+  --panel:rgba(36,40,45,.85); --line:rgba(255,255,255,.1); --btn:#2b3036; --btn-on:#eceee9; --btn-on-ink:#1a1d21; color-scheme:dark}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body-font);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.app{height:100%;display:flex;flex-direction:column;direction:rtl}
+.pad-x{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-block:12px 4px}
+.titles{min-width:0}
+h1{font-family:var(--display);font-weight:400;font-size:1.5rem;margin:0;line-height:1.1}
+.lvname{font-size:.95rem;color:var(--muted);margin-top:2px}
+.dots{display:flex;gap:6px;flex-shrink:0;padding-top:6px}
+.dot{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:var(--btn);color:var(--ink);font:600 .95rem var(--body-font);cursor:pointer}
+.dot[aria-current="true"]{background:var(--btn-on);color:var(--btn-on-ink);border-color:var(--btn-on)}
+.hint{font-size:1rem;line-height:1.45;color:var(--muted);max-width:62ch;min-height:2.9em}
+.stage{flex:1;position:relative;min-height:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.toast{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:8px 16px;border-radius:999px;font-weight:600;white-space:nowrap;transition:opacity .3s;pointer-events:none;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.read{position:absolute;bottom:10px;right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:6px;direction:ltr}
+.chip{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font:700 1rem var(--body-font);font-variant-numeric:tabular-nums}
+.chip i{width:10px;height:10px;border-radius:50%;display:block}
+.chip small{font-weight:600;color:var(--muted);font-size:.8rem}
+.bottom{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;padding-block:6px calc(10px + env(safe-area-inset-bottom,0px))}
+.hexpad{position:relative;width:176px;height:176px;flex-shrink:0;direction:ltr}
+.hexpad button{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;border:2px solid currentColor;background:var(--btn);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.hexpad button:active{background:currentColor}
+.hexpad button:active svg{stroke:var(--btn)}
+.hexpad svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.hexpad .hub{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px;border-radius:50%;background:var(--grid)}
+.tools{display:flex;flex-direction:column;gap:8px}
+.tools button{height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--btn);color:var(--ink);font:600 1rem var(--body-font);cursor:pointer}
+button:focus-visible,.dot:focus-visible{outline:2.5px solid var(--ay);outline-offset:2px}
+.win{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.card{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:20px;padding:22px 26px;text-align:center;display:grid;gap:10px;max-width:min(320px,90%)}
+.card h2{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0}
+.card p{margin:0;color:var(--muted)}
+.card button{height:48px;border-radius:12px;border:0;background:var(--btn-on);color:var(--btn-on-ink);font:700 1.05rem var(--body-font);cursor:pointer}
+@media (max-width:520px){h1{font-size:1.25rem}.dot{width:30px;height:30px}.hexpad{transform:scale(.88)}}
+</style>
+<div class="app">
+  <header class="pad-x">
+    <div class="titles"><h1>הליכה על הגריד</h1><div class="lvname" id="lvname"></div></div>
+    <div class="dots" id="dots" dir="ltr"></div>
+  </header>
+  <div class="hint pad-x" id="hint"></div>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="toast" id="toast" style="opacity:0"></div>
+    <div class="read" id="read"></div>
+    <div class="win" id="win" hidden><div class="card"><h2>אספת הכול!</h2><p id="winTxt"></p><button id="nextBtn" type="button">לשלב הבא</button></div></div>
+  </div>
+  <div class="bottom pad-x">
+    <div class="hexpad" id="pad"><div class="hub"></div></div>
+    <div class="tools">
+      <button id="undo" type="button">צעד אחורה</button>
+      <button id="reset" type="button">מההתחלה</button>
+    </div>
+  </div>
+</div>
+<script>
+const SQ=Math.sqrt(3)/2, N=6;
+// six moves: [axis, sign]; screen dirs: +X down-right, +Y down-left, +Z up
+const MOVES=[[0,1],[0,-1],[1,1],[1,-1],[2,1],[2,-1]];
+const SDIR=[[SQ,.5],[-SQ,.5],[0,-1]];
+const P=p=>[(p[0]-p[1])*SQ,(p[0]+p[1])*.5-p[2]];
+const K=p=>p.join(',');
+const LEVELS=[
+ {name:'שלב 1 · על הרצפה',hint:'זוז בחצים או בהחלקת אצבע. כל צבע הוא ציר. המעוין השקוף מראה באיזה מישור אתה זז עכשיו. אסוף את הכוכבים.',stars:[[3,0,0],[3,3,0],[0,3,0]]},
+ {name:'שלב 2 · לעלות למעלה',hint:'הכוכבים באוויר. הקו המקווקו מתחת לכל כוכב מראה איפה הוא על הרצפה. ההתאמה צריכה להיות גם בנקודה וגם בצל.',stars:[[0,0,3],[3,0,3],[3,3,1]]},
+ {name:'שלב 3 · אותה נקודה, עומק אחר',hint:'שלושה כוכבים יושבים על אותה נקודה במסך. כל אחד בעומק אחר. איך מגיעים לכל אחד מהם?',stars:[[2,2,0],[3,3,1],[4,4,2]]},
+ {name:'שלב 4 · הצעד שלא זז',hint:'שלושה צעדים, אחד בכל צבע, מחזירים אותך לאותה נקודה במסך. אבל בעולם זזת. מצא את הכוכבים בלי לבזבז צעדים.',stars:[[1,1,1],[2,2,2],[5,1,1],[1,5,3]]},
+ {name:'מגרש חופשי',hint:'אין כוכבים. צייר בקווים צורות על הגריד ותראה אותן נהיות תלת-ממדיות.',stars:[]}
+];
+const $=id=>document.getElementById(id);const cv=$('cv'),ctx=cv.getContext('2d');
+let C={},lv,li=0,pos,trail,got,anim=null,planeAx=[0,1],lastAx=[],won=false,toastT,steps=0;
+function hex(h){h=h.trim().replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');return [0,2,4].map(i=>parseInt(h.substr(i,2),16))}
+function readTheme(){const cs=getComputedStyle(document.documentElement);for(const k of['bg','ink','muted','grid','floor','ax','ay','az','star','ball'])C[k]=hex(cs.getPropertyValue('--'+k));C.axes=[C.ax,C.ay,C.az]}
+const rgb=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+readTheme();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{readTheme();buildPad()});
+new MutationObserver(()=>{readTheme();buildPad()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+function buildPad(){const pad=$('pad');pad.querySelectorAll('button').forEach(b=>b.remove());
+  const names=['ימינה-למטה','שמאלה-למעלה','שמאלה-למטה','ימינה-למעלה','למעלה','למטה'];
+  MOVES.forEach(([a,s],i)=>{const d=SDIR[a].map(v=>v*s);const ang=Math.atan2(d[1],d[0]);const b=document.createElement('button');b.type='button';
+    b.style.left=(88+Math.cos(ang)*62)+'px';b.style.top=(88+Math.sin(ang)*62)+'px';b.style.color=rgb(C.axes[a]);b.setAttribute('aria-label',names[i]);
+    b.innerHTML=`<svg viewBox="0 0 24 24" style="transform:rotate(${ang}rad)"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+    b.addEventListener('click',()=>tryMove(a,s));pad.appendChild(b)})}
+function loadLevel(i){li=i;lv=LEVELS[i];pos=[0,0,0];trail=[];got=new Set();anim=null;won=false;steps=0;lastAx=[];planeAx=[0,1];
+  $('lvname').textContent=lv.name;$('hint').textContent=lv.hint;$('win').hidden=true;renderDots();renderRead()}
+function renderDots(){const d=$('dots');d.innerHTML='';LEVELS.forEach((l,i)=>{const b=document.createElement('button');b.className='dot';b.type='button';b.textContent=l.stars.length?i+1:'∗';b.setAttribute('aria-label',l.name);b.setAttribute('aria-current',i===li);b.onclick=()=>loadLevel(i);d.appendChild(b)})}
+function renderRead(){const lbl=['','','גובה'];$('read').innerHTML=[0,1,2].map(a=>`<span class="chip"><i style="background:${rgb(C.axes[a])}"></i>${pos[a]}${lbl[a]?' <small>'+lbl[a]+'</small>':''}</span>`).join('')}
+function toast(m,ms=2200){const t=$('toast');t.textContent=m;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity=0,ms)}
+function tryMove(a,s){if(anim||won)return;const np=pos.slice();np[a]+=s;
+  if(np.some(v=>v<0||v>N)){toast(np[2]<0?'אי אפשר לרדת מתחת לרצפה':'זה קצה העולם');return}
+  anim={from:pos.slice(),to:np,t0:performance.now(),a};trail.push({from:pos.slice(),to:np,a});pos=np;steps++;
+  lastAx=lastAx.filter(x=>x!==a);lastAx.push(a);if(lastAx.length>=2)planeAx=lastAx.slice(-2);
+  renderRead();check()}
+function check(){const k=K(pos);lv.stars.forEach((s,i)=>{if(K(s)===k&&!got.has(i)){got.add(i);toast('יש!',900)}});
+  if(lv.stars.length&&got.size===lv.stars.length){won=true;setTimeout(()=>{$('winTxt').textContent=`עשית את זה ב-${steps} צעדים.`;$('nextBtn').textContent=li<LEVELS.length-1?'לשלב הבא':'מההתחלה';$('win').hidden=false},500);return}
+  const sp=P(pos);const near=lv.stars.find((s,i)=>!got.has(i)&&K(s)!==k&&Math.abs(P(s)[0]-sp[0])<1e-6&&Math.abs(P(s)[1]-sp[1])<1e-6);
+  if(near){const dz=near[2]-pos[2];toast(dz>0?'הנקודה נכונה, אבל הכוכב גבוה ממך. תסתכל על הצל':'הנקודה נכונה, אבל הכוכב נמוך ממך. תסתכל על הצל',3000)}}
+$('undo').onclick=()=>{if(anim||won||!trail.length)return;const t=trail.pop();pos=t.from.slice();steps++;renderRead()};
+$('reset').onclick=()=>loadLevel(li);
+$('nextBtn').onclick=()=>loadLevel((li+1)%LEVELS.length);
+addEventListener('keydown',e=>{const m={d:[0,1],a:[0,-1],w:[2,1],s:[2,-1],e:[1,-1],z:[1,1],ArrowUp:[2,1],ArrowDown:[2,-1]}[e.key];if(m)tryMove(...m)});
+// swipe
+let sw=null;cv.addEventListener('pointerdown',e=>{sw={x:e.clientX,y:e.clientY}});
+cv.addEventListener('pointerup',e=>{if(!sw)return;const dx=e.clientX-sw.x,dy=e.clientY-sw.y;sw=null;if(Math.hypot(dx,dy)<24)return;
+  let best=null,bd=-2;for(const [a,s] of MOVES){const d=SDIR[a];const dot=(d[0]*s*dx+d[1]*s*dy)/Math.hypot(dx,dy);if(dot>bd){bd=dot;best=[a,s]}}tryMove(...best)});
+
+let W,H,dpr,S,O;
+function resize(){const r=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2.5);W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;
+  // fit world box 0..N
+  const pts=[];for(const x of[0,N])for(const y of[0,N])for(const z of[0,N])pts.push(P([x,y,z]));
+  const mnx=Math.min(...pts.map(p=>p[0])),mxx=Math.max(...pts.map(p=>p[0])),mny=Math.min(...pts.map(p=>p[1])),mxy=Math.max(...pts.map(p=>p[1]));
+  S=Math.min((W-30)/(mxx-mnx),(H-50)/(mxy-mny));O=[W/2-(mnx+mxx)/2*S,H/2-(mny+mxy)/2*S]}
+new ResizeObserver(resize).observe($('stage'));resize();
+const X=p=>{const q=P(p);return [O[0]+q[0]*S,O[1]+q[1]*S]};
+const ease=t=>1-Math.pow(1-t,3);
+function line(a,b){ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+function drawGrid(){ctx.lineWidth=1;const L=Math.hypot(W,H)/S+4;
+  for(let f=0;f<3;f++){const d=SDIR[f];const o=SDIR[(f+1)%3];ctx.strokeStyle=rgb(C.grid);
+    for(let k=-40;k<=40;k++){const c=[O[0]+o[0]*k*S,O[1]+o[1]*k*S];line([c[0]-d[0]*L*S,c[1]-d[1]*L*S],[c[0]+d[0]*L*S,c[1]+d[1]*L*S])}}}
+function poly(pts,fill){ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
+function drawStar(c,r,col,alpha){ctx.beginPath();for(let i=0;i<10;i++){const rr=i%2?r*.45:r,a=-Math.PI/2+i*Math.PI/5;ctx.lineTo(c[0]+Math.cos(a)*rr,c[1]+Math.sin(a)*rr)}ctx.closePath();ctx.fillStyle=rgb(col,alpha);ctx.fill()}
+function dropLine(p,col,a){const top=X(p),bot=X([p[0],p[1],0]);if(p[2]>0){ctx.setLineDash([4,5]);ctx.strokeStyle=rgb(col,a);ctx.lineWidth=1.5;line(top,bot);ctx.setLineDash([])}
+  ctx.beginPath();ctx.ellipse(bot[0],bot[1],S*.22,S*.11,0,0,7);ctx.fillStyle=rgb(col,a*.35);ctx.fill()}
+function frame(now){
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=rgb(C.bg);ctx.fillRect(0,0,W,H);
+  drawGrid();
+  // floor (z=0 region)
+  poly([X([0,0,0]),X([N,0,0]),X([N,N,0]),X([0,N,0])],rgb(C.floor,.75));
+  ctx.strokeStyle=rgb(C.grid);ctx.lineWidth=1;
+  for(let i=0;i<=N;i++){line(X([i,0,0]),X([i,N,0]));line(X([0,i,0]),X([N,i,0]))}
+  // animated position
+  let cur=pos;if(anim){const t=Math.min(1,(now-anim.t0)/170);cur=anim.from.map((v,k)=>v+(anim.to[k]-v)*ease(t));if(t>=1)anim=null}
+  // current plane patch
+  const u=[0,0,0],v=[0,0,0];u[planeAx[0]]=1;v[planeAx[1]]=1;const pc=(a,b)=>X([cur[0]+u[0]*a+v[0]*b,cur[1]+u[1]*a+v[1]*b,cur[2]+u[2]*a+v[2]*b]);
+  const pcol=C.axes[3-planeAx[0]-planeAx[1]];poly([pc(-1.5,-1.5),pc(1.5,-1.5),pc(1.5,1.5),pc(-1.5,1.5)],rgb(pcol,.13));
+  ctx.strokeStyle=rgb(pcol,.35);ctx.lineWidth=1.2;for(const a of[-1,0,1]){line(pc(a,-1.5),pc(a,1.5));line(pc(-1.5,a),pc(1.5,a))}
+  // trail
+  ctx.lineCap='round';
+  trail.forEach((t,i)=>{const last=i===trail.length-1&&anim;const b=last?cur:t.to;ctx.strokeStyle=rgb(C.axes[t.a],.9);ctx.lineWidth=Math.max(3,S*.09);line(X(t.from),X(b))});
+  // stars
+  lv.stars.forEach((s,i)=>{if(got.has(i))return;dropLine(s,C.star,.9);const c=X(s);const pulse=1+.08*Math.sin(now/260+i);drawStar(c,S*.32*pulse,C.star,1)});
+  // ball
+  dropLine(cur,C.ball,.7);const c=X(cur);ctx.beginPath();ctx.arc(c[0],c[1],S*.2,0,7);ctx.fillStyle=rgb(C.ball);ctx.fill();
+  ctx.beginPath();ctx.arc(c[0]-S*.06,c[1]-S*.07,S*.06,0,7);ctx.fillStyle=rgb(C.bg,.7);ctx.fill();
+  requestAnimationFrame(frame)}
+buildPad();loadLevel(0);requestAnimationFrame(frame);
+</script>
+
+</body></html>

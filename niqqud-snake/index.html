@@ -1,0 +1,572 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>נחש הניקוד</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@600;800&family=Secular+One&family=Varela+Round&display=swap">
+<style>
+/* Layout: one-screen game. Top bar holds the target nikud, board fills the rest, d-pad floats bottom-left in arrows mode. Single committed look: a calm pond-green board with cream pebble words. */
+:root{
+  --board:#174440; --chrome:#0e2b29; --line:#2a5c56;
+  --pebble:#f7eedb; --pebble-edge:#d8c9a6; --ink:#271d12;
+  --snake:#f3b73d; --snake-2:#c7701f; --good:#86dc95; --bad:#ff6f61;
+  --text:#eef5f1; --muted:#9fc0b8;
+  --f-display:"Secular One","Varela Round",system-ui,sans-serif;
+  --f-ui:"Varela Round",system-ui,sans-serif;
+  --f-word:"Noto Sans Hebrew","Arial Hebrew","David",sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--chrome);color:var(--text);font-family:var(--f-ui);overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.app{height:100%;display:flex;flex-direction:column;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;gap:10px;box-sizing:border-box}
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.target{display:flex;align-items:center;gap:12px;background:var(--board);border:2px solid var(--line);border-radius:16px;padding:6px 16px 6px 10px;font:inherit;color:var(--text);cursor:pointer;text-align:start}
+.target:active{border-color:var(--snake)}
+.target .spk{color:var(--snake);display:grid;place-items:center}
+.target .spk svg{width:26px;height:26px}
+.target .glyph{font-family:var(--f-word);font-weight:800;font-size:44px;line-height:1.25;color:var(--snake);min-width:64px;text-align:center}
+.target .lbl{display:flex;flex-direction:column}
+.target small{color:var(--muted);font-size:13px;letter-spacing:.02em}
+.target b{font-family:var(--f-word);font-size:24px;font-weight:800}
+.stats{display:flex;gap:18px;align-items:center;margin-inline-start:auto;font-variant-numeric:tabular-nums}
+.stat{display:flex;flex-direction:column;align-items:center}
+.stat small{color:var(--muted);font-size:12px}
+.stat span{font-family:var(--f-display);font-size:24px}
+.hearts{display:flex;gap:4px}
+.hearts svg{width:22px;height:22px}
+.icon-btn{width:44px;height:44px;border-radius:12px;border:2px solid var(--line);background:var(--board);color:var(--text);display:grid;place-items:center;cursor:pointer}
+.icon-btn svg{width:22px;height:22px}
+.target:focus-visible,.icon-btn:focus-visible,.btn:focus-visible,.chip:focus-visible{outline:3px solid var(--snake);outline-offset:2px}
+.wrap{position:relative;flex:1;min-height:0;border-radius:18px;overflow:hidden;border:2px solid var(--line);background:var(--board)}
+canvas{display:block;touch-action:none;width:100%;height:100%}
+.pad{position:absolute;left:calc(14px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,58px);gap:4px;opacity:.85}
+.pad button{border:0;border-radius:14px;background:rgba(14,43,41,.72);color:var(--text);display:grid;place-items:center;touch-action:manipulation;cursor:pointer}
+.pad button:active{background:var(--snake);color:var(--ink)}
+.pad svg{width:26px;height:26px}
+.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .r{grid-column:3;grid-row:2}.pad .d{grid-column:2;grid-row:3}
+@media (pointer:fine){.pad{display:none}}
+.tapmode .pad{display:none}
+.toast{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:var(--snake);color:var(--ink);font-family:var(--f-word);font-weight:800;font-size:22px;padding:8px 20px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.3);transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.overlay{position:absolute;inset:0;background:rgba(10,32,30,.9);display:grid;place-items:center;padding:20px;overflow:auto}
+.card{max-width:600px;width:100%;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+.card h1{font-family:var(--f-display);font-size:clamp(40px,8vw,60px);margin:0;color:var(--snake);font-weight:400;text-wrap:balance}
+.card p{margin:0;font-size:18px;line-height:1.6;color:var(--text);max-width:42ch}
+.chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.chip{font-family:var(--f-word);font-weight:800;font-size:20px;padding:8px 14px;border-radius:14px;border:2px solid var(--line);background:var(--board);color:var(--muted);cursor:pointer;display:flex;gap:8px;align-items:center}
+.chip .g{font-size:26px;line-height:1.2}
+.chip[aria-pressed="true"]{background:var(--pebble);color:var(--ink);border-color:var(--snake)}
+.btn{font-family:var(--f-display);font-size:26px;padding:12px 40px;border-radius:16px;border:0;background:var(--snake);color:var(--ink);cursor:pointer;box-shadow:0 5px 0 var(--snake-2)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--snake-2)}
+.btn.ghost{background:transparent;color:var(--text);box-shadow:none;border:2px solid var(--line);font-size:20px;padding:10px 24px}
+.row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.hint{font-size:15px;color:var(--muted);max-width:44ch;line-height:1.5}
+.sect{font-family:var(--f-display);font-size:18px;color:var(--text)}
+.big{font-family:var(--f-display);font-size:56px;color:var(--text);line-height:1}
+@media (max-width:520px){.target .glyph{font-size:36px;min-width:50px}.target b{font-size:20px}.stat span{font-size:20px}}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+
+<div class="app" dir="rtl">
+  <div class="bar">
+    <button class="target" id="targetBtn" aria-live="polite" aria-label="השמעת הניקוד שוב">
+      <div class="glyph" id="tGlyph">אָ</div>
+      <div class="lbl"><small>תפסו מילים שמתחילות ב־</small><b id="tName">קָמָץ</b></div>
+      <span class="spk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></span>
+    </button>
+    <div class="stats">
+      <div class="stat"><small>נקודות</small><span id="score">0</span></div>
+      <div class="stat"><small>שלב</small><span id="level">1</span></div>
+      <div class="hearts" id="hearts" aria-label="חיים"></div>
+      <button class="icon-btn" id="soundBtn" aria-label="צליל"></button>
+      <button class="icon-btn" id="pauseBtn" aria-label="השהיה"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    </div>
+  </div>
+
+  <div class="wrap" id="wrap">
+    <canvas id="board"></canvas>
+    <div class="pad" dir="ltr" aria-label="כיוונים">
+      <button class="u" data-d="up" aria-label="למעלה"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5l7 9H5z"/></svg></button>
+      <button class="l" data-d="left" aria-label="שמאלה"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 12l9-7v14z"/></svg></button>
+      <button class="r" data-d="right" aria-label="ימינה"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 12l-9 7V5z"/></svg></button>
+      <button class="d" data-d="down" aria-label="למטה"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 19l-7-9h14z"/></svg></button>
+    </div>
+    <div class="toast" id="toast" style="opacity:0"></div>
+
+    <div class="overlay" id="startOv">
+      <div class="card">
+        <h1>נחש הניקוד</h1>
+        <p>הנחש רעב רק למילים שהאות הראשונה שלהן מנוקדת בניקוד שלמעלה.</p>
+        <div class="sect">איך משחקים?</div>
+        <div class="chips">
+          <button class="chip modeChip" id="mode-tap" data-mode="tap">נוגעים במילה</button>
+          <button class="chip modeChip" id="mode-arrows" data-mode="arrows">מנווטים בחצים</button>
+        </div>
+        <div class="hint" id="modeHint"></div>
+        <div class="sect">איזה ניקוד?</div>
+        <div class="chips" id="chips"></div>
+        <button class="chip wrongToggle" id="wrongToggle1"></button>
+        <button class="btn" id="startBtn">יוצאים לדרך</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="pauseOv" hidden>
+      <div class="card">
+        <div class="big">הפסקה</div>
+        <button class="chip wrongToggle" id="wrongToggle2"></button>
+        <div class="row"><button class="btn" id="resumeBtn">ממשיכים</button><button class="btn ghost" id="menuBtn">לתפריט</button></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="overOv" hidden>
+      <div class="card">
+        <h1>כל הכבוד!</h1>
+        <p id="overText"></p>
+        <div class="row"><button class="btn" id="againBtn">עוד סיבוב</button><button class="btn ghost" id="menuBtn2">לתפריט</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+// ---------- Data: words grouped by the vowel under/on the FIRST letter ----------
+const NIKUD = [
+  {id:'kamatz', name:'קָמָץ', glyph:'אָ', sound:'אָה', words:['דָּג','יָד','גָּמָל','חָתוּל','שָׁלוֹם','סָבָא','אָבָא','מָרָק','זָנָב','פָּרָה']},
+  {id:'patach', name:'פַּתָּח', glyph:'אַ', sound:'אַה', words:['בַּיִת','גַּן','פַּרְפַּר','תַּפּוּחַ','סַבְתָּא','מַיִם','יַלְדָּה','שַׁבָּת','כַּדּוּר','נַחַשׁ']},
+  {id:'segol',  name:'סֶגּוֹל', glyph:'אֶ', sound:'אֶה', words:['כֶּלֶב','יֶלֶד','לֶחֶם','מֶלֶךְ','שֶׁמֶשׁ','דֶּלֶת','גֶּשֶׁם','כֶּסֶף','גֶּזֶר','אֶבֶן']},
+  {id:'tsere',  name:'צֵירֵה', glyph:'אֵ', sound:'אֵה', words:['עֵץ','שֵׁן','בֵּיצָה','תֵּה','סֵפֶר','דֵּשֶׁא','פֵּרוֹת','רֵיחַ','שֵׁם','לֵב']},
+  {id:'hirik',  name:'חִירִיק', glyph:'אִ', sound:'אִי', words:['פִּיל','שִׁיר','עִיר','תִּיק','כִּסֵּא','נִמְלָה','גִּיר','סִפּוּר','לִימוֹן','דִּירָה']},
+  {id:'holam',  name:'חוֹלָם', glyph:'אוֹ', sound:'אוֹ', words:['דּוֹב','אוֹר','יוֹם','חוֹף','תּוֹף','טוֹב','בֹּקֶר','שׁוֹקוֹ','כּוֹבַע','מוֹרָה']},
+  {id:'shuruk', name:'שׁוּרוּק', glyph:'אוּ', sound:'אוּ', words:['סוּס','תּוּת','כּוּס','שׁוּק','חוּט','גּוּר','שֻׁלְחָן','דֻּבִּי','בּוּבָּה','פּוּל']}
+];
+const byId = Object.fromEntries(NIKUD.map(n=>[n.id,n]));
+const MAX_LIVES=5;
+
+// ---------- Elements ----------
+const $ = id=>document.getElementById(id);
+const cv=$('board'), ctx=cv.getContext('2d'), wrap=$('wrap');
+const css = getComputedStyle(document.documentElement);
+const C = k=>css.getPropertyValue(k).trim();
+const COL = {board:C('--board'),pebble:C('--pebble'),edge:C('--pebble-edge'),ink:C('--ink'),snake:C('--snake'),snake2:C('--snake-2'),good:C('--good'),bad:C('--bad')};
+const WORD_FONT = (fs)=>`800 ${fs}px "Noto Sans Hebrew","Arial Hebrew",sans-serif`;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const norm=a=>{ while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; };
+
+let state=null, running=false, paused=false;
+
+// ---------- Settings (remembered per viewer) ----------
+let selected = new Set(NIKUD.map(n=>n.id));
+let soundOn = true, best = 0, sayWrong = true, mode = 'tap';
+try{ const s=JSON.parse(localStorage.getItem('nikudSnake')||'{}');
+  if(Array.isArray(s.sel)&&s.sel.length) selected=new Set(s.sel.filter(i=>byId[i]));
+  if(!selected.size) selected=new Set(NIKUD.map(n=>n.id));
+  if(typeof s.sound==='boolean') soundOn=s.sound;
+  if(typeof s.best==='number') best=s.best;
+  if(typeof s.sayWrong==='boolean') sayWrong=s.sayWrong;
+  if(s.mode==='tap'||s.mode==='arrows') mode=s.mode; }catch(e){}
+function save(){ try{ localStorage.setItem('nikudSnake',JSON.stringify({sel:[...selected],sound:soundOn,best,sayWrong,mode})) }catch(e){} }
+
+// ---------- Sound ----------
+let actx=null;
+function unlockAudio(){
+  if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(actx&&actx.state==='suspended') actx.resume();
+}
+function tone(freq,dur,type='sine',vol=.18,when=0){
+  if(!soundOn||!actx) return;
+  const t=actx.currentTime+when, o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t+dur);
+}
+const sfx={
+  pick(){ tone(660,.08,'triangle',.06); },
+  good(){ tone(880,.12,'triangle',.07); },
+  bad(){ tone(220,.25,'sawtooth',.1); tone(160,.3,'sawtooth',.08,.12); },
+  level(){ [523,659,784,1046].forEach((f,i)=>tone(f,.18,'triangle',.12,i*.1)); }
+};
+let heVoice=null;
+function loadVoice(){ try{ heVoice=speechSynthesis.getVoices().find(v=>/^he|^iw/i.test(v.lang))||null }catch(e){} }
+try{ loadVoice(); speechSynthesis.onvoiceschanged=loadVoice; }catch(e){}
+function say(text){
+  if(!soundOn||!('speechSynthesis' in window)) return;
+  try{
+    if(!heVoice) loadVoice();
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='he-IL'; if(heVoice) u.voice=heVoice; u.rate=.8;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function sayTarget(){
+  if(!state) return; const n=byId[state.target];
+  say(`${n.name}. ${n.sound}. ${n.sound}. ${n.sound}`);
+}
+const ICON_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>';
+const ICON_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+function paintSound(){ $('soundBtn').innerHTML=soundOn?ICON_ON:ICON_OFF; $('soundBtn').setAttribute('aria-label',soundOn?'השתקה':'הפעלת צליל'); }
+paintSound();
+$('soundBtn').onclick=()=>{ soundOn=!soundOn; paintSound(); save(); };
+
+// ---------- Menu controls ----------
+const chipsEl=$('chips');
+function paintChips(){
+  const all=selected.size===NIKUD.length;
+  $('chip-all').setAttribute('aria-pressed',all);
+  NIKUD.forEach(m=>$('chip-'+m.id).setAttribute('aria-pressed',!all&&selected.has(m.id)));
+}
+function addChip(id,html,onPick){
+  const b=document.createElement('button'); b.className='chip'; b.id='chip-'+id;
+  b.innerHTML=html; b.onclick=()=>{ onPick(); paintChips(); save(); };
+  chipsEl.appendChild(b);
+}
+NIKUD.forEach(n=>addChip(n.id,`<span class="g">${n.glyph}</span><span>${n.name}</span>`,()=>{
+  selected=new Set([n.id]); unlockAudio(); say(`${n.name}. ${n.sound}`);
+}));
+addChip('all','<span>כל הניקודים</span>',()=>{ selected=new Set(NIKUD.map(n=>n.id)); });
+paintChips();
+
+function paintMode(){
+  document.querySelectorAll('.modeChip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===mode));
+  $('modeHint').textContent = mode==='tap'
+    ? 'הנחש זוחל לבד בין המילים. לוחצים באצבע על מילה נכונה, והנחש זוחל אליה ואוכל אותה.'
+    : 'מחליקים על הלוח או לוחצים על החצים כדי לכוון את הנחש אל המילים הנכונות.';
+  wrap.classList.toggle('tapmode',mode==='tap');
+}
+document.querySelectorAll('.modeChip').forEach(b=>b.onclick=()=>{ mode=b.dataset.mode; paintMode(); save(); });
+paintMode();
+
+function paintWrong(){
+  document.querySelectorAll('.wrongToggle').forEach(b=>{
+    b.setAttribute('aria-pressed',sayWrong);
+    b.innerHTML=`<span>${sayWrong?'✓':'✕'}</span><span>להקריא מילה עם ניקוד אחר: ${sayWrong?'פועל':'כבוי'}</span>`;
+  });
+}
+document.querySelectorAll('.wrongToggle').forEach(b=>b.onclick=()=>{ sayWrong=!sayWrong; paintWrong(); save(); });
+paintWrong();
+
+// ---------- Board geometry ----------
+let W=0,H=0,cell=24;
+function resize(){
+  const r=wrap.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,2);
+  W=r.width; H=r.height; cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  cell=Math.max(16,Math.floor(Math.min(W,H)/22));
+  if(state){
+    const s=state.snake; s.x=clamp(s.x,cell,W-cell); s.y=clamp(s.y,cell,H-cell);
+    s.trail=[{x:s.x,y:s.y}];
+    state.words.forEach(w=>{ measure(w); w.x=clamp(w.x,w.w/2,W-w.w/2); w.y=clamp(w.y,w.h/2,H-w.h/2); });
+  }
+}
+new ResizeObserver(resize).observe(wrap);
+
+// ---------- Game state ----------
+function newGame(){
+  const pool=[...selected];
+  const x0=W/2, y0=H/2, trail=[];
+  for(let i=0;i<=12;i++) trail.push({x:x0+cell*5*(1-i/12), y:y0});
+  state={
+    pool, mode, target:pool[Math.floor(Math.random()*pool.length)],
+    snake:{x:x0,y:y0,ang:Math.PI,wander:Math.PI,trail,len:cell*5},
+    score:0, lives:MAX_LIVES, level:1, hits:0, rightInLevel:0,
+    invuln:0, words:[], fx:[], shake:0, chase:[]
+  };
+  paintTarget(); paintStats(); fillWords(true);
+}
+function paintTarget(){ const n=byId[state.target]; $('tGlyph').textContent=n.glyph; $('tName').textContent=n.name; }
+function paintStats(){
+  $('score').textContent=state.score; $('level').textContent=state.level;
+  const h=$('hearts'); h.innerHTML='';
+  for(let i=0;i<MAX_LIVES;i++){ h.insertAdjacentHTML('beforeend',`<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.6 1.2 4.4 2.6.8-1.4 2.2-2.6 4.4-2.6 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z" fill="${i<state.lives?COL.bad:'none'}" stroke="${COL.bad}" stroke-width="1.6"/></svg>`); }
+}
+let toastT=0;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.opacity=1; clearTimeout(toastT); toastT=setTimeout(()=>t.style.opacity=0,1600); }
+
+// ---------- Words ----------
+function measure(w){
+  w.fs=Math.max(18,Math.round(cell*1.05)); ctx.font=WORD_FONT(w.fs);
+  w.w=ctx.measureText(w.text).width+w.fs*.9; w.h=w.fs*1.7;
+}
+function pickText(correct){
+  const used=new Set(state.words.map(w=>w.text)); let list;
+  if(correct) list=byId[state.target].words.map(t=>({t,n:state.target}));
+  else list=NIKUD.filter(n=>n.id!==state.target).flatMap(n=>n.words.map(t=>({t,n:n.id})));
+  const free=list.filter(o=>!used.has(o.t));
+  const src=free.length?free:list;
+  return src[Math.floor(Math.random()*src.length)];
+}
+function spawnWord(correct){
+  const o=pickText(correct);
+  const w={text:o.t, nikud:o.n, x:0,y:0, vx:0,vy:0, born:performance.now()};
+  measure(w);
+  const s=state.snake, gap=state.mode==='tap'?cell*2.2:cell*.6;
+  for(let i=0;i<60;i++){
+    w.x=w.w/2+Math.random()*Math.max(1,W-w.w); w.y=w.h/2+Math.random()*Math.max(1,H-w.h);
+    const farHead=Math.hypot(w.x-s.x,w.y-s.y)>cell*5;
+    const clear=state.words.every(o=>Math.abs(o.x-w.x)>(o.w+w.w)/2+gap||Math.abs(o.y-w.y)>(o.h+w.h)/2+gap);
+    if(farHead&&clear) break;
+  }
+  if(state.mode==='arrows'){
+    const a=Math.random()*Math.PI*2, sp=cell*(.12+Math.random()*.15)*(1+(state.level-1)*.05);
+    w.vx=Math.cos(a)*sp; w.vy=Math.sin(a)*sp;
+  }
+  state.words.push(w);
+}
+function wordCount(){ return W*H<300000?5:W*H<600000?6:7; }
+function fillWords(reset){
+  if(reset){ state.words=[]; state.chase=[]; }
+  while(state.words.length<wordCount()){
+    const good=state.words.filter(w=>w.nikud===state.target).length;
+    spawnWord(good<3 ? true : Math.random()<.5);
+  }
+}
+
+// ---------- Input ----------
+const ANG={right:0,down:Math.PI/2,left:Math.PI,up:-Math.PI/2};
+function turn(name){
+  if(!state||!running||paused||state.mode!=='arrows') return;
+  const a=ANG[name];
+  if(Math.abs(norm(a-state.snake.ang))>Math.PI*.9) return;
+  state.snake.ang=a;
+}
+addEventListener('keydown',e=>{
+  const k={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[e.key];
+  if(k){ e.preventDefault(); turn(k); }
+  else if(e.key===' '&&running){ e.preventDefault(); paused?resume():pause(); }
+});
+document.querySelectorAll('.pad button').forEach(b=>b.addEventListener('pointerdown',e=>{ e.preventDefault(); turn(b.dataset.d); }));
+let tStart=null;
+cv.addEventListener('pointerdown',e=>{
+  const r=cv.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+  if(state&&running&&!paused&&state.mode==='tap'){ tapAt(x,y); return; }
+  tStart={x:e.clientX,y:e.clientY};
+});
+cv.addEventListener('pointermove',e=>{
+  if(!tStart) return; const dx=e.clientX-tStart.x, dy=e.clientY-tStart.y;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<24) return;
+  turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+  tStart={x:e.clientX,y:e.clientY};
+});
+['pointerup','pointercancel','pointerleave'].forEach(t=>cv.addEventListener(t,()=>tStart=null));
+
+function tapAt(x,y){
+  const w=state.words.find(w=>Math.abs(x-w.x)<w.w/2+10&&Math.abs(y-w.y)<w.h/2+10);
+  if(!w||state.chase.includes(w)) return;
+  unlockAudio();
+  if(w.nikud===state.target){ state.chase.push(w); w.picked=performance.now(); sfx.pick(); }
+  else wrongWord(w);
+}
+
+// ---------- Rules ----------
+function hurt(msg){
+  if(state.invuln>0) return;
+  state.lives--; state.invuln=1300; state.shake=300;
+  state.snake.len=Math.max(cell*4,state.snake.len-cell*2);
+  sfx.bad(); paintStats();
+  if(msg) toast(msg);
+  if(state.lives<=0) setTimeout(gameOver,600);
+}
+function eat(w){
+  state.words.splice(state.words.indexOf(w),1);
+  state.score+=1; state.hits++; state.rightInLevel++;
+  state.snake.len=Math.min(cell*16,state.snake.len+cell*1.2);
+  sfx.good(); say(w.text);
+  burst(w.x,w.y,COL.good); floatText(w.x,w.y,w.text,COL.good);
+  paintStats();
+  if(state.rightInLevel>=5) nextLevel();
+  fillWords(false);
+}
+function wrongWord(w){
+  state.words.splice(state.words.indexOf(w),1);
+  floatText(w.x,w.y,w.text,COL.bad); burst(w.x,w.y,COL.bad);
+  hurt('ב"'+w.text+'" יש '+byId[w.nikud].name);
+  if(sayWrong) say(`${w.text}. זֶה ${byId[w.nikud].name}`);
+  fillWords(false);
+}
+function nextLevel(){
+  state.level++; state.rightInLevel=0;
+  sfx.level();
+  if(state.pool.length>1){
+    const others=state.pool.filter(p=>p!==state.target);
+    state.target=others[Math.floor(Math.random()*others.length)];
+    paintTarget(); fillWords(true);
+    toast('עכשיו מחפשים '+byId[state.target].name);
+    setTimeout(sayTarget,1200);
+  } else toast('שלב '+state.level+'!');
+  paintStats();
+}
+function burst(x,y,color){ for(let i=0;i<16;i++){ const a=Math.random()*Math.PI*2, s=60+Math.random()*140; state.fx.push({k:'p',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:0,life:600,color}); } }
+function floatText(x,y,text,color){ state.fx.push({k:'t',x,y,text,color,t:0,life:900}); }
+
+// ---------- Snake movement ----------
+function speed(){
+  if(state.mode==='arrows') return Math.min(cell*4.5, cell*3.2*(1+(state.level-1)*.06));
+  return state.chase.length?cell*6:cell*2.2;
+}
+function turnTo(target,maxStep){ const s=state.snake; s.ang=norm(s.ang+clamp(norm(target-s.ang),-maxStep,maxStep)); }
+function steerTap(sec){
+  const s=state.snake;
+  state.chase=state.chase.filter(w=>state.words.includes(w));
+  if(state.chase.length){ const w=state.chase[0]; turnTo(Math.atan2(w.y-s.y,w.x-s.x),5*sec); return; }
+  s.wander=norm(s.wander+(Math.random()-.5)*3*sec);
+  let vx=Math.cos(s.ang)+Math.cos(s.wander)*.5, vy=Math.sin(s.ang)+Math.sin(s.wander)*.5;
+  const px=s.x+Math.cos(s.ang)*cell*1.5, py=s.y+Math.sin(s.ang)*cell*1.5, m=cell*3;
+  if(px<m) vx+=(m-px)/m*3; if(px>W-m) vx-=(px-(W-m))/m*3;
+  if(py<m) vy+=(m-py)/m*3; if(py>H-m) vy-=(py-(H-m))/m*3;
+  for(const w of state.words){
+    const nx=clamp(px,w.x-w.w/2,w.x+w.w/2), ny=clamp(py,w.y-w.h/2,w.y+w.h/2);
+    let dx=px-nx, dy=py-ny, d=Math.hypot(dx,dy);
+    if(d<1){ dx=px-w.x; dy=py-w.y; d=Math.hypot(dx,dy)||1; vx+=dx/d*5; vy+=dy/d*5; continue; }
+    const R=cell*2.5; if(d<R){ const f=(1-d/R)*4; vx+=dx/d*f; vy+=dy/d*f; }
+  }
+  turnTo(Math.atan2(vy,vx),3*sec);
+}
+function hitRect(x,y,r,w){ const nx=clamp(x,w.x-w.w/2,w.x+w.w/2), ny=clamp(y,w.y-w.h/2,w.y+w.h/2); return Math.hypot(x-nx,y-ny)<r; }
+function update(dt){
+  const s=state.snake, sec=dt/1000;
+  if(state.mode==='tap') steerTap(sec);
+  const v=speed();
+  s.x+=Math.cos(s.ang)*v*sec; s.y+=Math.sin(s.ang)*v*sec;
+  let wrapped=false;
+  if(state.mode==='arrows'){
+    if(s.x<0){s.x+=W;wrapped=true} else if(s.x>W){s.x-=W;wrapped=true}
+    if(s.y<0){s.y+=H;wrapped=true} else if(s.y>H){s.y-=H;wrapped=true}
+  } else { const m=cell*.6; s.x=clamp(s.x,m,W-m); s.y=clamp(s.y,m,H-m); }
+  const lp=s.trail[s.trail.length-1];
+  if(wrapped) s.trail.push({x:s.x,y:s.y,gap:true});
+  else if(Math.hypot(s.x-lp.x,s.y-lp.y)>cell*.15) s.trail.push({x:s.x,y:s.y});
+  let total=0;
+  for(let i=s.trail.length-1;i>0;i--){
+    const a=s.trail[i-1], b=s.trail[i];
+    if(!b.gap) total+=Math.hypot(b.x-a.x,b.y-a.y);
+    if(total>s.len){ s.trail.splice(0,i-1); break; }
+  }
+  const r=cell*.45;
+  if(state.mode==='tap'){
+    const w=state.chase[0];
+    if(w&&hitRect(s.x,s.y,r,w)){ state.chase.shift(); eat(w); }
+  } else {
+    const w=state.words.find(w=>performance.now()-w.born>400&&hitRect(s.x,s.y,r,w));
+    if(w){ if(w.nikud===state.target) eat(w); else wrongWord(w); }
+  }
+}
+
+// ---------- Loop ----------
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(50,now-last); last=now;
+  if(state&&running&&!paused){
+    update(dt);
+    if(state.invuln>0) state.invuln-=dt;
+    if(state.shake>0) state.shake-=dt;
+    for(const w of state.words){
+      w.x+=w.vx*dt/1000; w.y+=w.vy*dt/1000;
+      if(w.x-w.w/2<0){w.x=w.w/2;w.vx=Math.abs(w.vx)} if(w.x+w.w/2>W){w.x=W-w.w/2;w.vx=-Math.abs(w.vx)}
+      if(w.y-w.h/2<0){w.y=w.h/2;w.vy=Math.abs(w.vy)} if(w.y+w.h/2>H){w.y=H-w.h/2;w.vy=-Math.abs(w.vy)}
+    }
+    state.fx=state.fx.filter(f=>{ f.t+=dt; if(f.k==='p'){f.x+=f.vx*dt/1000;f.y+=f.vy*dt/1000;f.vx*=.96;f.vy*=.96} else f.y-=dt*.05; return f.t<f.life; });
+  }
+  draw(now);
+  requestAnimationFrame(loop);
+}
+
+// ---------- Drawing ----------
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function drawSnake(now){
+  const s=state.snake, pts=s.trail.concat([{x:s.x,y:s.y}]), n=pts.length;
+  const wHead=cell*.95, wTail=cell*.3;
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  const widthAt=i=>wTail+(wHead-wTail)*Math.sqrt(i/(n-1));
+  // outline, body, then a soft stripe down the back
+  for(const pass of [0,1,2]){
+    for(let i=1;i<n;i++){
+      const a=pts[i-1], b=pts[i]; if(b.gap) continue;
+      const w=widthAt(i);
+      ctx.lineWidth = pass===0 ? w+4 : pass===1 ? w : w*.28;
+      ctx.strokeStyle = pass===0 ? COL.snake2 : pass===1 ? COL.snake : 'rgba(255,248,220,.45)';
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    }
+  }
+  const dx=Math.cos(s.ang), dy=Math.sin(s.ang), px=-dy, py=dx, R=cell*.58;
+  ctx.fillStyle=COL.snake2; ctx.beginPath(); ctx.arc(s.x,s.y,R+2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=COL.snake; ctx.beginPath(); ctx.arc(s.x,s.y,R,0,Math.PI*2); ctx.fill();
+  for(const sgn of [-1,1]){
+    const ex=s.x+dx*cell*.18+px*sgn*cell*.24, ey=s.y+dy*cell*.18+py*sgn*cell*.24;
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ex,ey,cell*.15,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=COL.ink; ctx.beginPath(); ctx.arc(ex+dx*cell*.05,ey+dy*cell*.05,cell*.08,0,Math.PI*2); ctx.fill();
+  }
+  if(Math.floor(now/300)%3===0){
+    const tx=s.x+dx*R, ty=s.y+dy*R;
+    ctx.strokeStyle=COL.bad; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx+dx*cell*.35,ty+dy*cell*.35); ctx.stroke();
+  }
+}
+function draw(now){
+  ctx.save();
+  ctx.fillStyle=COL.board; ctx.fillRect(0,0,W,H);
+  if(!state){ ctx.restore(); return; }
+  if(state.shake>0) ctx.translate((Math.random()-.5)*8,(Math.random()-.5)*8);
+
+  ctx.direction='rtl'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(const w of state.words){
+    const age=Math.min(1,(now-w.born)/350), sc=.6+.4*age;
+    ctx.save(); ctx.translate(w.x,w.y); ctx.scale(sc,sc); ctx.globalAlpha=age;
+    if(state.chase.includes(w)){
+      const pulse=3+Math.sin(now/120)*2;
+      ctx.strokeStyle=COL.good; ctx.lineWidth=4;
+      rr(-w.w/2-pulse-3,-w.h/2-pulse-3,w.w+2*pulse+6,w.h+2*pulse+6,w.h/2); ctx.stroke();
+    }
+    ctx.fillStyle='rgba(0,0,0,.22)'; rr(-w.w/2+2,-w.h/2+4,w.w,w.h,w.h/2.2); ctx.fill();
+    ctx.fillStyle=COL.pebble; rr(-w.w/2,-w.h/2,w.w,w.h,w.h/2.2); ctx.fill();
+    ctx.strokeStyle=COL.edge; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle=COL.ink; ctx.font=WORD_FONT(w.fs); ctx.fillText(w.text,0,w.fs*.06);
+    ctx.restore();
+  }
+
+  const blink=state.invuln>0 && Math.floor(now/120)%2===0;
+  if(!blink) drawSnake(now);
+
+  for(const f of state.fx){
+    ctx.globalAlpha=1-f.t/f.life;
+    if(f.k==='p'){ ctx.fillStyle=f.color; ctx.beginPath(); ctx.arc(f.x,f.y,cell*.12,0,Math.PI*2); ctx.fill(); }
+    else { ctx.fillStyle=f.color; ctx.font=WORD_FONT(Math.round(cell*1.4)); ctx.fillText(f.text,f.x,f.y); }
+  }
+  ctx.restore();
+}
+
+// ---------- Flow ----------
+function show(id,on){ $(id).hidden=!on; }
+function start(){
+  unlockAudio();
+  newGame(); running=true; paused=false;
+  show('startOv',false); show('overOv',false); show('pauseOv',false);
+  sayTarget();
+}
+function pause(){ if(!running) return; paused=true; show('pauseOv',true); }
+function resume(){ paused=false; last=performance.now(); show('pauseOv',false); }
+function menu(){ running=false; paused=false; show('pauseOv',false); show('overOv',false); show('startOv',true); }
+function gameOver(){
+  running=false;
+  const newBest=state.score>best; if(newBest){ best=state.score; save(); }
+  $('overText').textContent=`תפסתם ${state.hits} מילים נכונות והגעתם לשלב ${state.level}.`+(newBest?' שיא חדש!':` השיא שלכם: ${best} נקודות.`);
+  show('overOv',true);
+}
+$('startBtn').onclick=start; $('againBtn').onclick=start;
+$('pauseBtn').onclick=()=>paused?resume():pause();
+$('targetBtn').onclick=()=>{ unlockAudio(); sayTarget(); };
+$('resumeBtn').onclick=resume; $('menuBtn').onclick=menu; $('menuBtn2').onclick=menu;
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&running&&!paused) pause(); });
+
+// Demo board behind the start screen so the first frame shows the game
+resize();
+const fontReady=document.fonts?document.fonts.load(WORD_FONT(30),'אָבָא'):Promise.resolve();
+fontReady.catch(()=>{}).then(()=>{ resize(); newGame(); requestAnimationFrame(loop); });
+})();
+</script>
+
+<!-- סנכרון בין מכשירים (משותף לכל הפרויקטים) -->
+<script src="../firebase-config.js"></script>
+<script src="../ls-sync.js" data-app="niqqud-snake" data-prefix="nikudSnake"></script>
+<script type="module" src="../sync.js"></script>
+</body></html>

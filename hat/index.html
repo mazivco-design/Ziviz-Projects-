@@ -1,0 +1,1331 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The hat: an interactive aperiodic tiling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #e6ebf1;
+  --panel: #fbfcfd;
+  --ink: #12233b;
+  --ink-2: #4f617a;
+  --line: rgba(18, 35, 59, .18);
+  --chip: #eef2f7;
+  --fill: #2467a8;
+  --on-fill: #ffffff;
+  --stroke: #0f1b2d;
+  --cell-line: #98a2af;
+  --grid: rgba(15, 27, 45, .3);
+  --super: #e0561a;
+  --hover: #12233b;
+  --shadow: 0 -1px 0 rgba(18, 35, 59, .1), 0 -10px 28px rgba(18, 35, 59, .1);
+  --float: 0 1px 2px rgba(18, 35, 59, .18), 0 4px 14px rgba(18, 35, 59, .12);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111925;
+    --panel: #1a2433;
+    --ink: #e9eef6;
+    --ink-2: #9aabc2;
+    --line: rgba(233, 238, 246, .2);
+    --chip: #243144;
+    --fill: #7ab6f2;
+    --on-fill: #0d1622;
+    --stroke: #0f1b2d;
+    --cell-line: #98a2af;
+    --grid: rgba(15, 27, 45, .34);
+    --super: #ff8a4c;
+    --hover: #ffffff;
+    --shadow: 0 -1px 0 rgba(255, 255, 255, .06), 0 -10px 28px rgba(0, 0, 0, .35);
+    --float: 0 1px 2px rgba(0, 0, 0, .5), 0 4px 14px rgba(0, 0, 0, .35);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111925;
+  --panel: #1a2433;
+  --ink: #e9eef6;
+  --ink-2: #9aabc2;
+  --line: rgba(233, 238, 246, .2);
+  --chip: #243144;
+  --fill: #7ab6f2;
+  --on-fill: #0d1622;
+  --stroke: #0f1b2d;
+  --cell-line: #98a2af;
+  --grid: rgba(15, 27, 45, .34);
+  --super: #ff8a4c;
+  --hover: #ffffff;
+  --shadow: 0 -1px 0 rgba(255, 255, 255, .06), 0 -10px 28px rgba(0, 0, 0, .35);
+  --float: 0 1px 2px rgba(0, 0, 0, .5), 0 4px 14px rgba(0, 0, 0, .35);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+.stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+canvas.pan { cursor: grab; }
+canvas.panning { cursor: grabbing; }
+canvas.paint { cursor: crosshair; }
+
+.badge {
+  position: absolute; top: 10px; left: 10px; max-width: calc(100% - 76px);
+  padding: 9px 13px 10px; border-radius: 14px;
+  background: var(--panel); box-shadow: var(--float); pointer-events: none;
+}
+.badge strong { display: block; font-size: 18px; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; }
+.badge span[hidden] { display: none; }
+.badge span { display: block; margin-top: 2px; font-size: 13px; line-height: 1.3; color: var(--ink-2); }
+
+.zoom { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 6px; }
+.zoom button {
+  width: 42px; height: 42px; padding: 0; display: grid; place-items: center;
+  border: 0; border-radius: 13px; background: var(--panel); color: var(--ink); box-shadow: var(--float); cursor: pointer;
+}
+.zoom svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.panel { flex: 0 0 auto; background: var(--panel); box-shadow: var(--shadow); border-radius: 20px 20px 0 0;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); position: relative; }
+.inner { max-width: 560px; margin: 0 auto; }
+.row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.slot .row { margin-top: 0; }
+.slot [hidden], .row[hidden], .btn[hidden] { display: none; }
+
+.swatches { display: flex; gap: 6px; padding: 3px 4px; }
+.sw {
+  flex: 1 1 0; min-width: 0; max-width: 46px; height: 38px; padding: 0; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 11px;
+}
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--ink); }
+.sw.orig { background: conic-gradient(#3b86d0 0 25%, #a0cbea 0 50%, #c9c9c9 0 75%, #fbfbfb 0); }
+
+.btn {
+  height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--chip); color: var(--ink); font: 600 14px/1 inherit; font-family: inherit; cursor: pointer;
+  white-space: nowrap;
+}
+.btn[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); border-color: transparent; }
+.btn:disabled { opacity: .4; cursor: default; }
+.seg { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid var(--line); border-radius: 15px; background: var(--chip); }
+.seg .btn { height: 34px; border: 0; background: transparent; padding: 0 12px; }
+.seg .btn[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
+.spacer { flex: 1 1 auto; }
+.chips .btn { flex: 1 1 0; padding: 0 6px; }
+.extra[hidden] { display: none; }
+.extra { max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; margin: 0 -4px; padding: 0 4px; }
+.sep { border-top: 1px solid var(--line); margin-top: 12px; }
+.field {
+  height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--chip); color: var(--ink);
+  font: 600 15px/1 inherit; font-family: inherit; padding: 0 10px; -webkit-user-select: text; user-select: text;
+}
+input.field { width: 104px; letter-spacing: .02em; }
+select.field { width: 100%; }
+.field.bad { border-color: #d9483b; box-shadow: 0 0 0 1px #d9483b; }
+input[type="range"] { flex: 1 1 auto; min-width: 70px; height: 40px; margin: 0; accent-color: var(--fill); }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper .btn { width: 40px; padding: 0; font-size: 20px; }
+.stepper output { min-width: 26px; text-align: center; font-weight: 700; font-size: 17px; }
+.label { color: var(--ink-2); font-size: 14px; }
+.credit { margin: 12px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+
+button:focus-visible, canvas:focus-visible { outline: 3px solid var(--fill); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .sw { transition: background-color .12s, box-shadow .12s; }
+}
+@media (max-width: 400px) {
+  .btn { padding: 0 11px; }
+  .seg .btn { padding: 0 9px; }
+  .row { gap: 6px; }
+}
+.row.wrap { flex-wrap: wrap; }
+.prow { gap: 10px; }
+.prow .label { flex: 0 0 104px; }
+.prow input[type="range"] { flex: 1 1 auto; }
+.rot .btn { flex: 1 1 0; padding: 0 4px; font-size: 13px; }
+.rot { display: flex; width: 100%; }
+.prow output { min-width: 52px; text-align: right; font-weight: 700; font-size: 15px; }
+@media (min-width: 700px) {
+  body { font-size: 16px; }
+  .btn { height: 44px; font-size: 15px; }
+  .seg .btn { height: 38px; }
+  .sw { height: 44px; }
+  .field { height: 44px; }
+  .badge { padding: 11px 16px 12px; }
+  .badge strong { font-size: 20px; }
+  .badge span { font-size: 14px; }
+  .inner { max-width: 720px; }
+}
+@media (min-width: 900px) {
+  .app { flex-direction: row; }
+  .panel { flex: 0 0 380px; width: 380px; height: 100%; border-radius: 0; overflow-y: auto; box-shadow: -1px 0 0 var(--line);
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
+  .inner { max-width: none; }
+  #more { display: none; }
+  .extra[hidden] { display: block; }
+  .extra { max-height: none; overflow: visible; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="stage" id="stage">
+    <canvas id="cv" tabindex="0" aria-label="Interactive hat tiling. Tap or click a tile to color it."></canvas>
+    <div class="badge"><strong>The hat</strong><span id="count">169 tiles</span><span id="hint"></span></div>
+    <div class="zoom">
+      <button id="zin" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button id="zout" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+      <button id="fit" aria-label="Fit tiling to screen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    </div>
+  </main>
+
+  <section class="panel" aria-label="Controls">
+    <div class="inner">
+      <div class="slot">
+        <div class="row swatches" id="swatches" role="group" aria-label="Paint color"></div>
+        <div id="cellslot" hidden>
+          <div class="row"><select id="preset" class="field" aria-label="Pattern"></select></div>
+          <div class="row" id="simrow" style="margin-top:8px">
+            <button class="btn" id="play" aria-pressed="false" style="min-width:76px">Play</button>
+            <button class="btn" id="step">Step</button>
+            <button class="btn" id="restart">Restart</button>
+            <input id="speed" type="range" min="1" max="30" value="7" aria-label="Speed: steps per second">
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="seg" role="group" aria-label="Tool">
+          <button class="btn" id="mPaint" aria-pressed="true">Paint</button>
+          <button class="btn" id="mCells" aria-pressed="false">Cells</button>
+          <button class="btn" id="mMove" aria-pressed="false">Move</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn" id="undo" disabled>Undo</button>
+        <button class="btn" id="clear" disabled>Clear</button>
+        <button class="btn" id="more" aria-pressed="false" aria-expanded="false" aria-controls="extra">More</button>
+      </div>
+      <div class="extra" id="extra" hidden>
+        <div id="cellopts">
+          <div id="params"></div>
+          <div class="row" id="bsRow">
+            <span class="label">Birth / survival</span>
+            <span class="spacer"></span>
+            <input id="bs" class="field" value="B12/S1234" spellcheck="false" autocomplete="off" autocapitalize="characters" aria-label="Birth and survival counts, for example B3/S23">
+          </div>
+          <div class="row">
+            <span class="label">Neighbors</span>
+            <span class="spacer"></span>
+            <div class="seg" role="group" aria-label="Which tiles count as neighbors">
+              <button class="btn" data-nbr="edge" aria-pressed="true">Edges</button>
+              <button class="btn" data-nbr="corner" aria-pressed="false">Corners too</button>
+            </div>
+          </div>
+          <div class="row" id="rotRow" style="flex-direction:column;align-items:stretch;gap:6px">
+            <span class="label">Neighbor counts when turned by</span>
+            <div class="seg rot" role="group" aria-label="Which relative rotations of a neighbor count">
+              <button class="btn" data-rot="0" aria-pressed="true" aria-label="Same orientation">0°</button>
+              <button class="btn" data-rot="1" aria-pressed="true" aria-label="60 degrees counterclockwise">+60</button>
+              <button class="btn" data-rot="2" aria-pressed="true" aria-label="120 degrees counterclockwise">+120</button>
+              <button class="btn" data-rot="3" aria-pressed="true" aria-label="Opposite orientation">180</button>
+              <button class="btn" data-rot="4" aria-pressed="true" aria-label="120 degrees clockwise">&minus;120</button>
+              <button class="btn" data-rot="5" aria-pressed="true" aria-label="60 degrees clockwise">&minus;60</button>
+            </div>
+          </div>
+          <p class="credit">Every hat is a rotated (sometimes mirrored) copy of the same shape. A neighbor only counts if it is turned, relative to this tile, by one of the pressed angles. Turn off some angles and the rules become one-handed.</p>
+          <div class="row" id="startRow">
+            <span class="label">Start with</span>
+            <span class="spacer"></span>
+            <div class="seg" role="group" aria-label="Starting pattern on restart">
+              <button class="btn" data-start="one" aria-pressed="true">One tile</button>
+              <button class="btn" data-start="scatter" aria-pressed="false">Scattered</button>
+            </div>
+          </div>
+          <p class="credit" id="bsNote">Life-style patterns: each tile counts its live neighbors. Numbers after B bring a dead tile to life; numbers after S keep a live tile alive. Sliders and the start choice apply on Restart.</p>
+          <div class="sep"></div>
+        </div>
+        <div class="row chips">
+          <button class="btn" id="tRole" aria-pressed="true">Role colors</button>
+          <button class="btn" id="tKite" aria-pressed="true">Kite grid</button>
+          <button class="btn" id="tSuper" aria-pressed="false">Supertiles</button>
+        </div>
+        <div class="row">
+          <span class="label">Patch size</span>
+          <span class="spacer"></span>
+          <div class="stepper">
+            <button class="btn" id="lvMinus" aria-label="Smaller patch">&minus;</button>
+            <output id="lvOut" aria-live="polite">5</output>
+            <button class="btn" id="lvPlus" aria-label="Larger patch">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <label class="label" for="zoomSlider" style="flex:0 0 96px">Tile size</label>
+          <input id="zoomSlider" type="range" min="0" max="100" value="50" style="flex:1 1 auto">
+        </div>
+        <p class="credit">Each hat is built from 8 kites. Colors follow the metatile each hat belongs to, as in Smith, Myers, Kaplan and Goodman-Strauss (2023). Resizing the patch clears your painting and cells. Patch size 6 has about 54,000 tiles and may be slow on older devices.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/*
+ * Tiling generator adapted from "hatviz" by Craig S. Kaplan.
+ * Copyright (c) 2023, Craig S. Kaplan. BSD 3-Clause License.
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the copyright notice, this list of conditions and the
+ * disclaimer in the original license are retained. The software is provided "as is",
+ * without warranty of any kind. See https://github.com/isohedral/hatviz
+ */
+const HAT = (function () {
+const PI = Math.PI, cos = Math.cos, sin = Math.sin;
+const hr3 = 0.8660254037844386;
+const ident = [1, 0, 0, 0, 1, 0];
+const pt = (x, y) => ({ x, y });
+const hexPt = (x, y) => pt(x + 0.5 * y, hr3 * y);
+function inv(T) {
+  const det = T[0]*T[4] - T[1]*T[3];
+  return [T[4]/det, -T[1]/det, (T[1]*T[5]-T[2]*T[4])/det,
+          -T[3]/det, T[0]/det, (T[2]*T[3]-T[0]*T[5])/det];
+}
+function mul(A, B) {
+  return [A[0]*B[0] + A[1]*B[3], A[0]*B[1] + A[1]*B[4], A[0]*B[2] + A[1]*B[5] + A[2],
+          A[3]*B[0] + A[4]*B[3], A[3]*B[1] + A[4]*B[4], A[3]*B[2] + A[4]*B[5] + A[5]];
+}
+const padd = (p, q) => ({ x: p.x + q.x, y: p.y + q.y });
+const psub = (p, q) => ({ x: p.x - q.x, y: p.y - q.y });
+function trot(a) { const c = cos(a), s = sin(a); return [c, -s, 0, s, c, 0]; }
+const ttrans = (tx, ty) => [1, 0, tx, 0, 1, ty];
+function rotAbout(p, a) { return mul(ttrans(p.x, p.y), mul(trot(a), ttrans(-p.x, -p.y))); }
+function transPt(M, P) { return pt(M[0]*P.x + M[1]*P.y + M[2], M[3]*P.x + M[4]*P.y + M[5]); }
+function matchSeg(p, q) { return [q.x-p.x, p.y-q.y, p.x, q.y-p.y, q.x-p.x, p.y]; }
+function matchTwo(p1, q1, p2, q2) { return mul(matchSeg(p2, q2), inv(matchSeg(p1, q1))); }
+function intersect(p1, q1, p2, q2) {
+  const d = (q2.y - p2.y) * (q1.x - p1.x) - (q2.x - p2.x) * (q1.y - p1.y);
+  const uA = ((q2.x - p2.x) * (p1.y - p2.y) - (q2.y - p2.y) * (p1.x - p2.x)) / d;
+  return pt(p1.x + uA * (q1.x - p1.x), p1.y + uA * (q1.y - p1.y));
+}
+const hat_outline = [
+  hexPt(0,0), hexPt(-1,-1), hexPt(0,-2), hexPt(2,-2), hexPt(2,-1), hexPt(4,-2), hexPt(5,-1),
+  hexPt(4,0), hexPt(3,0), hexPt(2,2), hexPt(0,3), hexPt(0,2), hexPt(-1,2)];
+
+class HatTile { constructor(label) { this.label = label; } }
+class MetaTile {
+  constructor(shape) { this.shape = shape; this.children = []; }
+  addChild(T, geom) { this.children.push({ T, geom }); }
+  evalChild(n, i) { return transPt(this.children[n].T, this.children[n].geom.shape[i]); }
+  recentre() {
+    let cx = 0, cy = 0;
+    for (const p of this.shape) { cx += p.x; cy += p.y; }
+    cx /= this.shape.length; cy /= this.shape.length;
+    const tr = pt(-cx, -cy);
+    for (let i = 0; i < this.shape.length; i++) this.shape[i] = padd(this.shape[i], tr);
+    const M = ttrans(-cx, -cy);
+    for (const ch of this.children) ch.T = mul(M, ch.T);
+  }
+}
+const H1_hat = new HatTile('H1'), H_hat = new HatTile('H'), T_hat = new HatTile('T'),
+      P_hat = new HatTile('P'), F_hat = new HatTile('F');
+
+const H_init = (function () {
+  const o = [pt(0,0), pt(4,0), pt(4.5,hr3), pt(2.5,5*hr3), pt(1.5,5*hr3), pt(-0.5,hr3)];
+  const m = new MetaTile(o);
+  m.addChild(matchTwo(hat_outline[5], hat_outline[7], o[5], o[0]), H_hat);
+  m.addChild(matchTwo(hat_outline[9], hat_outline[11], o[1], o[2]), H_hat);
+  m.addChild(matchTwo(hat_outline[5], hat_outline[7], o[3], o[4]), H_hat);
+  m.addChild(mul(ttrans(2.5, hr3), mul([-0.5,-hr3,0,hr3,-0.5,0], [0.5,0,0,0,-0.5,0])), H1_hat);
+  return m;
+})();
+const T_init = (function () {
+  const m = new MetaTile([pt(0,0), pt(3,0), pt(1.5,3*hr3)]);
+  m.addChild([0.5,0,0.5,0,0.5,hr3], T_hat);
+  return m;
+})();
+const P_init = (function () {
+  const m = new MetaTile([pt(0,0), pt(4,0), pt(3,2*hr3), pt(-1,2*hr3)]);
+  m.addChild([0.5,0,1.5,0,0.5,hr3], P_hat);
+  m.addChild(mul(ttrans(0, 2*hr3), mul([0.5,hr3,0,-hr3,0.5,0], [0.5,0,0,0,0.5,0])), P_hat);
+  return m;
+})();
+const F_init = (function () {
+  const m = new MetaTile([pt(0,0), pt(3,0), pt(3.5,hr3), pt(3,2*hr3), pt(-1,2*hr3)]);
+  m.addChild([0.5,0,1.5,0,0.5,hr3], F_hat);
+  m.addChild(mul(ttrans(0, 2*hr3), mul([0.5,hr3,0,-hr3,0.5,0], [0.5,0,0,0,0.5,0])), F_hat);
+  return m;
+})();
+
+function constructPatch(H, T, P, F) {
+  const rules = [
+    ['H'], [0,0,'P',2], [1,0,'H',2], [2,0,'P',2], [3,0,'H',2], [4,4,'P',2],
+    [0,4,'F',3], [2,4,'F',3], [4,1,3,2,'F',0], [8,3,'H',0], [9,2,'P',0], [10,2,'H',0],
+    [11,4,'P',2], [12,0,'H',2], [13,0,'F',3], [14,2,'F',1], [15,3,'H',4], [8,2,'F',1],
+    [17,3,'H',0], [18,2,'P',0], [19,2,'H',2], [20,4,'F',3], [20,0,'P',2], [22,0,'H',2],
+    [23,4,'F',3], [23,0,'F',3], [16,0,'P',2], [9,4,0,2,'T',2], [4,0,'F',3]];
+  const ret = new MetaTile([]);
+  const shapes = { H, T, P, F };
+  for (const r of rules) {
+    if (r.length === 1) ret.addChild(ident, shapes[r[0]]);
+    else if (r.length === 4) {
+      const poly = ret.children[r[0]].geom.shape, T0 = ret.children[r[0]].T;
+      const Pp = transPt(T0, poly[(r[1]+1) % poly.length]), Q = transPt(T0, poly[r[1]]);
+      const nshp = shapes[r[2]], np = nshp.shape;
+      ret.addChild(matchTwo(np[r[3]], np[(r[3]+1) % np.length], Pp, Q), nshp);
+    } else {
+      const chP = ret.children[r[0]], chQ = ret.children[r[2]];
+      const Pp = transPt(chQ.T, chQ.geom.shape[r[3]]), Q = transPt(chP.T, chP.geom.shape[r[1]]);
+      const nshp = shapes[r[4]], np = nshp.shape;
+      ret.addChild(matchTwo(np[r[5]], np[(r[5]+1) % np.length], Pp, Q), nshp);
+    }
+  }
+  return ret;
+}
+
+function constructMetatiles(patch) {
+  const bps1 = patch.evalChild(8, 2), bps2 = patch.evalChild(21, 2);
+  const rbps = transPt(rotAbout(bps1, -2.0*PI/3.0), bps2);
+  const p72 = patch.evalChild(7, 2), p252 = patch.evalChild(25, 2);
+  const llc = intersect(bps1, rbps, patch.evalChild(6, 2), p72);
+  let w = psub(patch.evalChild(6, 2), llc);
+  const nH = [llc, bps1];
+  w = transPt(trot(-PI/3), w);
+  nH.push(padd(nH[1], w));
+  nH.push(patch.evalChild(14, 2));
+  w = transPt(trot(-PI/3), w);
+  nH.push(psub(nH[3], w));
+  nH.push(patch.evalChild(6, 2));
+  const new_H = new MetaTile(nH);
+  for (const ch of [0,9,16,27,26,6,1,8,10,15]) new_H.addChild(patch.children[ch].T, patch.children[ch].geom);
+  const new_P = new MetaTile([p72, padd(p72, psub(bps1, llc)), bps1, llc]);
+  for (const ch of [7,2,3,4,28]) new_P.addChild(patch.children[ch].T, patch.children[ch].geom);
+  const new_F = new MetaTile([bps2, patch.evalChild(24,2), patch.evalChild(25,0), p252, padd(p252, psub(llc, bps1))]);
+  for (const ch of [21,20,22,23,24,25]) new_F.addChild(patch.children[ch].T, patch.children[ch].geom);
+  const AAA = nH[2], BBB = padd(nH[1], psub(nH[4], nH[5])), CCC = transPt(rotAbout(BBB, -PI/3), AAA);
+  const new_T = new MetaTile([BBB, CCC, AAA]);
+  new_T.addChild(patch.children[11].T, patch.children[11].geom);
+  new_H.recentre(); new_P.recentre(); new_F.recentre(); new_T.recentre();
+  return [new_H, new_T, new_P, new_F];
+}
+
+function build(level) {
+  let tiles = [H_init, T_init, P_init, F_init];
+  for (let i = 1; i < level; i++) tiles = constructMetatiles(constructPatch(...tiles));
+  const top = tiles[0];
+  const hats = [], supers = [];
+  (function walk(tile, T, depth) {
+    if (tile instanceof HatTile) { hats.push({ T, label: tile.label }); return; }
+    supers.push({ shape: tile.shape, T, depth });
+    for (const ch of tile.children) walk(ch.geom, mul(T, ch.T), depth + 1);
+  })(top, ident, 0);
+  // normalise: unit hat scale, centred on centroid of hat centres
+  const s0 = Math.sqrt(Math.abs(hats[0].T[0]*hats[0].T[4] - hats[0].T[1]*hats[0].T[3]));
+  const k = 1 / s0;
+  let cx = 0, cy = 0;
+  for (const h of hats) { cx += h.T[2]; cy += h.T[5]; }
+  cx /= hats.length; cy /= hats.length;
+  const N = mul([k,0,-cx*k,0,k,-cy*k], ident);
+  for (const h of hats) h.T = mul(N, h.T);
+  for (const s of supers) s.T = mul(N, s.T);
+  return { hats, supers };
+}
+return { build, hat_outline, hexPt, hr3, transPt, inv };
+})();
+
+
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const cv = $('cv'), stage = $('stage'), ctx = cv.getContext('2d');
+  const hr3 = HAT.hr3, outline = HAT.hat_outline;
+
+  // The 8 kites of a hat, as [x, k] pairs with y = k * sqrt(3)/2, in hat-local coordinates
+  const KITES = [
+    [[0,0],[1.5,1],[1,2],[0,2]], [[0,0],[-1.5,-1],[-1,-2],[0,-2]],
+    [[0,0],[0,-2],[1,-2],[1.5,-1]], [[0,0],[1.5,-1],[2,0],[1.5,1]],
+    [[3,-2],[4.5,-1],[4,0],[3,0]], [[3,-2],[3,0],[2,0],[1.5,-1]],
+    [[3,2],[1.5,3],[1,2],[1.5,1]], [[3,2],[1.5,1],[2,0],[3,0]]
+  ].map(k => k.map(p => [p[0], p[1] * hr3]));
+
+  // Colours. Palette 1..8 are paints; 9..12 are metatile roles; 13 is plain.
+  const PAL = [null, '#3b86d0', '#a0cbea', '#c9c9c9', '#fbfbfb', '#f0883e', '#f4c542', '#4fb286', '#d9487d'];
+  const PAL_NAMES = ['Original color', 'Dark blue', 'Light blue', 'Gray', 'White', 'Orange', 'Yellow', 'Green', 'Magenta'];
+  const FILL = PAL.slice(0, 9).concat(['#3b86d0', '#a0cbea', '#fbfbfb', '#c9c9c9', '#fbfbfb']);
+  const CELL0 = 14, MAX_STATES = 25;   // fill id 14 = a cell in state 0, 14 + s = state s
+  for (let k = 0; k <= MAX_STATES; k++) FILL.push('#000');
+  function hslHex(h, s, l) {
+    s /= 100; l /= 100;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); };
+    return '#' + f(0) + f(8) + f(4);
+  }
+  const RAINBOW = Array.from({ length: 24 }, (_, i) => hslHex(i * 15 + 8, 90, 56));
+  const COLONY_COLORS = ['#ff5d73', '#ffd23f', '#3ddc97', '#4dabf7', '#b78bff', '#ff9f43'];
+  // Cell palettes: dead = color of state 0, colors[s-1] = color of state s, line = tile outline
+  function paletteFor(p, v) {
+    switch (p.pal) {
+      case 'bw': return { dead: '#ffffff', line: null, colors: ['#0a0d12'] };
+      case 'rainbow': return { dead: '#0e1420', line: '#26314a', colors: RAINBOW };
+      case 'colony': return { dead: '#0e1420', line: '#26314a', colors: COLONY_COLORS.slice(0, v.colors) };
+      case 'waves': {
+        const m = v.recovery + 1;
+        return { dead: '#0c1a2b', line: '#1a3556', colors: Array.from({ length: m }, (_, i) => { const u = m > 1 ? i / (m - 1) : 0; return hslHex(55 - 80 * u, 90, 82 - 48 * u); }) };
+      }
+      case 'cycle': return { dead: '#0e1420', line: '#26314a', colors: Array.from({ length: v.colors }, (_, i) => hslHex(350 + i * 360 / v.colors, 85, 58)) };
+      case 'sand': return { dead: '#0e1420', line: '#222d47', colors: ['#2f3f8f', '#3f83c4', '#4fc1a6', '#f2e76d', '#ff9f43', '#ffffff'] };
+      case 'fire': return { dead: '#231c17', line: '#33281f', colors: ['#2f9e58', '#ff7a1a'] };
+      default: return { dead: '#0b1220', line: '#1c2740', colors: Array.from({ length: 23 }, (_, i) => (i === 22 ? '#ffffff' : hslHex(235 - (i + 1) / 23 * 245, 85, 55))) };
+    }
+  }
+  // Sliders each pattern exposes. restart: rebuild the grid when changed.
+  const PD = {
+    density: { key: 'density', label: 'Scatter density', min: 5, max: 70, step: 5, value: 30, unit: '%' },
+    tribes: { key: 'colors', label: 'Tribes', min: 2, max: 6, step: 1, value: 4, restart: true },
+    recovery: { key: 'recovery', label: 'Recovery', min: 1, max: 5, step: 1, value: 2, restart: true },
+    rain: { key: 'rain', label: 'Rain', min: 0, max: 20, step: 1, value: 3 },
+    cyColors: { key: 'colors', label: 'Colors', min: 3, max: 8, step: 1, value: 3, restart: true },
+    cyThr: { key: 'thr', label: 'Threshold', min: 1, max: 3, step: 1, value: 2 },
+    drip: { key: 'drip', label: 'Sand per step', min: 1, max: 40, step: 1, value: 16 },
+    sview: { key: 'view', label: 'Color by', min: 0, max: 1, step: 1, value: 1, labels: ['Height', 'Rings'], live: true },
+    grow: { key: 'grow', label: 'Regrowth', min: 1, max: 10, step: 1, value: 3, unit: '%' },
+    zap: { key: 'zap', label: 'Lightning', min: 0, max: 20, step: 1, value: 3 },
+    hg: { key: 'g', label: 'Growth', min: 1, max: 25, step: 1, value: 7 },
+    hk1: { key: 'k1', label: 'Infect', min: 1, max: 4, step: 1, value: 2 },
+    hk2: { key: 'k2', label: 'Illness', min: 1, max: 5, step: 1, value: 3 }
+  };
+  // kind: life | colony | waves | cycle | sand | fire | hodge.  start: one | scatter (where it matters)
+  const PRESETS = [
+    { group: 'bw', name: 'Fingerprint', kind: 'life', pal: 'bw', bs: 'B12/S1234', nbr: 'edge', start: 'one', params: [PD.density], note: 'Swirling stripes grow out of a single black tile.' },
+    { group: 'bw', name: 'Swirl', kind: 'life', pal: 'bw', bs: 'B12/S1234', nbr: 'corner', start: 'one', params: [PD.density], note: 'Same rule, but tiles touching at a corner count too. Looser spirals.' },
+    { group: 'bw', name: 'Ripples', kind: 'life', pal: 'bw', bs: 'B12/S5', nbr: 'edge', start: 'one', params: [PD.density], note: 'A widening ring that leaves textured rings behind it.' },
+    { group: 'bw', name: 'Snowflake', kind: 'life', pal: 'bw', bs: 'B12/S01234', nbr: 'edge', start: 'one', mask: 0b000111, speed: 6, params: [PD.density], note: 'Only neighbors turned 0°, +60° or +120° count. A branching, snowflake-like crystal grows and then freezes.' },
+    { group: 'bw', name: 'Speckled shield', kind: 'life', pal: 'bw', bs: 'B12/S123', nbr: 'edge', start: 'one', mask: 0b001100, speed: 6, params: [PD.density], note: 'Neighbors turned +120° or 180°. A big polygon with straight edges and small triangular holes.' },
+    { group: 'bw', name: 'Lace', kind: 'life', pal: 'bw', bs: 'B12/S123', nbr: 'edge', start: 'one', mask: 0b001110, speed: 6, params: [PD.density], note: 'Neighbors turned +60°, +120° or 180°. Fills the plane with a lace of triangular holes.' },
+    { group: 'bw', name: 'Crystal', kind: 'life', pal: 'bw', bs: 'B123/S1234', nbr: 'edge', start: 'one', mask: 0b001011, speed: 6, params: [PD.density], note: 'Neighbors turned 0°, +60° or 180°. A solid crystal with a few large triangular windows.' },
+    { group: 'bw', name: 'Coral', kind: 'life', pal: 'bw', bs: 'B123/S0124', nbr: 'edge', start: 'one', mask: 0b000110, speed: 6, params: [PD.density], note: 'Counterclockwise turns only. A lumpy coral that keeps twitching at its edges after it grows.' },
+    { group: 'bw', name: 'Life', kind: 'life', pal: 'bw', bs: 'B3/S23', nbr: 'edge', start: 'scatter', params: [PD.density], note: 'Classic Life rule from a random scatter. It settles quickly on this grid.' },
+    { group: 'bw', name: 'Bloom', kind: 'life', pal: 'bw', bs: 'B2/S23', nbr: 'edge', start: 'scatter', params: [PD.density], note: 'Keeps growing and churning.' },
+    { group: 'bw', name: 'Restless', kind: 'life', pal: 'bw', bs: 'B2/S1', nbr: 'corner', start: 'scatter', params: [PD.density], note: 'Never quite settles down.' },
+    { group: 'bw', name: 'Drift', kind: 'life', pal: 'bw', bs: 'B35/S234', nbr: 'corner', start: 'scatter', params: [PD.density], note: 'Slow, churning blobs.' },
+    { group: 'color', name: 'Rainbow fingerprint', kind: 'life', pal: 'rainbow', bs: 'B12/S1234', nbr: 'edge', start: 'one', params: [PD.density], note: 'Each tile is colored by the moment it was born, so the growth history shows as bands.' },
+    { group: 'color', name: 'Rainbow swirl', kind: 'life', pal: 'rainbow', bs: 'B12/S1234', nbr: 'corner', start: 'one', params: [PD.density], note: 'Birth-time colors on the looser spiral rule.' },
+    { group: 'color', name: 'Colony wars', kind: 'colony', pal: 'colony', bs: 'B2/S23', nbr: 'edge', start: 'scatter', params: [PD.tribes, PD.density], note: 'Tribes fight for ground. A newborn tile takes the majority color around it.' },
+    { group: 'color', name: 'Four tribes', kind: 'colony', pal: 'colony', bs: 'B35/S234', nbr: 'corner', start: 'scatter', params: [PD.tribes, PD.density], note: 'Slower, blobbier tribes with corner contacts.' },
+    { group: 'color', name: 'Waves', kind: 'waves', pal: 'waves', nbr: 'edge', start: 'scatter', speed: 8, params: [PD.recovery, PD.rain], note: 'A tile fires when a neighbor fires, then recovers. Rain drops new rings. Tap to add more.' },
+    { group: 'color', name: 'Rock paper scissors', kind: 'cycle', pal: 'cycle', nbr: 'edge', start: 'scatter', speed: 10, params: [PD.cyColors, PD.cyThr], note: 'Colors chase each other into spirals. Tap a tile to change its color.' },
+    { group: 'color', name: 'Sandpile', kind: 'sand', pal: 'sand', nbr: 'edge', start: 'one', speed: 12, params: [PD.drip, PD.sview], note: 'Sand drips on the center tile. Full tiles topple onto their neighbors. Rings show how often each tile has toppled. Tap to drop more.' },
+    { group: 'color', name: 'Wildfire', kind: 'fire', pal: 'fire', nbr: 'edge', start: 'scatter', speed: 8, params: [PD.grow, PD.zap], note: 'Trees regrow, lightning strikes, fire sweeps through. Tap to start a fire.' },
+    { group: 'tiling', name: 'Chiral bloom', kind: 'life', pal: 'rainbow', bs: 'B12/S1234', nbr: 'edge', start: 'one', mask: 0b000110, speed: 6, params: [PD.density], note: 'Only neighbors turned 60° or 120° counterclockwise count. The growth lobes and twists in a way a square grid never could.' },
+    { group: 'tiling', name: 'Mirror bloom', kind: 'life', pal: 'rainbow', bs: 'B12/S1234', nbr: 'edge', start: 'one', mask: 0b110000, speed: 6, params: [PD.density], note: 'The same rule with clockwise turns only. Compare its shape with Chiral bloom.' },
+    { group: 'tiling', name: 'Pinwheel', kind: 'life', pal: 'rainbow', bs: 'B12/S1234', nbr: 'edge', start: 'one', mask: 0b001110, speed: 6, params: [PD.density], note: 'Counterclockwise turns plus 180°. Dark channels spiral out from the center.' },
+    { group: 'tiling', name: 'Chiral waves', kind: 'waves', pal: 'waves', nbr: 'edge', start: 'scatter', mask: 0b000110, speed: 8, params: [PD.recovery, PD.rain], note: 'Rings that can only pass to neighbors turned counterclockwise, so they break into jagged, one-sided fronts.' },
+    { group: 'tiling', name: 'Twisted tribes', kind: 'colony', pal: 'colony', bs: 'B12/S1234', nbr: 'edge', start: 'scatter', mask: 0b000111, params: [PD.tribes, PD.density], note: 'Tribes that only see neighbors turned counterclockwise or opposite. Borders drift with a handedness.' },
+    { group: 'color', name: 'Hodgepodge', kind: 'hodge', pal: 'hodge', nbr: 'edge', start: 'scatter', speed: 10, params: [PD.hg, PD.hk1, PD.hk2], note: 'A chemical-reaction model. Fronts of heat sweep and swirl. Growth sets how calm or turbulent it is.' }
+  ];
+  const ROLE_ID = { H1: 9, H: 10, T: 11, P: 11, F: 12 };
+  const PLAIN_ID = 13;
+
+  // Hat geometry helpers
+  let cx0 = 0, cy0 = 0;
+  for (const p of outline) { cx0 += p.x; cy0 += p.y; }
+  cx0 /= outline.length; cy0 /= outline.length;
+  let RAD = 0;
+  for (const p of outline) RAD = Math.max(RAD, Math.hypot(p.x - cx0, p.y - cy0));
+  RAD += 0.05;
+  const RAD2 = RAD * RAD;
+  const tipX = outline[6].x - cx0, tipY = outline[6].y - cy0;
+
+  function pip(x, y) {
+    let inside = false;
+    for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+      const a = outline[i], b = outline[j];
+      if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+    }
+    return inside;
+  }
+
+  // ---------- State ----------
+  const MIN_LEVEL = 1, MAX_LEVEL = 6;
+  let level = 4;
+  let hats = [], n = 0, hx, hy, ang, V, KV, paint, roleId, supersByDepth = [], R = 10;
+  let sel = 1;               // selected palette index (0 = original)
+  let mode = 'paint';        // 'paint' | 'move'
+  let showKites = true, showSuper = false, showRoles = true;
+  let strokes = [];
+  let W = 300, H = 300, dpr = 1;
+  const cam = { cx: 0, cy: 0, z: 20 };
+  let hover = -1, dirty = true;
+  // cellular automaton
+  const sim = { B: new Uint8Array(9), S: new Uint8Array(9), nbr: 'edge', speed: 7, start: 'one', mask: 63 };
+  let cur = PRESETS[0], cellLine = null, zDef = 3.5, pv = {};
+  let center = 0, bw = true;   // bw: show the cell view (as opposed to the colored tiling)
+  let st = new Uint8Array(0), nxt = new Uint8Array(0), gen = 0, adj = null, brush = null;
+  let grains = new Int32Array(0), grains2 = new Int32Array(0), topple = new Int32Array(0), odo = new Int32Array(0), sink = new Uint8Array(0);
+  const seen = new Set(), tally = new Uint8Array(8);
+  let running = false, lastTs = 0, acc = 0;
+  let colors = {};
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+
+  function load(lv) {
+    const r = HAT.build(lv);
+    hats = r.hats; n = hats.length;
+    hx = new Float64Array(n); hy = new Float64Array(n); ang = new Float64Array(n);
+    V = new Float64Array(n * 26); KV = new Float64Array(n * 64);
+    paint = new Uint8Array(n); roleId = new Uint8Array(n);
+    st = new Uint8Array(n); nxt = new Uint8Array(n); gen = 0; adj = null;
+    grains = new Int32Array(n); grains2 = new Int32Array(n); topple = new Int32Array(n); odo = new Int32Array(n); sink = new Uint8Array(n);
+    R = 0;
+    for (let i = 0; i < n; i++) {
+      const T = hats[i].T;
+      for (let k = 0; k < 13; k++) {
+        const p = outline[k];
+        V[i*26 + k*2] = T[0]*p.x + T[1]*p.y + T[2];
+        V[i*26 + k*2 + 1] = T[3]*p.x + T[4]*p.y + T[5];
+      }
+      for (let j = 0; j < 8; j++) for (let k = 0; k < 4; k++) {
+        const p = KITES[j][k];
+        KV[i*64 + j*8 + k*2] = T[0]*p[0] + T[1]*p[1] + T[2];
+        KV[i*64 + j*8 + k*2 + 1] = T[3]*p[0] + T[4]*p[1] + T[5];
+      }
+      hx[i] = T[0]*cx0 + T[1]*cy0 + T[2];
+      hy[i] = T[3]*cx0 + T[4]*cy0 + T[5];
+      // which way this hat's tip points, in degrees (orientation of the tile)
+      ang[i] = Math.atan2(T[3]*tipX + T[4]*tipY, T[0]*tipX + T[1]*tipY) * 180 / Math.PI;
+      roleId[i] = ROLE_ID[hats[i].label];
+      R = Math.max(R, Math.hypot(hx[i], hy[i]));
+    }
+    R += RAD;
+    center = 0;
+    for (let i = 1; i < n; i++) if (Math.hypot(hx[i], hy[i]) < Math.hypot(hx[center], hy[center])) center = i;
+    supersByDepth = [];
+    for (const s of r.supers) {
+      const pts = new Float64Array(s.shape.length * 2);
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      s.shape.forEach((p, k) => {
+        const q = HAT.transPt(s.T, p);
+        pts[k*2] = q.x; pts[k*2+1] = q.y;
+        x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y);
+      });
+      (supersByDepth[s.depth] = supersByDepth[s.depth] || []).push({ pts, x0, y0, x1, y1 });
+    }
+    strokes = [];
+    hover = -1;
+  }
+
+  function fitZoom() { return Math.min(W, H) / (2 * (R + 1.5)); }
+  function fitView(k) {
+    const def = Math.min(30, Math.max(13, W / 25));
+    cam.cx = 0; cam.cy = 0;
+    cam.z = Math.max(zMin(), bw ? (k ? fitZoom() * k : zDef) : def);
+    requestDraw();
+  }
+  const zMin = () => Math.min(fitZoom() * 0.8, 8);
+  const Z_MAX = 150, ZUI_MAX = 40;
+  function clampCam() {
+    cam.z = Math.max(zMin(), Math.min(Z_MAX, cam.z));
+    const d = Math.hypot(cam.cx, cam.cy);
+    if (d > R) { cam.cx *= R / d; cam.cy *= R / d; }
+  }
+  const toWorld = (p) => ({ x: (p.x - W/2) / cam.z + cam.cx, y: cam.cy - (p.y - H/2) / cam.z });
+  function zoomAt(p, f) {
+    const w = toWorld(p);
+    cam.z = Math.max(zMin(), Math.min(Z_MAX, cam.z * f));
+    cam.cx = w.x - (p.x - W/2) / cam.z;
+    cam.cy = w.y + (p.y - H/2) / cam.z;
+    clampCam(); requestDraw();
+  }
+
+  // ---------- Drawing ----------
+  function readColors() {
+    const s = getComputedStyle(document.documentElement);
+    const g = (k) => s.getPropertyValue(k).trim();
+    colors = { bg: g('--bg'), stroke: g('--stroke'), cell: g('--cell-line'), grid: g('--grid'), sup: g('--super'), hover: g('--hover') };
+    requestDraw();
+  }
+  function requestDraw() {
+    if (dirty && requestDraw.queued) return;
+    dirty = true;
+    if (!requestDraw.queued) { requestDraw.queued = true; requestAnimationFrame(draw); }
+  }
+  const groups = Array.from({ length: CELL0 + MAX_STATES + 1 }, () => []);
+
+  function fillId(i) { return bw ? CELL0 + st[i] : (paint[i] ? paint[i] : (showRoles ? roleId[i] : PLAIN_ID)); }
+
+  function tracePoly(i, z, ox, oy) {
+    const b = i * 26;
+    ctx.moveTo(z*V[b] + ox, -z*V[b+1] + oy);
+    for (let k = 1; k < 13; k++) ctx.lineTo(z*V[b+k*2] + ox, -z*V[b+k*2+1] + oy);
+    ctx.closePath();
+  }
+
+  function draw() {
+    requestDraw.queued = false; dirty = false;
+    { const zs = $('zoomSlider'), lo = zMin(), hi = ZUI_MAX;
+      if (zs && hi > lo) { const u = Math.round(100 * Math.log(Math.max(lo, Math.min(hi, cam.z)) / lo) / Math.log(hi / lo)); if (+zs.value !== u) zs.value = u; } }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = colors.bg;
+    ctx.fillRect(0, 0, W, H);
+    const z = cam.z, ox = W/2 - z*cam.cx, oy = H/2 + z*cam.cy, m = RAD * z;
+    for (const g of groups) g.length = 0;
+    const vis = [];
+    for (let i = 0; i < n; i++) {
+      const sx = z*hx[i] + ox, sy = -z*hy[i] + oy;
+      if (sx < -m || sx > W + m || sy < -m || sy > H + m) continue;
+      vis.push(i);
+      groups[fillId(i)].push(i);
+    }
+    for (let f = 1; f < groups.length; f++) {
+      const list = groups[f];
+      if (!list.length) continue;
+      ctx.beginPath();
+      for (const i of list) tracePoly(i, z, ox, oy);
+      ctx.fillStyle = FILL[f];
+      ctx.fill();
+    }
+    const lw = Math.max(1, Math.min(4.5, z * 0.11));
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if (showKites && !bw && z >= 9) {
+      ctx.beginPath();
+      for (const i of vis) {
+        const b = i * 64;
+        for (let j = 0; j < 8; j++) {
+          const o = b + j * 8;
+          ctx.moveTo(z*KV[o] + ox, -z*KV[o+1] + oy);
+          ctx.lineTo(z*KV[o+2] + ox, -z*KV[o+3] + oy);
+          ctx.lineTo(z*KV[o+4] + ox, -z*KV[o+5] + oy);
+          ctx.lineTo(z*KV[o+6] + ox, -z*KV[o+7] + oy);
+          ctx.closePath();
+        }
+      }
+      ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = Math.min(1.2, Math.max(0.7, z * 0.035));
+      ctx.stroke();
+    }
+    if (z >= 0.8) {   // skip outlines when tiles are only a few pixels wide
+      ctx.beginPath();
+      for (const i of vis) tracePoly(i, z, ox, oy);
+      ctx.strokeStyle = bw ? (cellLine || colors.cell) : colors.stroke;
+      ctx.lineWidth = bw ? Math.max(0.6, lw * 0.5) : lw;
+      ctx.stroke();
+    }
+
+    if (showSuper) {
+      const L = supersByDepth.length;
+      ctx.strokeStyle = colors.sup;
+      for (let d = 0; d < L; d++) {
+        const list = supersByDepth[d]; if (!list) continue;
+        ctx.beginPath();
+        for (const s of list) {
+          const sx0 = z*s.x0 + ox, sx1 = z*s.x1 + ox, sy0 = -z*s.y1 + oy, sy1 = -z*s.y0 + oy;
+          if (sx1 < 0 || sx0 > W || sy1 < 0 || sy0 > H) continue;
+          const p = s.pts;
+          ctx.moveTo(z*p[0] + ox, -z*p[1] + oy);
+          for (let k = 2; k < p.length; k += 2) ctx.lineTo(z*p[k] + ox, -z*p[k+1] + oy);
+          ctx.closePath();
+        }
+        ctx.lineWidth = lw * (1.3 + 0.7 * (L - 1 - d));
+        ctx.globalAlpha = d === L - 1 ? 0.75 : 1;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    if (hover >= 0 && mode !== 'move') {
+      ctx.beginPath(); tracePoly(hover, z, ox, oy);
+      const hc = mode === 'cells' ? FILL[CELL0 + 1] : (sel > 0 ? PAL[sel] : null);
+      if (hc) { ctx.globalAlpha = 0.55; ctx.fillStyle = hc; ctx.fill(); ctx.globalAlpha = 1; }
+      ctx.strokeStyle = colors.hover; ctx.lineWidth = Math.max(2, lw * 1.4); ctx.stroke();
+    }
+  }
+
+  // ---------- Cellular automaton ----------
+  // Two tiles are neighbors if they share part of an edge, or (corners too) at least a corner.
+  // Contacts are found from the kite grid: hats are unions of kites, so kite vertices and edges line up exactly.
+  function buildAdjacency() {
+    const vmap = new Map(); let nv = 0;
+    const vid = (x, y) => {
+      const k = Math.round(x * 500) * 200003 + Math.round(y * 500);
+      let v = vmap.get(k); if (v === undefined) { v = nv++; vmap.set(k, v); } return v;
+    };
+    const emap = new Map(), ecnt = new Map(), vh = [];
+    const eN = Array.from({ length: n }, () => new Set()), vN = Array.from({ length: n }, () => new Set());
+    const ids = [0, 0, 0, 0];
+    for (let i = 0; i < n; i++) {
+      const b = i * 64;
+      for (let j = 0; j < 8; j++) {
+        for (let k = 0; k < 4; k++) {
+          const v = ids[k] = vid(KV[b + j*8 + k*2], KV[b + j*8 + k*2 + 1]);
+          const l = vh[v] || (vh[v] = []);
+          if (l[l.length - 1] !== i) l.push(i);
+        }
+        for (let k = 0; k < 4; k++) {
+          const a = ids[k], c = ids[(k + 1) % 4];
+          const key = Math.min(a, c) * 1000003 + Math.max(a, c);
+          ecnt.set(key, (ecnt.get(key) || 0) + 1);
+          const o = emap.get(key);
+          if (o === undefined) emap.set(key, i);
+          else if (o !== i) { eN[i].add(o); eN[o].add(i); }
+        }
+      }
+    }
+    for (const l of vh) {
+      if (!l || l.length < 2) continue;
+      for (const a of l) for (const c of l) if (a !== c) vN[a].add(c);
+    }
+    const pack = (sets) => {
+      const off = new Int32Array(n + 1); let tot = 0;
+      for (let i = 0; i < n; i++) { off[i] = tot; tot += sets[i].size; }
+      off[n] = tot;
+      const idx = new Int32Array(tot), rel = new Uint8Array(tot); let p = 0;
+      for (let i = 0; i < n; i++) for (const j of sets[i]) {
+        rel[p] = Math.round((((ang[j] - ang[i]) % 360) + 360) % 360 / 60) % 6;
+        idx[p++] = j;
+      }
+      return { off, idx, rel };
+    };
+    sink.fill(0);   // tiles on the outer rim of the patch drain the sandpile
+    for (const [key, c] of ecnt) if (c === 1) sink[emap.get(key)] = 1;
+    adj = { edge: pack(eN), corner: pack(vN) };
+  }
+
+  function paintValue() {
+    if (cur.pal === 'rainbow') return (gen % 24) + 1;
+    if (cur.kind === 'colony') return 1 + Math.floor(Math.random() * pv.colors);
+    if (cur.kind === 'fire') return 2;
+    return 1;
+  }
+
+  function step() {
+    if (!adj) buildAdjacency();
+    const { off, idx, rel } = adj[sim.nbr];
+    const kind = cur.kind;
+    if (kind === 'sand') stepSand(off, idx);
+    else {
+      const mask = sim.mask;
+      const B = sim.B, S = sim.S;
+      const born = cur.pal === 'rainbow' ? (gen % 24) + 1 : 1;
+      const rain = (pv.rain || 0) * 1e-4, last = (pv.recovery || 2) + 1;
+      const nCol = pv.colors || 3, thr = pv.thr || 2;
+      const grow = (pv.grow || 3) / 100, zap = (pv.zap || 0) * 2e-5;
+      const hg = pv.g || 7, k1 = pv.k1 || 2, k2 = pv.k2 || 3;
+      for (let i = 0; i < n; i++) {
+        const s = st[i], a = off[i], e = off[i + 1];
+        let c = 0, v = 0;
+        if (kind === 'life') {
+          for (let p = a; p < e; p++) if (st[idx[p]] && (mask >> rel[p] & 1)) c++;
+          v = s ? (S[c] ? s : 0) : (B[c] ? born : 0);
+        } else if (kind === 'colony') {
+          tally.fill(0);
+          for (let p = a; p < e; p++) { const q = st[idx[p]]; if (q && (mask >> rel[p] & 1)) { c++; tally[q]++; } }
+          if (s) v = S[c] ? s : 0;
+          else if (B[c]) {
+            let best = 1, bn = 0, ties = 0;
+            for (let q = 1; q <= nCol; q++) {
+              const tq = tally[q];
+              if (tq > bn) { bn = tq; best = q; ties = 1; }
+              else if (tq === bn && tq > 0) { ties++; if (Math.random() * ties < 1) best = q; }
+            }
+            v = best;
+          }
+        } else if (kind === 'waves') {
+          if (s === 0) {
+            if (rain > 0 && Math.random() < rain) v = 1;
+            else for (let p = a; p < e; p++) if (st[idx[p]] === 1 && (mask >> rel[p] & 1)) { v = 1; break; }
+          } else v = s >= last ? 0 : s + 1;
+        } else if (kind === 'cycle') {
+          if (s !== 0) {
+            const want = s % nCol + 1;
+            for (let p = a; p < e; p++) if (st[idx[p]] === want && (mask >> rel[p] & 1)) c++;
+            v = c >= thr ? want : s;
+          }
+        } else if (kind === 'fire') {
+          if (s === 2) v = 0;
+          else if (s === 1) {
+            v = Math.random() < zap ? 2 : 1;
+            for (let p = a; p < e; p++) if (st[idx[p]] === 2 && (mask >> rel[p] & 1)) { v = 2; break; }
+          } else v = Math.random() < grow ? 1 : 0;
+        } else {
+          // Hodgepodge machine, states 0..23
+          let sum = s, b = 0;
+          for (let p = a; p < e; p++) { if (!(mask >> rel[p] & 1)) continue; const w = st[idx[p]]; if (w === 23) b++; else if (w > 0) c++; sum += w; }
+          if (s === 0) v = Math.floor(c / k1) + Math.floor(b / k2);
+          else if (s === 23) v = 0;
+          else v = Math.floor(sum / (e - a + 1)) + hg;
+          if (v > 23) v = 23;
+        }
+        nxt[i] = v;
+      }
+      const tmp = st; st = nxt; nxt = tmp;
+    }
+    gen++;
+    syncUI(); requestDraw();
+  }
+
+  // Abelian sandpile: a tile holding at least as many grains as it has neighbors topples one grain onto each.
+  // Each step drips sand on the center and lets the pile settle for a while.
+  function stepSand(off, idx) {
+    grains[center] += pv.drip;
+    for (let pass = 0; pass < 40; pass++) {
+      let any = false;
+      for (let i = 0; i < n; i++) {
+        const d = off[i + 1] - off[i];
+        const t = d > 0 && grains[i] >= d ? Math.floor(grains[i] / d) : 0;
+        topple[i] = t; if (t) { any = true; odo[i] += t; }
+      }
+      if (!any) break;
+      for (let i = 0; i < n; i++) {
+        const a = off[i], e = off[i + 1];
+        let v = grains[i] - topple[i] * (e - a);
+        for (let p = a; p < e; p++) v += topple[idx[p]];
+        grains2[i] = sink[i] ? 0 : v;
+      }
+      const tmp = grains; grains = grains2; grains2 = tmp;
+    }
+    sandSync(off);
+  }
+  function sandSync(off) {
+    for (let i = 0; i < n; i++) {
+      if (pv.view === 1) { st[i] = odo[i] > 0 ? 1 + (Math.floor(odo[i] / 12) % 6) : 0; continue; }
+      const g = grains[i], d = off[i + 1] - off[i];
+      st[i] = g === 0 ? 0 : g >= d ? 6 : Math.min(g, 5);
+    }
+  }
+
+  // Back to a blank grid, then the start the pattern asks for.
+  function restart() {
+    st.fill(0); grains.fill(0); odo.fill(0); gen = 0;
+    const k = cur.kind;
+    if (k === 'cycle') { for (let i = 0; i < n; i++) st[i] = 1 + Math.floor(Math.random() * pv.colors); }
+    else if (k === 'hodge') { for (let i = 0; i < n; i++) st[i] = Math.floor(Math.random() * 24); }
+    else if (k === 'fire') {
+      for (let i = 0; i < n; i++) st[i] = Math.random() < 0.55 ? 1 : 0;
+      for (let q = 0; q < 3; q++) st[Math.floor(Math.random() * n)] = 2;
+    }
+    else if (k === 'sand') { /* sand drips on the center as it runs */ }
+    else if (sim.start === 'one') st[center] = 1;
+    else if (k === 'waves') {
+      // sources near the middle, where you are looking
+      const lim = Math.min(R * 0.4, 90);
+      for (let q = 0, tries = 0; q < 12 && tries < 4000; tries++) {
+        const j = Math.floor(Math.random() * n);
+        if (Math.hypot(hx[j], hy[j]) < lim) { st[j] = 1; q++; }
+      }
+    } else {
+      const d = (pv.density || 30) / 100;
+      for (let i = 0; i < n; i++) if (Math.random() < d) st[i] = k === 'colony' ? 1 + Math.floor(Math.random() * pv.colors) : 1;
+    }
+    syncUI(); requestDraw();
+  }
+  function clearCells() { st.fill(0); grains.fill(0); odo.fill(0); gen = 0; syncUI(); requestDraw(); }
+  function countLive() { let c = 0; for (let i = 0; i < n; i++) if (st[i]) c++; return c; }
+
+  function setRunning(v) {
+    running = v;
+    const b = $('play'); b.setAttribute('aria-pressed', String(v)); b.textContent = v ? 'Pause' : 'Play';
+    if (v) { lastTs = performance.now(); acc = 1; requestAnimationFrame(loop); }
+  }
+  function loop(ts) {
+    if (!running) return;
+    acc += Math.min(0.25, (ts - lastTs) / 1000) * sim.speed;
+    lastTs = ts;
+    for (let k = 0; k < 4 && acc >= 1; k++) { step(); acc -= 1; }
+    if (acc > 4) acc = 4;
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Hit testing & painting ----------
+  function hitTest(p) {
+    const w = toWorld(p);
+    for (let i = 0; i < n; i++) {
+      const dx = w.x - hx[i], dy = w.y - hy[i];
+      if (dx*dx + dy*dy > RAD2) continue;
+      const iv = HAT.inv(hats[i].T);
+      const lx = iv[0]*w.x + iv[1]*w.y + iv[2], ly = iv[3]*w.x + iv[4]*w.y + iv[5];
+      if (pip(lx, ly)) return i;
+    }
+    return -1;
+  }
+  let stroke = null;
+  function beginStroke() { stroke = []; brush = null; seen.clear(); }
+  function endStroke() {
+    if (stroke && stroke.length) { strokes.push(stroke); syncUI(); }
+    stroke = null;
+  }
+  function paintAt(p) {
+    const i = hitTest(p);
+    if (i < 0 || paint[i] === sel) return;
+    if (!stroke) beginStroke();
+    stroke.push([i, paint[i]]);
+    paint[i] = sel;
+    syncUI(); requestDraw();
+  }
+  function cellAt(p) {
+    const i = hitTest(p);
+    if (i < 0) return;
+    if (cur.kind === 'sand') {
+      if (seen.has(i)) return;
+      seen.add(i);
+      if (!adj) buildAdjacency();
+      grains[i] += 30;
+      sandSync(adj[sim.nbr].off);
+    } else if (cur.kind === 'cycle') {
+      if (brush === null) brush = (st[i] + 1) % (pv.colors + 1);
+      st[i] = brush;
+    } else {
+      if (brush === null) brush = st[i] === 0 ? 1 : 0;
+      st[i] = brush ? paintValue() : 0;
+    }
+    syncUI(); requestDraw();
+  }
+  function applyAt(p) { if (mode === 'cells') cellAt(p); else paintAt(p); }
+  function paintLine(a, b) {
+    const d = Math.hypot(b.x - a.x, b.y - a.y);
+    const steps = Math.max(1, Math.ceil(d / 6));
+    for (let s = 1; s <= steps; s++) applyAt({ x: a.x + (b.x - a.x) * s / steps, y: a.y + (b.y - a.y) * s / steps });
+  }
+  function undo() {
+    endStroke();
+    const s = strokes.pop(); if (!s) return;
+    for (let j = s.length - 1; j >= 0; j--) paint[s[j][0]] = s[j][1];
+    syncUI(); requestDraw();
+  }
+  function clearPaint() {
+    const s = [];
+    for (let i = 0; i < n; i++) if (paint[i]) { s.push([i, paint[i]]); paint[i] = 0; }
+    if (s.length) strokes.push(s);
+    syncUI(); requestDraw();
+  }
+  function paintedCount() { let c = 0; for (let i = 0; i < n; i++) if (paint[i]) c++; return c; }
+
+  // ---------- Pointer input ----------
+  const pointers = new Map();
+  let gesture = null, locked = false, pendingTimer = 0, spaceDown = false;
+  const posOf = (e) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+
+  function cursorClass() {
+    cv.classList.toggle('paint', mode !== 'move' && !spaceDown);
+    cv.classList.toggle('pan', mode === 'move' || spaceDown);
+    cv.classList.toggle('panning', !!gesture && gesture.type === 'pan');
+  }
+  function pinchInfo() {
+    const [a, b] = [...pointers.values()];
+    return { d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+  }
+
+  cv.addEventListener('pointerdown', (e) => {
+    $('hint').hidden = true;
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* synthetic or already-released pointer */ }
+    const p = posOf(e);
+    pointers.set(e.pointerId, p);
+    if (pointers.size >= 2) {
+      clearTimeout(pendingTimer); pendingTimer = 0; endStroke();
+      const pi = pinchInfo();
+      gesture = { type: 'pinch', d0: pi.d, z0: cam.z, w0: toWorld(pi.mid) };
+      locked = true; cursorClass(); return;
+    }
+    if (locked) return;
+    const wantPan = e.button === 1 || e.button === 2 || spaceDown || mode === 'move';
+    if (wantPan) {
+      gesture = { type: 'pan', last: p };
+    } else if (e.button === 0 || e.pointerType !== 'mouse') {
+      gesture = { type: 'paint', start: p, last: p, moved: false };
+      beginStroke();
+      if (e.pointerType === 'mouse') { applyAt(p); gesture.moved = true; }
+      else pendingTimer = setTimeout(() => { pendingTimer = 0; if (gesture && gesture.type === 'paint') { applyAt(p); gesture.moved = true; } }, 70);
+    }
+    cursorClass();
+  });
+
+  cv.addEventListener('pointermove', (e) => {
+    const p = posOf(e);
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, p);
+    if (gesture && gesture.type === 'pinch' && pointers.size >= 2) {
+      const pi = pinchInfo();
+      cam.z = Math.max(zMin(), Math.min(Z_MAX, gesture.z0 * pi.d / gesture.d0));
+      cam.cx = gesture.w0.x - (pi.mid.x - W/2) / cam.z;
+      cam.cy = gesture.w0.y + (pi.mid.y - H/2) / cam.z;
+      clampCam(); requestDraw(); return;
+    }
+    if (gesture && gesture.type === 'pan') {
+      cam.cx -= (p.x - gesture.last.x) / cam.z;
+      cam.cy += (p.y - gesture.last.y) / cam.z;
+      gesture.last = p; clampCam(); requestDraw(); return;
+    }
+    if (gesture && gesture.type === 'paint') {
+      if (!gesture.moved) {
+        if (Math.hypot(p.x - gesture.start.x, p.y - gesture.start.y) < 4) return;
+        clearTimeout(pendingTimer); pendingTimer = 0;
+        applyAt(gesture.start); gesture.moved = true;
+      }
+      paintLine(gesture.last, p); gesture.last = p; return;
+    }
+    if (e.pointerType === 'mouse' && !locked) {
+      const h = hitTest(p);
+      if (h !== hover) { hover = h; requestDraw(); }
+    }
+  });
+
+  function release(e) {
+    const p = posOf(e);
+    pointers.delete(e.pointerId);
+    if (gesture && gesture.type === 'paint' && pointers.size === 0) {
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = 0; if (e.type === 'pointerup') applyAt(gesture.start); }
+      endStroke();
+    }
+    if (pointers.size === 0) { gesture = null; locked = false; }
+    else if (gesture && gesture.type === 'pinch') gesture = null;
+    cursorClass();
+  }
+  cv.addEventListener('pointerup', release);
+  cv.addEventListener('pointercancel', release);
+  cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && hover !== -1) { hover = -1; requestDraw(); } });
+  cv.addEventListener('contextmenu', (e) => e.preventDefault());
+  cv.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const k = e.deltaMode === 1 ? 16 : 1;
+    zoomAt(posOf(e), Math.exp(-e.deltaY * k * (e.ctrlKey ? 0.01 : 0.0016)));
+  }, { passive: false });
+
+  window.addEventListener('keydown', (e) => {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+    if (tag === 'BUTTON') return;
+    const c = { x: W/2, y: H/2 };
+    if (e.key === ' ') { e.preventDefault(); if (!spaceDown) { spaceDown = true; cursorClass(); } }
+    else if (e.key === '+' || e.key === '=') zoomAt(c, 1.25);
+    else if (e.key === '-' || e.key === '_') zoomAt(c, 0.8);
+    else if (e.key.startsWith('Arrow')) {
+      e.preventDefault();
+      const s = 80 / cam.z;
+      if (e.key === 'ArrowLeft') cam.cx -= s; if (e.key === 'ArrowRight') cam.cx += s;
+      if (e.key === 'ArrowUp') cam.cy += s; if (e.key === 'ArrowDown') cam.cy -= s;
+      clampCam(); requestDraw();
+    }
+  });
+  window.addEventListener('keyup', (e) => { if (e.key === ' ') { spaceDown = false; cursorClass(); } });
+
+  // ---------- UI ----------
+  const swWrap = $('swatches');
+  PAL_NAMES.forEach((name, i) => {
+    const b = document.createElement('button');
+    b.className = 'sw' + (i === 0 ? ' orig' : '');
+    if (i > 0) b.style.background = PAL[i];
+    b.setAttribute('aria-label', name);
+    b.title = name;
+    b.setAttribute('aria-pressed', String(i === sel));
+    b.addEventListener('click', () => { sel = i; [...swWrap.children].forEach((c, k) => c.setAttribute('aria-pressed', String(k === sel))); requestDraw(); });
+    swWrap.appendChild(b);
+  });
+
+  function setPressed(el, v) { el.setAttribute('aria-pressed', String(v)); }
+  function setMode(m) {
+    mode = m;
+    if (m === 'cells') bw = true; else if (m === 'paint') bw = false;
+    setPressed($('mPaint'), m === 'paint'); setPressed($('mCells'), m === 'cells'); setPressed($('mMove'), m === 'move');
+    $('swatches').hidden = m === 'cells';
+    $('cellslot').hidden = m !== 'cells';
+    $('undo').hidden = m === 'cells';
+    $('hint').hidden = false;
+    $('tRole').hidden = bw; $('tKite').hidden = bw;
+    $('cellopts').hidden = !bw;
+    hover = -1; cursorClass(); updateHint(); syncUI(); requestDraw();
+  }
+  $('mPaint').onclick = () => setMode('paint');
+  $('mCells').onclick = () => setMode('cells');
+  $('mMove').onclick = () => setMode('move');
+  $('undo').onclick = undo;
+  $('clear').onclick = () => (mode === 'cells' ? clearCells() : clearPaint());
+  $('play').onclick = () => {
+    if (!running && gen === 0 && countLive() === 0) restart();
+    $('hint').hidden = true;
+    setRunning(!running);
+  };
+  $('step').onclick = () => { setRunning(false); step(); };
+  $('restart').onclick = restart;
+  $('speed').oninput = (e) => { sim.speed = +e.target.value; };
+
+  // rule controls
+  function setNbr(v) {
+    sim.nbr = v;
+    document.querySelectorAll('[data-nbr]').forEach((b) => setPressed(b, b.dataset.nbr === v));
+  }
+  function setMask(m) {
+    sim.mask = m;
+    document.querySelectorAll('[data-rot]').forEach((b) => setPressed(b, !!(m >> +b.dataset.rot & 1)));
+  }
+  document.querySelectorAll('[data-rot]').forEach((b) => { b.onclick = () => { setMask(sim.mask ^ (1 << +b.dataset.rot)); syncPresetSelect(); }; });
+  function setStart(v) {
+    sim.start = v;
+    document.querySelectorAll('[data-start]').forEach((b) => setPressed(b, b.dataset.start === v));
+  }
+  function parseBS(s) {
+    const m = /^\s*B([0-8]*)\s*\/\s*S([0-8]*)\s*$/i.exec(s);
+    if (!m) return null;
+    const B = new Uint8Array(9), S = new Uint8Array(9);
+    for (const ch of m[1]) B[+ch] = 1;
+    for (const ch of m[2]) S[+ch] = 1;
+    return { B, S };
+  }
+  const presetSel = $('preset');
+  [['bw', 'Black and white'], ['color', 'Color'], ['tiling', 'Uses the tile orientation']].forEach(([g, label]) => {
+    const og = document.createElement('optgroup'); og.label = label;
+    PRESETS.forEach((p, i) => {
+      if (p.group !== g) return;
+      const o = document.createElement('option'); o.value = String(i); o.textContent = p.name; og.appendChild(o);
+    });
+    presetSel.appendChild(og);
+  });
+  const customOpt = document.createElement('option'); customOpt.value = 'custom'; customOpt.textContent = 'Custom'; presetSel.appendChild(customOpt);
+  function syncPresetSelect() {
+    const norm = $('bs').value.trim().toUpperCase().replace(/\s+/g, '');
+    const same = (!cur.bs || norm === cur.bs) && sim.nbr === cur.nbr && sim.mask === (cur.mask == null ? 63 : cur.mask);
+    presetSel.value = same ? String(PRESETS.indexOf(cur)) : 'custom';
+  }
+  function useBS(text) {
+    const r = parseBS(text);
+    $('bs').classList.toggle('bad', !r);
+    if (!r) return false;
+    sim.B = r.B; sim.S = r.S;
+    syncPresetSelect();
+    return true;
+  }
+  function applyPalette() {
+    const pal = paletteFor(cur, pv);
+    FILL[CELL0] = pal.dead;
+    pal.colors.forEach((c, k) => { FILL[CELL0 + 1 + k] = c; });
+    cellLine = pal.line;
+  }
+  function updateHint() {
+    $('hint').hidden = false;
+    $('hint').textContent = mode === 'cells' ? cur.note
+      : mode === 'paint'
+        ? (coarse ? 'Tap or drag to color. Two fingers to move.' : 'Click or drag to color. Scroll to zoom. Right-drag to move.')
+        : (coarse ? 'Drag to move. Pinch to zoom.' : 'Drag to move. Scroll to zoom.');
+  }
+  function buildParams() {
+    const box = $('params'); box.textContent = '';
+    (cur.params || []).forEach((q) => {
+      const row = document.createElement('div'); row.className = 'row prow';
+      const lab = document.createElement('label'); lab.className = 'label'; lab.textContent = q.label; lab.htmlFor = 'p_' + q.key;
+      const inp = document.createElement('input');
+      inp.type = 'range'; inp.id = 'p_' + q.key; inp.min = q.min; inp.max = q.max; inp.step = q.step; inp.value = pv[q.key];
+      const out = document.createElement('output'); out.htmlFor = inp.id; out.textContent = q.labels ? q.labels[pv[q.key]] : pv[q.key] + (q.unit || '');
+      inp.oninput = () => {
+        pv[q.key] = +inp.value; out.textContent = q.labels ? q.labels[pv[q.key]] : inp.value + (q.unit || '');
+        if (q.live && cur.kind === 'sand') { if (!adj) buildAdjacency(); sandSync(adj[sim.nbr].off); }
+        if (cur.kind === 'colony' || cur.kind === 'waves' || cur.kind === 'cycle') applyPalette();
+        if (q.restart) restart(); else requestDraw();
+      };
+      row.append(lab, inp, out); box.appendChild(row);
+    });
+  }
+  function applyPreset(i) {
+    const p = PRESETS[i]; if (!p) return;
+    cur = p;
+    pv = {}; (p.params || []).forEach((q) => { pv[q.key] = q.value; });
+    applyPalette(); buildParams();
+    if (p.bs) { $('bs').value = p.bs; useBS(p.bs); }
+    setNbr(p.nbr); setStart(p.start); setMask(p.mask == null ? 63 : p.mask);
+    $('bsRow').hidden = !p.bs;
+    $('bsNote').hidden = !p.bs;
+    $('startRow').hidden = !(p.kind === 'life' || p.kind === 'colony' || p.kind === 'waves');
+    $('speed').value = p.speed || 7; sim.speed = +$('speed').value;
+    presetSel.value = String(i);
+    updateHint(); requestDraw();
+  }
+  presetSel.onchange = () => { if (presetSel.value === 'custom') return; applyPreset(+presetSel.value); restart(); };
+  $('bs').oninput = (e) => useBS(e.target.value);
+  document.querySelectorAll('[data-nbr]').forEach((b) => { b.onclick = () => { setNbr(b.dataset.nbr); syncPresetSelect(); }; });
+  document.querySelectorAll('[data-start]').forEach((b) => { b.onclick = () => setStart(b.dataset.start); });
+  $('more').onclick = () => {
+    const open = $('extra').hidden;
+    $('extra').hidden = !open;
+    setPressed($('more'), open); $('more').setAttribute('aria-expanded', String(open));
+  };
+  $('tRole').onclick = () => { showRoles = !showRoles; setPressed($('tRole'), showRoles); requestDraw(); };
+  $('tKite').onclick = () => { showKites = !showKites; setPressed($('tKite'), showKites); requestDraw(); };
+  $('tSuper').onclick = () => { showSuper = !showSuper; setPressed($('tSuper'), showSuper); requestDraw(); };
+  $('zin').onclick = () => zoomAt({ x: W/2, y: H/2 }, 1.4);
+  $('zout').onclick = () => zoomAt({ x: W/2, y: H/2 }, 1 / 1.4);
+  $('fit').onclick = () => fitView(1);
+  $('zoomSlider').oninput = (e) => {
+    const lo = zMin(), hi = ZUI_MAX;
+    cam.z = lo * Math.pow(hi / lo, +e.target.value / 100);
+    clampCam(); requestDraw();
+  };
+
+  // Pick the smallest patch that still covers the screen at the default zoom.
+  const R_IN = { 3: 20.5, 4: 52.3, 5: 136.2 };
+  function pickLevel() {
+    const half = Math.hypot(W, H) / 2 * 0.9;
+    for (const L of [3, 4, 5]) if (R_IN[L] * zDef >= half) return L;
+    return 6;
+  }
+  const wideMq = window.matchMedia('(min-width: 900px)');
+  function applyWide() { document.body.classList.toggle('wide', wideMq.matches); }
+  (wideMq.addEventListener ? wideMq.addEventListener('change', applyWide) : wideMq.addListener(applyWide));
+
+  function setLevel(lv) {
+    level = Math.max(MIN_LEVEL, Math.min(MAX_LEVEL, lv));
+    load(level); restart(); fitView(); syncUI();
+  }
+  $('lvMinus').onclick = () => setLevel(level - 1);
+  $('lvPlus').onclick = () => setLevel(level + 1);
+
+  function syncUI() {
+    const painted = paintedCount(), live = countLive();
+    let text = n.toLocaleString() + ' tiles';
+    if (mode === 'cells' || live || gen) text += ', ' + live.toLocaleString() + (cur.pal === 'bw' ? ' black' : ' live') + ', generation ' + gen;
+    if (painted) text += ', ' + painted.toLocaleString() + ' colored';
+    $('count').textContent = text;
+    $('undo').disabled = !(strokes.length || (stroke && stroke.length));
+    $('clear').disabled = mode === 'cells' ? live === 0 : painted === 0;
+    $('lvOut').textContent = level;
+    $('lvMinus').disabled = level <= MIN_LEVEL;
+    $('lvPlus').disabled = level >= MAX_LEVEL;
+  }
+
+  // ---------- Sizing & theme ----------
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
+    dpr = Math.min(3, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    clampCam(); requestDraw();
+  }
+  new ResizeObserver(resize).observe(stage);
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  (mq.addEventListener ? mq.addEventListener('change', readColors) : mq.addListener(readColors));
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  applyWide();
+  { const r = stage.getBoundingClientRect(); W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height)); }
+  zDef = Math.max(3.4, Math.min(5, Math.min(W, H) / 110));
+  level = pickLevel();
+  load(level);
+  applyPreset(0);
+  setMode('cells');
+  readColors();
+  resize();
+  fitView();
+  restart();
+  syncUI();
+  cursorClass();
+  setRunning(true);
+  window.__hat = { get n() { return n; }, get level() { return level; }, cam, paint: () => paint, hitTest, load: setLevel, sim, step, restart, cells: () => st, grains: () => grains, get gen() { return gen; }, adj: () => { if (!adj) buildAdjacency(); return adj; }, applyPreset, setRunning, PRESETS, get bw() { return bw; } };
+})();
+</script>
+</body>
+</html>
+
+</body></html>

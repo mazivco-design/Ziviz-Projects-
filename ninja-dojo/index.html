@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ninja English Dojo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap');
+
+:root{
+  --night:#101A2C;
+  --panel:#16223A;
+  --panel-2:#1D2C48;
+  --gold:#F2B705;
+  --fire:#E4572E;
+  --ice:#46C2D6;
+  --lightning:#8B7CFF;
+  --earth:#58A65C;
+  --text:#F5F3EC;
+  --muted:#9FB0C9;
+  --good:#58A65C;
+  --bad:#E4572E;
+  --accent: var(--gold);
+  --radius-lg: 26px;
+  --radius-md: 16px;
+}
+:root[data-theme] { color-scheme: dark; }
+
+*{box-sizing:border-box;}
+html,body{
+  margin:0; padding:0; width:100%; height:100%;
+  background:var(--night); color:var(--text);
+  font-family:'Nunito', system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x:hidden;
+}
+h1,h2,h3,.display{ font-family:'Baloo 2', 'Nunito', system-ui, sans-serif; }
+button{ font-family:inherit; }
+
+#app{
+  position:relative;
+  min-height:100vh;
+  max-width:560px;
+  margin:0 auto;
+  padding:16px 16px 40px;
+  display:flex; flex-direction:column;
+  gap:16px;
+}
+
+/* Background dojo scene */
+.sky{
+  position:fixed; inset:0; z-index:-1;
+  background:
+    radial-gradient(circle at 80% 8%, rgba(242,183,5,0.18), transparent 40%),
+    linear-gradient(180deg, #0B1322 0%, #101A2C 55%, #16223A 100%);
+}
+.mountains{
+  position:fixed; left:0; right:0; bottom:0; height:38vh; z-index:-1; opacity:0.55;
+}
+.mountains .m{
+  position:absolute; bottom:0; background:#0C1526;
+}
+
+/* Top bar */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+}
+.topbar-left{ display:flex; align-items:center; gap:10px; }
+.avatar{
+  width:52px; height:52px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: var(--panel-2);
+  border:3px solid var(--accent);
+  flex-shrink:0;
+}
+.stat-pill{
+  display:flex; align-items:center; gap:6px;
+  background:var(--panel); border:1px solid rgba(255,255,255,0.08);
+  padding:8px 12px; border-radius:999px;
+  font-weight:800; font-size:14px;
+}
+.iconbtn{
+  background:var(--panel); border:1px solid rgba(255,255,255,0.08);
+  color:var(--text); border-radius:14px; width:44px; height:44px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; cursor:pointer;
+}
+.iconbtn:active{ transform:scale(0.94); }
+
+/* Generic panel/card */
+.panel{
+  background:var(--panel);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  padding:20px;
+}
+.center{ text-align:center; }
+.muted{ color:var(--muted); }
+.bilingual{ font-size:13px; color:var(--muted); direction:rtl; }
+
+/* Screens */
+.screen{ display:none; flex-direction:column; gap:16px; animation:fadeIn .35s ease; }
+.screen.active{ display:flex; }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+/* Buttons */
+.btn{
+  border:none; cursor:pointer; border-radius:16px;
+  padding:16px 20px; font-weight:800; font-size:17px;
+  color:var(--night); background:var(--accent);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:transform .12s ease;
+}
+.btn:active{ transform:scale(0.97); }
+.btn.secondary{
+  background:var(--panel-2); color:var(--text); border:1px solid rgba(255,255,255,0.1);
+}
+.btn.wide{ width:100%; }
+.btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+/* Element picker */
+.element-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
+}
+.element-card{
+  background:var(--panel-2); border:2px solid transparent;
+  border-radius:20px; padding:18px 10px; text-align:center; cursor:pointer;
+}
+.element-card .emoji{ font-size:40px; display:block; margin-bottom:8px; }
+.element-card.sel{ border-color:var(--accent); background:rgba(242,183,5,0.08); }
+
+/* Dojo map */
+.map-wrap{ position:relative; padding:10px 0 6px; }
+.belt-node{
+  display:flex; align-items:center; gap:14px;
+  background:var(--panel); border-radius:20px; padding:14px 16px;
+  margin-bottom:14px; cursor:pointer; border:1px solid rgba(255,255,255,0.06);
+  position:relative;
+}
+.belt-node.locked{ opacity:0.45; cursor:not-allowed; }
+.belt-node.current{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+.belt-dot{
+  width:54px; height:54px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; font-weight:800; color:#101A2C;
+}
+.belt-info{ flex:1; min-width:0; }
+.belt-name{ font-weight:800; font-size:17px; }
+.belt-sub{ font-size:13px; color:var(--muted); direction:rtl; }
+.belt-stars{ font-size:15px; letter-spacing:1px; }
+.lock-icon{ font-size:20px; }
+
+/* Level screen tabs */
+.tabs{ display:flex; gap:8px; background:var(--panel); border-radius:14px; padding:6px; }
+.tab{
+  flex:1; text-align:center; padding:10px; border-radius:10px; cursor:pointer;
+  font-weight:800; color:var(--muted);
+}
+.tab.active{ background:var(--panel-2); color:var(--text); }
+
+/* Flashcards */
+.card-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
+}
+.flashcard{
+  background:var(--panel-2); border-radius:18px; padding:16px 10px 12px;
+  text-align:center; cursor:pointer; border:1px solid rgba(255,255,255,0.06);
+  position:relative;
+}
+.flashcard .visual{ font-size:38px; margin-bottom:6px; }
+.flashcard .label{ font-weight:800; font-size:15px; color:var(--text); }
+.flashcard .sub{ font-size:12px; color:var(--muted); }
+.edit-fab{
+  position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%;
+  background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.15); color:var(--text);
+  font-size:13px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+
+/* Edit modal */
+.edit-body{ text-align:left; }
+.edit-body label{ display:block; font-weight:800; font-size:13px; margin:14px 0 6px; color:var(--muted); }
+.edit-body input[type="text"]{
+  width:100%; background:var(--panel-2); border:1px solid rgba(255,255,255,0.15);
+  border-radius:12px; padding:12px 14px; color:var(--text); font-size:16px; font-family:inherit;
+}
+.emoji-presets{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.emoji-preset-btn{
+  width:44px; height:44px; border-radius:12px; background:var(--panel-2);
+  border:2px solid rgba(255,255,255,0.1); font-size:22px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.emoji-preset-btn.sel{ border-color:var(--accent); }
+.edit-actions{ display:flex; gap:10px; margin-top:20px; }
+.edit-actions .btn{ flex:1; }
+.link-btn{
+  background:none; border:none; color:var(--muted); text-decoration:underline;
+  cursor:pointer; font-size:13px; padding:0; margin-top:10px; font-family:inherit;
+}
+.swatch{ width:44px; height:44px; border-radius:50%; margin:0 auto 8px; border:3px solid rgba(255,255,255,0.25); }
+.count-visual{ font-size:22px; letter-spacing:2px; }
+
+/* Quiz */
+.quiz-progress{ height:8px; border-radius:999px; background:var(--panel-2); overflow:hidden; }
+.quiz-progress-fill{ height:100%; background:var(--accent); transition:width .3s ease; }
+.prompt-box{
+  background:var(--panel-2); border-radius:22px; padding:34px 16px; text-align:center;
+  min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+}
+.prompt-visual{ font-size:64px; line-height:1; }
+.prompt-label{ font-size:30px; font-weight:800; }
+.speak-btn{
+  background:none; border:2px solid var(--accent); color:var(--accent);
+  border-radius:999px; padding:8px 16px; font-weight:800; cursor:pointer; font-size:14px;
+}
+.options-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.option-btn{
+  background:var(--panel-2); border:2px solid rgba(255,255,255,0.08); border-radius:18px;
+  padding:18px 8px; text-align:center; cursor:pointer; font-weight:800; font-size:18px;
+  color:var(--text);
+}
+.option-btn div{ color:var(--text); }
+.option-btn .visual{ font-size:34px; }
+.option-btn.correct{ border-color:var(--good); background:rgba(88,166,89,0.18); }
+.option-btn.wrong{ border-color:var(--bad); background:rgba(228,87,46,0.18); }
+.option-btn:disabled{ cursor:default; }
+
+/* Result modal */
+.overlay{
+  position:fixed; inset:0; background:rgba(8,12,20,0.72);
+  display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+}
+.overlay.active{ display:flex; }
+.result-card{
+  background:var(--panel); border-radius:28px; padding:30px 24px; text-align:center;
+  max-width:400px; width:100%;
+}
+.result-stars{ font-size:44px; margin:10px 0; }
+
+/* confetti */
+.confetti-piece{
+  position:fixed; top:-30px; font-size:22px; z-index:60; pointer-events:none;
+  animation: fall linear forwards;
+}
+@keyframes fall{
+  to{ transform:translateY(110vh) rotate(360deg); opacity:0.2; }
+}
+
+@media (max-width:360px){
+  .prompt-visual{ font-size:52px; }
+}
+</style>
+</head>
+<body>
+
+<div class="sky"></div>
+<div class="mountains">
+  <div class="m" style="left:-10%; width:60%; height:100%; clip-path:polygon(0 100%, 35% 20%, 70% 100%);"></div>
+  <div class="m" style="left:30%; width:55%; height:80%; clip-path:polygon(0 100%, 40% 10%, 80% 100%); opacity:0.8;"></div>
+  <div class="m" style="left:65%; width:50%; height:65%; clip-path:polygon(0 100%, 45% 25%, 100% 100%); opacity:0.6;"></div>
+</div>
+
+<div id="app">
+
+  <!-- SCREEN: Welcome / Element pick -->
+  <section id="screen-welcome" class="screen">
+    <div class="panel center" style="margin-top:6vh;">
+      <div style="font-size:56px;">🥷</div>
+      <h1 style="margin:6px 0 2px; font-size:28px;">Ninja English Dojo</h1>
+      <div class="bilingual">דוג׳ו הנינג׳ה ללימוד אנגלית</div>
+      <p class="muted" style="margin-top:14px;">Pick your ninja power to begin!</p>
+      <p class="bilingual">בחר את כוח הנינג׳ה שלך כדי להתחיל</p>
+    </div>
+
+    <div class="element-grid" id="elementGrid"></div>
+
+    <button class="btn wide" id="startBtn" disabled>Start Training! &nbsp; 🚀</button>
+  </section>
+
+  <!-- SCREEN: Dojo Map -->
+  <section id="screen-map" class="screen">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="avatar" id="mapAvatar"></div>
+        <div>
+          <div style="font-weight:800;">Ninja Dojo</div>
+          <div class="bilingual">מפת הדוג׳ו</div>
+        </div>
+      </div>
+      <div class="stat-pill">⭐ <span id="totalStars">0</span></div>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin:0 0 4px; font-size:20px;">Choose a Belt</h2>
+      <div class="bilingual" style="margin-bottom:14px;">בחר חגורה כדי להתאמן</div>
+      <div class="map-wrap" id="beltList"></div>
+    </div>
+
+    <button class="btn secondary wide" id="changeElementBtn">Change Ninja Power &nbsp; ⚡</button>
+    <button class="btn secondary wide" id="resetBtn">Reset Progress &nbsp; 🔄</button>
+    <div class="center"><button class="link-btn" id="parentAreaBtn">Parent Area</button></div>
+  </section>
+
+  <!-- SCREEN: Level (Learn + Quiz) -->
+  <section id="screen-level" class="screen">
+    <div class="topbar">
+      <button class="iconbtn" id="backToMapBtn">←</button>
+      <div style="text-align:center; flex:1;">
+        <div id="levelTitle" style="font-weight:800; font-size:18px;"></div>
+        <div class="bilingual" id="levelSub"></div>
+      </div>
+      <div class="stat-pill" id="levelBeltDot" style="width:44px; height:44px; padding:0; justify-content:center; border-radius:50%;"></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" id="tabLearn">Learn &nbsp;🀄<div class="bilingual" style="font-size:11px;">למידה</div></div>
+      <div class="tab" id="tabQuiz">Quiz &nbsp;🎯<div class="bilingual" style="font-size:11px;">מבחן</div></div>
+    </div>
+
+    <!-- Learn pane -->
+    <div id="learnPane">
+      <p class="muted center" style="margin:0 0 4px;">Tap a card to hear it! 🔊</p>
+      <div class="card-grid" id="flashcardGrid"></div>
+      <button class="btn wide" id="goToQuizBtn" style="margin-top:16px;">Ready for the Quiz! &nbsp;🎯</button>
+    </div>
+
+    <!-- Quiz pane -->
+    <div id="quizPane" style="display:none;">
+      <div class="quiz-progress"><div class="quiz-progress-fill" id="quizProgressFill" style="width:0%;"></div></div>
+
+      <div class="prompt-box" id="promptBox"></div>
+      <div class="center">
+        <button class="speak-btn" id="repeatSpeakBtn">🔊 Listen again</button>
+      </div>
+
+      <div class="options-grid" id="optionsGrid"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Confirm overlay -->
+<div class="overlay" id="confirmOverlay">
+  <div class="result-card">
+    <div class="center" style="font-size:36px;">⚠️</div>
+    <h2 class="center" id="confirmTitle" style="margin:6px 0;">Are you sure?</h2>
+    <div class="edit-actions">
+      <button class="btn secondary" id="confirmNoBtn">Cancel</button>
+      <button class="btn" id="confirmYesBtn">Yes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Parent area overlay -->
+<div class="overlay" id="parentOverlay">
+  <div class="result-card edit-body">
+    <div class="center" style="font-size:36px;">🔑</div>
+    <h2 class="center" style="margin:6px 0;">Parent Area</h2>
+    <label>Enter code</label>
+    <input type="text" id="parentCodeInput" inputmode="numeric" placeholder="Code" autocomplete="off">
+    <div id="parentError" class="center" style="color:var(--bad); font-size:13px; min-height:18px; margin-top:8px;"></div>
+    <div class="edit-actions">
+      <button class="btn secondary" id="parentCancelBtn">Cancel</button>
+      <button class="btn" id="parentSubmitBtn">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit letter overlay -->
+<div class="overlay" id="editOverlay">
+  <div class="result-card edit-body">
+    <div class="center" style="font-size:40px;" id="editPreviewEmoji"></div>
+    <h2 class="center" id="editTitle" style="margin:6px 0 0;">Edit Letter</h2>
+
+    <label>Picture (tap one, or type your own emoji)</label>
+    <div class="emoji-presets" id="emojiPresets"></div>
+    <input type="text" id="editEmojiInput" maxlength="4" placeholder="Type or paste an emoji">
+
+    <label>Word</label>
+    <input type="text" id="editWordInput" maxlength="18" placeholder="Example word">
+
+    <div class="edit-actions">
+      <button class="btn secondary" id="editCancelBtn">Cancel</button>
+      <button class="btn" id="editSaveBtn">Save</button>
+    </div>
+    <div class="center">
+      <button class="link-btn" id="editResetBtn">Reset to default</button>
+    </div>
+  </div>
+</div>
+
+<!-- Result overlay -->
+<div class="overlay" id="resultOverlay">
+  <div class="result-card">
+    <div style="font-size:44px;">🏆</div>
+    <h2 id="resultTitle" style="margin:6px 0;">Great job!</h2>
+    <div class="bilingual" id="resultSubHe" style="margin-bottom:6px;"></div>
+    <div class="result-stars" id="resultStars">⭐⭐⭐</div>
+    <div class="muted" id="resultScore" style="margin-bottom:20px;"></div>
+    <button class="btn wide" id="resultContinueBtn">Continue &nbsp;➡️</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------------------------------------
+   DATA
+--------------------------------------------- */
+const ELEMENTS = [
+  {id:'fire', label:'Fire', emoji:'🔥', color:'#E4572E'},
+  {id:'ice', label:'Ice', emoji:'❄️', color:'#46C2D6'},
+  {id:'lightning', label:'Lightning', emoji:'⚡', color:'#8B7CFF'},
+  {id:'earth', label:'Earth', emoji:'🌍', color:'#58A65C'},
+];
+
+function W(id,label,visual,sub){ return {id, label, speak:label, visual, sub}; }
+const EMOJI = (v)=>({type:'emoji', value:v});
+const SWATCH = (v)=>({type:'swatch', value:v});
+const COUNT = (v)=>({type:'count', value:v});
+
+const ALPHABET = [
+  W('A','A',EMOJI('🍎'),'Apple'), W('B','B',EMOJI('🎈'),'Balloon'), W('C','C',EMOJI('🐱'),'Cat'),
+  W('D','D',EMOJI('🐉'),'Dragon'), W('E','E',EMOJI('🥚'),'Egg'), W('F','F',EMOJI('🔥'),'Fire'),
+  W('G','G',EMOJI('👻'),'Ghost'), W('H','H',EMOJI('🎩'),'Hat'), W('I','I',EMOJI('🧊'),'Ice'),
+  W('J','J',EMOJI('🐆'),'Jaguar'), W('K','K',EMOJI('🪁'),'Kite'), W('L','L',EMOJI('🦁'),'Lion'),
+  W('M','M',EMOJI('🌙'),'Moon'), W('N','N',EMOJI('🥷'),'Ninja'), W('O','O',EMOJI('🦉'),'Owl'),
+  W('P','P',EMOJI('🐼'),'Panda'), W('Q','Q',EMOJI('👸'),'Queen'), W('R','R',EMOJI('🤖'),'Robot'),
+  W('S','S',EMOJI('⚔️'),'Sword'), W('T','T',EMOJI('🐯'),'Tiger'), W('U','U',EMOJI('☂️'),'Umbrella'),
+  W('V','V',EMOJI('🌋'),'Volcano'), W('W','W',EMOJI('🐺'),'Wolf'), W('X','X',EMOJI('🩻'),'X-ray'),
+  W('Y','Y',EMOJI('🪀'),'Yo-yo'), W('Z','Z',EMOJI('🦓'),'Zebra'),
+];
+
+const COLORS = [
+  W('red','Red',SWATCH('#E4572E')), W('blue','Blue',SWATCH('#3FA7D6')),
+  W('yellow','Yellow',SWATCH('#F2B705')), W('green','Green',SWATCH('#58A65C')),
+  W('white','White',SWATCH('#F5F3EC')), W('black','Black',SWATCH('#20242C')),
+  W('orange','Orange',SWATCH('#F2894E')), W('purple','Purple',SWATCH('#8B7CFF')),
+];
+
+const NUM_WORDS = ['One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten'];
+const NUMBERS = NUM_WORDS.map((w,i)=>W(String(i+1), w, COUNT(i+1)));
+
+const GEAR = [
+  W('ninja','Ninja',EMOJI('🥷')), W('sword','Sword',EMOJI('⚔️')), W('shield','Shield',EMOJI('🛡️')),
+  W('dragon','Dragon',EMOJI('🐉')), W('fire','Fire',EMOJI('🔥')), W('ice','Ice',EMOJI('❄️')),
+  W('mountain','Mountain',EMOJI('⛰️')), W('snake','Snake',EMOJI('🐍')), W('mask','Mask',EMOJI('🎭')),
+  W('rope','Rope',EMOJI('🪢')),
+];
+
+const PHRASES = [
+  W('p1','I am a ninja.',EMOJI('🥷')), W('p2','Jump!',EMOJI('🤸')), W('p3','Run!',EMOJI('🏃')),
+  W('p4','I can fly.',EMOJI('🕊️')), W('p5','Watch out!',EMOJI('⚠️')), W('p6','Great job!',EMOJI('👏')),
+  W('p7','I am strong.',EMOJI('💪')), W('p8',"Let's go!",EMOJI('🚀')),
+];
+
+const LETTER_ALTS = {
+  A:['🍎','🐜','✈️','👽'], B:['🎈','🐻','🦋','🏀'], C:['🐱','🚗','🍪','🎪'],
+  D:['🐉','🐶','🦆','🍩'], E:['🥚','🐘','🌍','👁️'], F:['🔥','🐸','🦊','🐟'],
+  G:['👻','🦒','🎸','🍇'], H:['🎩','🏠','🐴','💗'], I:['🧊','🍦','🏝️','🦎'],
+  J:['🐆','🤹','🧃','🃏'], K:['🪁','🔑','🐨','🦘'], L:['🦁','🍋','🍃','💡'],
+  M:['🌙','🐵','🍄','🎵'], N:['🥷','🎶','🥜','🌃'], O:['🦉','🐙','🍊','🌊'],
+  P:['🐼','🐷','🍕','🌴'], Q:['👸','🦆','❓','🎯'], R:['🤖','🐰','🌈','🚀'],
+  S:['⚔️','🐍','⭐','☀️'], T:['🐯','🌳','🚂','🐢'], U:['☂️','🦄','🚙','🌌'],
+  V:['🌋','🎻','🦖','🍇'], W:['🐺','💧','🍉','🌊'], X:['🩻','❌','🎸','🔟'],
+  Y:['🪀','🧶','💛','🚡'], Z:['🦓','⚡','🤐','🧟'],
+};
+
+const BELTS = [
+  {id:'white', name:'White Belt', nameHe:'חגורה לבנה', color:'#F5F3EC', words:ALPHABET, kind:'letter'},
+  {id:'yellow', name:'Yellow Belt', nameHe:'חגורה צהובה', color:'#F2B705', words:COLORS, kind:'word'},
+  {id:'orange', name:'Orange Belt', nameHe:'חגורה כתומה', color:'#F2894E', words:NUMBERS, kind:'word'},
+  {id:'green', name:'Green Belt', nameHe:'חגורה ירוקה', color:'#58A65C', words:GEAR, kind:'word'},
+  {id:'blue', name:'Blue Belt', nameHe:'חגורה כחולה', color:'#3FA7D6', words:PHRASES, kind:'phrase'},
+];
+
+/* ---------------------------------------------
+   STATE
+--------------------------------------------- */
+const STORAGE_KEY = 'ninjaEnglishDojo_v1';
+let state = {
+  element: null,
+  stars: {},          // beltId -> 0..3
+  unlockedIdx: 0,
+  letterOverrides: {}, // letterId -> {sub, emoji}
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      state = Object.assign(state, parsed);
+    }
+  }catch(e){ /* ignore, start fresh */ }
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ /* storage unavailable */ }
+}
+
+/* ---------------------------------------------
+   SPEECH
+--------------------------------------------- */
+let voicesReady = false;
+let englishVoice = null;
+function initVoices(){
+  if(!('speechSynthesis' in window)) return;
+  const pick = ()=>{
+    const voices = window.speechSynthesis.getVoices();
+    englishVoice = voices.find(v=>v.lang && v.lang.startsWith('en')) || null;
+    voicesReady = true;
+  };
+  pick();
+  window.speechSynthesis.onvoiceschanged = pick;
+}
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.8;
+    u.pitch = 1.05;
+    if(englishVoice) u.voice = englishVoice;
+    window.speechSynthesis.speak(u);
+  }catch(e){ /* speech unavailable */ }
+}
+
+/* ---------------------------------------------
+   HELPERS
+--------------------------------------------- */
+function $(id){ return document.getElementById(id); }
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function sample(arr,n){ return shuffle(arr).slice(0,n); }
+
+function renderVisualHTML(visual, size){
+  size = size || 'normal';
+  if(visual.type === 'emoji'){
+    return `<div class="visual" style="${size==='big'?'font-size:64px;':''}">${visual.value}</div>`;
+  }
+  if(visual.type === 'swatch'){
+    const s = size==='big' ? '84px' : '44px';
+    return `<div class="swatch" style="width:${s};height:${s};background:${visual.value};"></div>`;
+  }
+  if(visual.type === 'count'){
+    const stars = '⭐'.repeat(visual.value);
+    return `<div class="count-visual" style="${size==='big'?'font-size:34px;':''}">${visual.value}<br>${stars}</div>`;
+  }
+  return '';
+}
+
+function getBeltWords(belt){
+  if(belt.kind !== 'letter') return belt.words;
+  return belt.words.map(w=>{
+    const ov = state.letterOverrides[w.id];
+    if(!ov) return w;
+    return Object.assign({}, w, {
+      sub: ov.sub || w.sub,
+      visual: ov.emoji ? EMOJI(ov.emoji) : w.visual,
+    });
+  });
+}
+
+function beltById(id){ return BELTS.find(b=>b.id===id); }
+function beltIndex(id){ return BELTS.findIndex(b=>b.id===id); }
+function starsFor(beltId){ return state.stars[beltId] || 0; }
+function totalStars(){ return BELTS.reduce((sum,b)=>sum+starsFor(b.id),0); }
+function isUnlocked(idx){ return idx <= state.unlockedIdx; }
+
+function elementMeta(){ return ELEMENTS.find(e=>e.id===state.element) || ELEMENTS[0]; }
+
+function avatarHTML(size){
+  size = size || 52;
+  const el = elementMeta();
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 30%, ${el.color}55, #1D2C48); display:flex;align-items:center;justify-content:center; border:3px solid ${el.color}; font-size:${size*0.5}px;">🥷</div>`;
+}
+
+/* ---------------------------------------------
+   SCREEN NAV
+--------------------------------------------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+/* ---------------------------------------------
+   WELCOME / ELEMENT PICK
+--------------------------------------------- */
+function renderElementGrid(){
+  const grid = $('elementGrid');
+  grid.innerHTML = '';
+  ELEMENTS.forEach(el=>{
+    const card = document.createElement('div');
+    card.className = 'element-card' + (state.element===el.id ? ' sel':'');
+    card.style.setProperty('--accent', el.color);
+    card.innerHTML = `<span class="emoji">${el.emoji}</span><div style="font-weight:800;">${el.label}</div>`;
+    card.addEventListener('click', ()=>{
+      state.element = el.id;
+      renderElementGrid();
+      $('startBtn').disabled = false;
+    });
+    grid.appendChild(card);
+  });
+}
+
+/* ---------------------------------------------
+   DOJO MAP
+--------------------------------------------- */
+function renderMap(){
+  $('mapAvatar').innerHTML = avatarHTML(52);
+  $('totalStars').textContent = totalStars();
+  const list = $('beltList');
+  list.innerHTML = '';
+  BELTS.forEach((belt, idx)=>{
+    const unlocked = isUnlocked(idx);
+    const node = document.createElement('div');
+    node.className = 'belt-node' + (unlocked?'':' locked');
+    const stars = starsFor(belt.id);
+    const starStr = unlocked ? ('⭐'.repeat(stars) + '☆'.repeat(3-stars)) : '';
+    node.innerHTML = `
+      <div class="belt-dot" style="background:${belt.color};">${idx+1}</div>
+      <div class="belt-info">
+        <div class="belt-name">${belt.name}</div>
+        <div class="belt-sub">${belt.nameHe}</div>
+        <div class="belt-stars">${unlocked ? starStr : ''}</div>
+      </div>
+      ${unlocked ? '' : '<div class="lock-icon">🔒</div>'}
+    `;
+    if(unlocked){
+      node.addEventListener('click', ()=>openLevel(belt.id));
+    }
+    list.appendChild(node);
+  });
+}
+
+/* ---------------------------------------------
+   LEVEL SCREEN
+--------------------------------------------- */
+let currentBeltId = null;
+let quizState = null;
+
+function openLevel(beltId){
+  currentBeltId = beltId;
+  const belt = beltById(beltId);
+  $('levelTitle').textContent = belt.name;
+  $('levelSub').textContent = belt.nameHe;
+  $('levelBeltDot').style.background = belt.color;
+  $('levelBeltDot').style.color = '#101A2C';
+  $('levelBeltDot').textContent = '';
+  switchTab('learn');
+  renderFlashcards();
+  showScreen('screen-level');
+}
+
+function switchTab(which){
+  $('tabLearn').classList.toggle('active', which==='learn');
+  $('tabQuiz').classList.toggle('active', which==='quiz');
+  $('learnPane').style.display = which==='learn' ? '' : 'none';
+  $('quizPane').style.display = which==='quiz' ? '' : 'none';
+}
+
+function renderFlashcards(){
+  const belt = beltById(currentBeltId);
+  const grid = $('flashcardGrid');
+  grid.innerHTML = '';
+  getBeltWords(belt).forEach(w=>{
+    const card = document.createElement('div');
+    card.className = 'flashcard';
+    card.innerHTML = `
+      ${belt.kind === 'letter' ? '<div class="edit-fab">✏️</div>' : ''}
+      ${renderVisualHTML(w.visual)}
+      <div class="label">${w.label}</div>
+      ${w.sub ? `<div class="sub">${w.sub}</div>` : ''}
+    `;
+    card.addEventListener('click', ()=> speak(w.speak));
+    if(belt.kind === 'letter'){
+      card.querySelector('.edit-fab').addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        openEditLetter(w.id);
+      });
+    }
+    grid.appendChild(card);
+  });
+}
+
+/* ---------------------------------------------
+   QUIZ
+--------------------------------------------- */
+const QUIZ_LEN_MAX = 8;
+
+function startQuiz(){
+  const belt = beltById(currentBeltId);
+  const words = getBeltWords(belt);
+  const len = Math.min(QUIZ_LEN_MAX, words.length);
+  const chosenWords = sample(words, len);
+  quizState = {
+    beltId: belt.id,
+    questions: chosenWords.map(w=>buildQuestion(w, words)),
+    index: 0,
+    correctCount: 0,
+    answered: false,
+  };
+  switchTab('quiz');
+  renderQuestion();
+}
+
+function buildQuestion(target, pool){
+  const direction = Math.random() < 0.5 ? 'visual2label' : 'label2visual';
+  const others = pool.filter(w=>w.id !== target.id);
+  const distractors = sample(others, Math.min(3, others.length));
+  const options = shuffle([target, ...distractors]);
+  return { target, direction, options };
+}
+
+function renderQuestion(){
+  const q = quizState.questions[quizState.index];
+  quizState.answered = false;
+
+  const pct = (quizState.index / quizState.questions.length) * 100;
+  $('quizProgressFill').style.width = pct + '%';
+
+  const promptBox = $('promptBox');
+  if(q.direction === 'visual2label'){
+    promptBox.innerHTML = `${renderVisualHTML(q.target.visual, 'big')}<div class="muted">What is this?</div>`;
+  } else {
+    promptBox.innerHTML = `<div class="prompt-label">${q.target.label}</div><div class="muted">Find the match!</div>`;
+    speak(q.target.speak);
+  }
+
+  const optionsGrid = $('optionsGrid');
+  optionsGrid.innerHTML = '';
+  const buttonMap = [];
+  q.options.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    if(q.direction === 'visual2label'){
+      btn.innerHTML = `<div>${opt.label}</div>`;
+    } else {
+      btn.innerHTML = renderVisualHTML(opt.visual);
+    }
+    btn.addEventListener('click', ()=> selectAnswer(btn, opt, q));
+    optionsGrid.appendChild(btn);
+    buttonMap.push({btn, opt});
+  });
+  quizState.currentButtonMap = buttonMap;
+}
+
+function selectAnswer(btn, opt, q){
+  if(quizState.answered) return;
+  quizState.answered = true;
+  const correct = opt.id === q.target.id;
+  if(correct) quizState.correctCount++;
+
+  quizState.currentButtonMap.forEach(({btn:b})=> b.disabled = true);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  if(!correct){
+    const rightEntry = quizState.currentButtonMap.find(({opt:o})=> o.id === q.target.id);
+    if(rightEntry) rightEntry.btn.classList.add('correct');
+  }
+  speak(correct ? 'Yes! Correct!' : q.target.speak);
+
+  setTimeout(()=>{
+    quizState.index++;
+    if(quizState.index >= quizState.questions.length){
+      finishQuiz();
+    } else {
+      renderQuestion();
+    }
+  }, 1000);
+}
+
+function finishQuiz(){
+  $('quizProgressFill').style.width = '100%';
+  const total = quizState.questions.length;
+  const correct = quizState.correctCount;
+  const ratio = correct / total;
+  let stars = 0;
+  if(ratio >= 0.9) stars = 3;
+  else if(ratio >= 0.7) stars = 2;
+  else if(ratio >= 0.4) stars = 1;
+
+  const beltIdx = beltIndex(quizState.beltId);
+  const prevStars = starsFor(quizState.beltId);
+  state.stars[quizState.beltId] = Math.max(prevStars, stars);
+  if(beltIdx === state.unlockedIdx && beltIdx < BELTS.length - 1){
+    state.unlockedIdx = beltIdx + 1;
+  }
+  saveState();
+
+  showResult(stars, correct, total, beltIdx);
+}
+
+function showResult(stars, correct, total, beltIdx){
+  $('resultStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+  $('resultScore').textContent = `${correct} / ${total} correct`;
+  const isLast = beltIdx >= BELTS.length - 1;
+  if(stars >= 2){
+    $('resultTitle').textContent = 'Awesome, Ninja!';
+    $('resultSubHe').textContent = 'כל הכבוד, נינג׳ה!';
+  } else if(stars === 1){
+    $('resultTitle').textContent = 'Good try!';
+    $('resultSubHe').textContent = 'ניסיון טוב!';
+  } else {
+    $('resultTitle').textContent = "Keep training!";
+    $('resultSubHe').textContent = 'תמשיך להתאמן!';
+  }
+  $('resultContinueBtn').textContent = isLast && stars>0 ? 'Back to Dojo 🏯' : 'Continue ➡️';
+  $('resultOverlay').classList.add('active');
+  if(stars > 0) launchConfetti(stars);
+}
+
+function launchConfetti(intensity){
+  const count = 14 * intensity;
+  const emojis = ['⭐','🎉','✨','🥷'];
+  for(let i=0;i<count;i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    piece.style.left = Math.random()*100 + 'vw';
+    piece.style.animationDuration = (2 + Math.random()*1.5) + 's';
+    piece.style.fontSize = (16 + Math.random()*16) + 'px';
+    document.body.appendChild(piece);
+    setTimeout(()=> piece.remove(), 4000);
+  }
+}
+
+/* ---------------------------------------------
+   EDIT LETTER MODAL
+--------------------------------------------- */
+let editingLetterId = null;
+
+function openEditLetter(letterId){
+  editingLetterId = letterId;
+  const base = ALPHABET.find(w=>w.id === letterId);
+  const ov = state.letterOverrides[letterId] || {};
+  const currentEmoji = ov.emoji || base.visual.value;
+  const currentWord = ov.sub || base.sub;
+
+  $('editTitle').textContent = `Edit Letter ${letterId}`;
+  $('editPreviewEmoji').textContent = currentEmoji;
+  $('editEmojiInput').value = currentEmoji;
+  $('editWordInput').value = currentWord;
+
+  const presets = LETTER_ALTS[letterId] || [];
+  const allChoices = Array.from(new Set([base.visual.value, ...presets]));
+  const grid = $('emojiPresets');
+  grid.innerHTML = '';
+  allChoices.forEach(em=>{
+    const b = document.createElement('button');
+    b.className = 'emoji-preset-btn' + (em === currentEmoji ? ' sel' : '');
+    b.textContent = em;
+    b.type = 'button';
+    b.addEventListener('click', ()=>{
+      $('editEmojiInput').value = em;
+      $('editPreviewEmoji').textContent = em;
+      grid.querySelectorAll('.emoji-preset-btn').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel');
+    });
+    grid.appendChild(b);
+  });
+
+  $('editOverlay').classList.add('active');
+}
+
+function closeEditLetter(){
+  $('editOverlay').classList.remove('active');
+  editingLetterId = null;
+}
+
+$('editEmojiInput').addEventListener('input', ()=>{
+  $('editPreviewEmoji').textContent = $('editEmojiInput').value || '❓';
+});
+
+$('editCancelBtn').addEventListener('click', closeEditLetter);
+
+$('editSaveBtn').addEventListener('click', ()=>{
+  if(!editingLetterId) return;
+  const emoji = $('editEmojiInput').value.trim();
+  const word = $('editWordInput').value.trim();
+  state.letterOverrides[editingLetterId] = {
+    emoji: emoji || undefined,
+    sub: word || undefined,
+  };
+  saveState();
+  closeEditLetter();
+  renderFlashcards();
+});
+
+$('editResetBtn').addEventListener('click', ()=>{
+  if(!editingLetterId) return;
+  delete state.letterOverrides[editingLetterId];
+  saveState();
+  closeEditLetter();
+  renderFlashcards();
+});
+
+/* ---------------------------------------------
+   EVENTS
+--------------------------------------------- */
+$('startBtn').addEventListener('click', ()=>{
+  if(!state.element) return;
+  saveState();
+  renderMap();
+  showScreen('screen-map');
+});
+
+$('backToMapBtn').addEventListener('click', ()=>{
+  renderMap();
+  showScreen('screen-map');
+});
+
+$('tabLearn').addEventListener('click', ()=> switchTab('learn'));
+$('tabQuiz').addEventListener('click', ()=>{
+  if(!quizState || quizState.beltId !== currentBeltId || quizState.index >= quizState.questions.length){
+    startQuiz();
+  } else {
+    switchTab('quiz');
+  }
+});
+$('goToQuizBtn').addEventListener('click', startQuiz);
+
+$('repeatSpeakBtn').addEventListener('click', ()=>{
+  if(!quizState) return;
+  const q = quizState.questions[quizState.index];
+  if(!q) return;
+  speak(q.direction === 'label2visual' ? q.target.speak : 'What is this?');
+});
+
+$('resultContinueBtn').addEventListener('click', ()=>{
+  $('resultOverlay').classList.remove('active');
+  renderMap();
+  showScreen('screen-map');
+});
+
+$('changeElementBtn').addEventListener('click', ()=>{
+  renderElementGrid();
+  $('startBtn').disabled = !state.element;
+  showScreen('screen-welcome');
+});
+
+$('parentAreaBtn').addEventListener('click', ()=>{
+  $('parentCodeInput').value = '';
+  $('parentError').textContent = '';
+  $('parentOverlay').classList.add('active');
+  setTimeout(()=> $('parentCodeInput').focus(), 50);
+});
+
+$('parentCancelBtn').addEventListener('click', ()=>{
+  $('parentOverlay').classList.remove('active');
+});
+
+function submitParentCode(){
+  const code = $('parentCodeInput').value.trim();
+  if(code === '121212'){
+    BELTS.forEach(b=>{ state.stars[b.id] = 3; });
+    state.unlockedIdx = BELTS.length - 1;
+    saveState();
+    renderMap();
+    $('parentOverlay').classList.remove('active');
+  } else {
+    $('parentError').textContent = 'Incorrect code, try again.';
+  }
+}
+$('parentSubmitBtn').addEventListener('click', submitParentCode);
+$('parentCodeInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') submitParentCode();
+});
+
+/* ---------------------------------------------
+   CONFIRM MODAL (replaces blocked window.confirm)
+--------------------------------------------- */
+let confirmCallback = null;
+function showConfirm(message, onYes){
+  $('confirmTitle').textContent = message;
+  confirmCallback = onYes;
+  $('confirmOverlay').classList.add('active');
+}
+$('confirmYesBtn').addEventListener('click', ()=>{
+  $('confirmOverlay').classList.remove('active');
+  const cb = confirmCallback;
+  confirmCallback = null;
+  if(cb) cb();
+});
+$('confirmNoBtn').addEventListener('click', ()=>{
+  $('confirmOverlay').classList.remove('active');
+  confirmCallback = null;
+});
+
+$('resetBtn').addEventListener('click', ()=>{
+  showConfirm('Reset all progress?', ()=>{
+    state = { element: state.element, stars:{}, unlockedIdx:0, letterOverrides:{} };
+    saveState();
+    renderMap();
+  });
+});
+
+/* ---------------------------------------------
+   INIT
+--------------------------------------------- */
+function init(){
+  loadState();
+  initVoices();
+  renderElementGrid();
+  if(state.element){
+    $('startBtn').disabled = false;
+  }
+  if(state.element && (state.unlockedIdx > 0 || totalStars() > 0)){
+    renderMap();
+    showScreen('screen-map');
+  } else {
+    showScreen('screen-welcome');
+  }
+}
+init();
+
+})();
+</script>
+<!-- סנכרון בין מכשירים (משותף לכל הפרויקטים) -->
+<script src="../firebase-config.js"></script>
+<script src="../ls-sync.js" data-app="ninja-dojo" data-prefix="ninjaEnglishDojo"></script>
+<script type="module" src="../sync.js"></script>
+</body>
+</html>

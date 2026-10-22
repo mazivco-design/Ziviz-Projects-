@@ -45,7 +45,7 @@
     },
     {
      "label": "מטוס האותיות",
-     "url": "https://claude.ai/artifact/22PATEeFThvVM8z3ZPq7SC"
+     "url": "letters-plane/"
     }
    ]
   },
@@ -167,7 +167,13 @@
     "מתמטיקה"
    ],
    "image": "images/hat.svg",
-   "url": "https://claude.ai/artifact/WDdqpJEK6LQMjzfXJ7aCNF"
+   "url": "hat/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/WDdqpJEK6LQMjzfXJ7aCNF"
+    }
+   ]
   },
   {
    "id": "illusions",
@@ -178,15 +184,19 @@
     "אב טיפוס"
    ],
    "image": "images/illusions.svg",
-   "url": "https://claude.ai/artifact/U9dhzfDFETYTmKSw3x61kJ",
+   "url": "illusions/",
    "links": [
     {
      "label": "הליכה על הגריד",
-     "url": "https://claude.ai/artifact/LvwBUkrvczVAeX7GndyW1G"
+     "url": "grid-walk/"
     },
     {
      "label": "כל קיר הוא רצפה",
-     "url": "https://claude.ai/artifact/MmEz2KT12mhJ6rHUPGLrD9"
+     "url": "wall-floor/"
+    },
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/U9dhzfDFETYTmKSw3x61kJ"
     }
    ]
   },
@@ -199,7 +209,13 @@
     "אב טיפוס"
    ],
    "image": "images/sphere-tag.svg",
-   "url": "https://claude.ai/artifact/Fkeqy4iByb5ydKmfzHhYei"
+   "url": "sphere-tag/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/Fkeqy4iByb5ydKmfzHhYei"
+    }
+   ]
   },
   {
    "id": "math-visual",
@@ -214,30 +230,42 @@
   },
   {
    "id": "sudoku",
-   "group": "claude",
+   "group": "games",
    "name": "מעבדת סודוקו",
-   "desc": "מעבדה לפתרון ולחקירה של סודוקו.",
+   "desc": "מעבדה לפתרון ולחקירה של סודוקו. (זיהוי סודוקו מתמונה עובד רק בגרסה ב-Claude.)",
    "tags": [
     "חשבון",
     "חשיבה"
    ],
    "image": "images/artifact.svg",
-   "url": "https://claude.ai/artifact/1n8928qM9J4W6CvN4VFsuL"
+   "url": "sudoku/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/1n8928qM9J4W6CvN4VFsuL"
+    }
+   ]
   },
   {
    "id": "towers",
-   "group": "claude",
+   "group": "games",
    "name": "מגדלים ליעד",
    "desc": "משחק מספרים: בונים מגדלים כדי להגיע למספר יעד.",
    "tags": [
     "חשבון"
    ],
    "image": "images/artifact.svg",
-   "url": "https://claude.ai/artifact/53He2CMRouC63BqkxWW7go"
+   "url": "towers/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/53He2CMRouC63BqkxWW7go"
+    }
+   ]
   },
   {
    "id": "niqqud-snake",
-   "group": "claude",
+   "group": "read",
    "name": "נחש הניקוד",
    "desc": "משחק נחש לתרגול ניקוד.",
    "tags": [
@@ -245,16 +273,28 @@
     "ניקוד"
    ],
    "image": "images/artifact.svg",
-   "url": "https://claude.ai/artifact/HhKHKi3VdfDtS4FyWWZFJq"
+   "url": "niqqud-snake/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/HhKHKi3VdfDtS4FyWWZFJq"
+    }
+   ]
   },
   {
    "id": "good-point",
-   "group": "claude",
+   "group": "read",
    "name": "נקודה טובה",
    "desc": "עוד אין תיאור. אפשר להוסיף במצב עריכה.",
    "tags": [],
    "image": "images/artifact.svg",
-   "url": "https://claude.ai/artifact/JbRe2zqc6NQ14RGppj49vz"
+   "url": "good-point/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/JbRe2zqc6NQ14RGppj49vz"
+    }
+   ]
   },
   {
    "id": "abc-cards",
@@ -275,14 +315,20 @@
   },
   {
    "id": "ninja-dojo",
-   "group": "claude",
+   "group": "games",
    "name": "Ninja English Dojo",
    "desc": "תרגול אנגלית בסגנון נינג׳ה.",
    "tags": [
     "אנגלית"
    ],
    "image": "images/artifact.svg",
-   "url": "https://claude.ai/artifact/2WEKDTTbAjp1uwfwen3yxD"
+   "url": "ninja-dojo/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/2WEKDTTbAjp1uwfwen3yxD"
+    }
+   ]
   },
   {
    "id": "subtitle-tool",

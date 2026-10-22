@@ -1,0 +1,291 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>גשר האשליות</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&display=swap">
+<style>
+/* Layout: one-screen game — slim header, full canvas stage, thumb-reach toolbar at bottom */
+:root{
+  --bg1:#d9e0e8; --bg2:#f1f3f6; --ink:#24283a; --muted:#5d6478;
+  --top:#f3ece6; --left:#cdbab1; --right:#97827b; --edge:#7d6a64;
+  --goal:#e6ad3c; --hat:#1f6f78; --body:#ffffff; --bad:#c2453a;
+  --panel:rgba(255,255,255,.72); --panel-line:rgba(36,40,58,.12); --btn:#ffffff; --btn-on:#24283a; --btn-on-ink:#ffffff;
+  --display:"Secular One","Assistant",system-ui,sans-serif; --body-font:"Assistant",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg1:#161a27; --bg2:#272c40; --ink:#ecebf2; --muted:#a3a8bd;
+  --top:#ddd2ca; --left:#a8958d; --right:#6b5a55; --edge:#4b3e3a;
+  --goal:#f0b84a; --hat:#4fb3bd; --body:#f7f5f2; --bad:#e2685d;
+  --panel:rgba(30,34,50,.78); --panel-line:rgba(255,255,255,.1); --btn:#2e3348; --btn-on:#ecebf2; --btn-on-ink:#1b1f2e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg1:#161a27; --bg2:#272c40; --ink:#ecebf2; --muted:#a3a8bd;
+  --top:#ddd2ca; --left:#a8958d; --right:#6b5a55; --edge:#4b3e3a;
+  --goal:#f0b84a; --hat:#4fb3bd; --body:#f7f5f2; --bad:#e2685d;
+  --panel:rgba(30,34,50,.78); --panel-line:rgba(255,255,255,.1); --btn:#2e3348; --btn-on:#ecebf2; --btn-on-ink:#1b1f2e; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg2);color:var(--ink);font-family:var(--body-font);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.app{height:100%;display:flex;flex-direction:column;direction:rtl}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-block:12px 4px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.titles{min-width:0}
+h1{font-family:var(--display);font-weight:400;font-size:1.5rem;margin:0;line-height:1.1;text-wrap:balance}
+.lvname{font-size:.95rem;color:var(--muted);margin-top:2px}
+.dots{display:flex;gap:6px;flex-shrink:0;padding-top:6px}
+.dot{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--panel-line);background:var(--btn);color:var(--ink);font:600 .95rem var(--body-font);cursor:pointer}
+.dot[aria-current="true"]{background:var(--btn-on);color:var(--btn-on-ink);border-color:var(--btn-on)}
+.hint{font-size:1rem;line-height:1.45;color:var(--muted);max-width:60ch;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));min-height:2.9em}
+.stage{flex:1;position:relative;min-height:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.toast{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--panel-line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:8px 16px;border-radius:999px;font-weight:600;white-space:nowrap;transition:opacity .3s;pointer-events:none}
+.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.grp{display:flex;gap:4px;background:var(--panel);border:1px solid var(--panel-line);border-radius:16px;padding:4px}
+button.b{min-width:48px;height:48px;padding:0 14px;border:0;border-radius:12px;background:transparent;color:var(--ink);font:600 1rem var(--body-font);display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+button.b[aria-pressed="true"]{background:var(--btn-on);color:var(--btn-on-ink)}
+button.b:focus-visible,.dot:focus-visible{outline:2.5px solid var(--hat);outline-offset:2px}
+button.b svg{width:24px;height:24px}
+.win{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.card{background:var(--panel);border:1px solid var(--panel-line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:20px;padding:22px 26px;text-align:center;display:grid;gap:10px;max-width:min(320px,90%)}
+.card h2{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0}
+.card p{margin:0;color:var(--muted)}
+.card button{height:48px;border-radius:12px;border:0;background:var(--btn-on);color:var(--btn-on-ink);font:700 1.05rem var(--body-font);cursor:pointer}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--hat)}50%{box-shadow:0 0 0 6px transparent;background:var(--hat);color:var(--btn-on-ink)}}
+button.b.pulse{animation:pulse .8s ease-in-out 4}
+@media (prefers-reduced-motion: reduce){button.b.pulse{animation:none;background:var(--hat);color:var(--btn-on-ink)}}
+@media (max-width:520px){h1{font-size:1.25rem}.dot{width:30px;height:30px}button.b{min-width:44px;padding:0 10px}.lbl{display:none}}
+</style>
+<div class="app">
+  <header>
+    <div class="titles"><h1>גשר האשליות</h1><div class="lvname" id="lvname"></div></div>
+    <div class="dots" id="dots" dir="ltr"></div>
+  </header>
+  <div class="hint" id="hint"></div>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="toast" id="toast" style="opacity:0"></div>
+    <div class="win" id="win" hidden><div class="card"><h2>הגעת!</h2><p id="winTxt"></p><button id="nextBtn" type="button">לשלב הבא</button></div></div>
+  </div>
+  <div class="bar">
+    <div class="grp">
+      <button class="b" id="rotR" type="button" aria-label="סובב ימינה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button>
+      <button class="b" id="rotL" type="button" aria-label="סובב שמאלה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v5h5"/></svg></button>
+    </div>
+    <div class="grp">
+      <button class="b" id="mPlay" type="button" aria-pressed="true">שחק</button>
+      <button class="b" id="mAdd" type="button" aria-pressed="false">הוסף קוביה</button>
+      <button class="b" id="mDel" type="button" aria-pressed="false">מחק</button>
+    </div>
+    <div class="grp">
+      <button class="b" id="truth" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 20V4M3 7l3-3 3 3M3 17l3 3 3-3M13 6h7M13 12h5M13 18h7"/></svg><span class="lbl">גובה אמיתי</span></button>
+      <button class="b" id="hintBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span class="lbl">רמז</span></button>
+      <button class="b" id="reset" type="button" aria-label="התחל מחדש"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+    </div>
+  </div>
+</div>
+<script>
+// ---- core engine (pure logic) ----
+const FACES=[
+ {n:[0,0,1],c:[[0,0,1],[1,0,1],[1,1,1],[0,1,1]]},
+ {n:[1,0,0],c:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]]},
+ {n:[-1,0,0],c:[[0,0,0],[0,1,0],[0,1,1],[0,0,1]]},
+ {n:[0,1,0],c:[[0,1,0],[1,1,0],[1,1,1],[0,1,1]]},
+ {n:[0,-1,0],c:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]]},
+];
+function makeWorld(blocks){
+  const w={blocks:blocks.map(b=>({x:b[0],y:b[1],z:b[2]})),map:new Map()};
+  reindex(w);return w;
+}
+function key(x,y,z){return x+','+y+','+z}
+function reindex(w){w.map.clear();w.blocks.forEach(b=>w.map.set(key(b.x,b.y,b.z),b));
+  let mx=0,my=0,Mx=0,My=0;w.blocks.forEach((b,i)=>{if(!i){mx=Mx=b.x;my=My=b.y}mx=Math.min(mx,b.x);Mx=Math.max(Mx,b.x);my=Math.min(my,b.y);My=Math.max(My,b.y)});
+  if(w.cx===undefined){w.cx=(mx+Mx+1)/2;w.cy=(my+My+1)/2;}}
+function at(w,x,y,z){return w.map.get(key(x,y,z))}
+function rotXY(w,x,y,th){const dx=x-w.cx,dy=y-w.cy,c=Math.cos(th),s=Math.sin(th);return [dx*c-dy*s,dx*s+dy*c]}
+function proj(vx,vy,z){return [vx-vy,(vx+vy)/2-z]}
+function P3(w,x,y,z,th){const v=rotXY(w,x,y,th);return proj(v[0],v[1],z)}
+function buildScene(w,th){
+  const c=Math.cos(th),s=Math.sin(th),items=[];
+  for(const b of w.blocks){
+    const v=rotXY(w,b.x+.5,b.y+.5,th);
+    const faces=[];
+    for(const f of FACES){
+      const [nx,ny,nz]=f.n;
+      if(at(w,b.x+nx,b.y+ny,b.z+nz))continue; // internal
+      if(!nz){const rx=nx*c-ny*s,ry=nx*s+ny*c;if(rx+ry<=1e-6)continue;f._r=[rx,ry];}
+      const pts=f.c.map(p=>P3(w,b.x+p[0],b.y+p[1],b.z+p[2],th));
+      let shade=nz?1:0; if(!nz){const rx=nx*c-ny*s,ry=nx*s+ny*c;shade=rx*0.15-ry*0.15;} // -ry => left/right tint
+      faces.push({n:f.n,pts,top:!!nz,rx:nz?0:nx*c-ny*s,ry:nz?0:nx*s+ny*c});
+    }
+    items.push({b,faces,k:v[0]+v[1]+b.z+.5});
+  }
+  items.sort((a,b)=>a.k-b.k);
+  return items;
+}
+function inPoly(pt,poly){let sign=0;for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];const cr=(b[0]-a[0])*(pt[1]-a[1])-(b[1]-a[1])*(pt[0]-a[0]);if(Math.abs(cr)<1e-9)return false;const sg=cr>0?1:-1;if(!sign)sign=sg;else if(sg!==sign)return false}return true}
+function hit(scene,pt){let r=null;for(const it of scene)for(const f of it.faces)if(inPoly(pt,f.pts))r={b:it.b,f};return r}
+function walkable(w,b){return !at(w,b.x,b.y,b.z+1)}
+function topC(w,b,th){return P3(w,b.x+.5,b.y+.5,b.z+1,th)}
+const DIRS=[[1,.5],[-1,-.5],[-1,.5],[1,-.5]];
+function visibleTop(w,scene,pt){
+  const h1=hit(scene,[pt[0]-.18,pt[1]]),h2=hit(scene,[pt[0]+.18,pt[1]]);
+  if(h1&&h2&&h1.b===h2.b&&h1.f.top&&h2.f.top&&walkable(w,h1.b))return h1.b;return null}
+function neighbors(w,scene,b,th){
+  const P=topC(w,b,th),out=[];
+  if(visibleTop(w,scene,P)!==b)return out; // can only walk from a tile you can see
+  for(const d of DIRS){const t=visibleTop(w,scene,[P[0]+d[0],P[1]+d[1]]);if(t&&t!==b)out.push(t)}
+  return out}
+function bfs(w,scene,from,to,th){
+  const prev=new Map([[from,null]]),q=[from];
+  while(q.length){const c=q.shift();if(c===to)break;for(const n of neighbors(w,scene,c,th))if(!prev.has(n)){prev.set(n,c);q.push(n)}}
+  if(!prev.has(to))return null;const path=[];for(let c=to;c;c=prev.get(c))path.unshift(c);return path}
+const col=(x,y,h)=>{const a=[];for(let z=0;z<=h;z++)a.push([x,y,z]);return a};
+const LEVELS=[
+ {name:'שלב 1 · גשר שלא קיים',hint:'הקש על משבצת כדי ללכת אליה. הדרך התחתונה והגבוהה לא מחוברות באמת, אבל מהזווית הזאת הן נוגעות. נסה ללכת עד המשבצת הזהובה.',
+  start:[0,4,0],goal:[8,6,2],blocks:[[0,4,0],[1,4,0],[2,4,0],[3,4,0],...col(6,6,2),[7,6,2],...col(8,6,2)]},
+ {name:'שלב 2 · סובב את העולם',hint:'מכאן אין דרך. סובב את העולם בכפתורי החיצים ותחפש זווית שבה שני חלקים רחוקים נראים צמודים.',
+  start:[4,1,0],goal:[3,6,0],blocks:[[4,1,0],[5,1,0],[4,4,2],[5,4,2],[6,4,2],[4,4,0],[4,4,1],[6,4,0],[6,4,1],[0,6,0],[1,6,0],[2,6,0],[3,6,0]]},
+ {name:'שלב 3 · שלושה גשרים',hint:'שלוש אשליות בדרך. כל סיבוב חושף חיבור אחר ושובר חיבור קודם. אפשר ללכת רק ממשבצת שרואים. כפתור הנורה נותן רמז.',
+  start:[4,5,0],goal:[6,1,0],blocks:[[4,5,0],[4,6,0],[4,7,0],[4,8,0],[0,3,2],[0,4,2],[0,3,0],[0,3,1],[0,4,0],[0,4,1],[1,4,1],[2,4,1],[3,4,1],[4,4,1],[1,4,0],[4,4,0],[3,1,0],[4,1,0],[5,1,0],[6,1,0]]},
+ {name:'מגרש חופשי',hint:'בחר "הוסף קוביה" והקש על פאה כדי להדביק אליה קוביה, או "מחק" כדי להסיר. נסה לבנות גשר שקיים רק מזווית אחת.',
+  start:[0,0,0],goal:null,blocks:(()=>{const a=[];for(let x=0;x<4;x++)for(let y=0;y<4;y++)a.push([x,y,0]);return a.concat(col(5,5,3),[[5,4,3]])})()}
+];
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let L,world,charB,goalB,rot=0,theta=0,rotAnim=null,walk=null,queue=[],mode='play',truth=false,won=false,bounds,tapMark=null,levelIdx=0,illSteps=0,toastT=0;
+let C={},hintMark=null;
+function hex(h){h=h.trim();if(h.startsWith('rgb')){const m=h.match(/[\d.]+/g);return m.slice(0,3).map(Number)}h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');return [0,2,4].map(i=>parseInt(h.substr(i,2),16))}
+function readTheme(){const cs=getComputedStyle(document.documentElement);for(const k of['bg1','bg2','ink','muted','top','left','right','edge','goal','hat','body','bad'])C[k]=hex(cs.getPropertyValue('--'+k))}
+const rgb=(c,a=1)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+readTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readTheme);
+new MutationObserver(readTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+function loadLevel(i){
+  levelIdx=i;L=LEVELS[i];world=makeWorld(L.blocks);charB=at(world,...L.start);goalB=L.goal?at(world,...L.goal):null;
+  rot=0;theta=0;rotAnim=null;walk=null;queue=[];won=false;illSteps=0;tapMark=null;hintMark=null;
+  $('lvname').textContent=L.name;$('hint').textContent=L.hint;$('win').hidden=true;
+  computeBounds();renderDots();
+}
+function computeBounds(){
+  let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
+  for(let r=0;r<4;r++)for(const it of buildScene(world,r*Math.PI/2))for(const f of it.faces)for(const p of f.pts){mnx=Math.min(mnx,p[0]);mxx=Math.max(mxx,p[0]);mny=Math.min(mny,p[1]);mxy=Math.max(mxy,p[1])}
+  bounds={mnx,mny:mny-1,mxx,mxy};
+}
+function renderDots(){const d=$('dots');d.innerHTML='';LEVELS.forEach((lv,i)=>{const b=document.createElement('button');b.className='dot';b.type='button';b.textContent=lv.goal?String(i+1):'∗';b.setAttribute('aria-label',lv.name);b.setAttribute('aria-current',i===levelIdx);b.onclick=()=>loadLevel(i);d.appendChild(b)})}
+
+let W=0,H=0,dpr=1,S=40,ox=0,oy=0;
+function resize(){const r=cv.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2.5);W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr}
+new ResizeObserver(resize).observe($('stage'));resize();
+function layout(){const bw=bounds.mxx-bounds.mnx,bh=bounds.mxy-bounds.mny;S=Math.min((W-24)/bw,(H-24)/bh,72);ox=W/2-(bounds.mnx+bw/2)*S;oy=H/2-(bounds.mny+bh/2)*S}
+const toPx=p=>[ox+p[0]*S,oy+p[1]*S];
+
+function toast(msg,ms=1800){const t=$('toast');t.textContent=msg;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity=0,ms)}
+const busy=()=>rotAnim||walk||queue.length;
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const isReal=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)+Math.abs(a.z-b.z)===1;
+
+function rotate(d){if(busy()||won)return;hintMark=null;document.querySelectorAll('.pulse').forEach(b=>b.classList.remove('pulse'));const from=theta;rot=(rot+d+4)%4;rotAnim={from,to:from+d*Math.PI/2,t0:performance.now(),dur:650}}
+function step(now){
+  if(rotAnim){const t=Math.min(1,(now-rotAnim.t0)/rotAnim.dur);theta=rotAnim.from+(rotAnim.to-rotAnim.from)*ease(t);if(t>=1){theta=rot*Math.PI/2;rotAnim=null}}
+  if(!walk&&queue.length){const to=queue.shift();walk={from:charB,to,t0:now,dur:isReal(charB,to)?230:420}}
+  if(walk){const t=(now-walk.t0)/walk.dur;if(t>=1){if(!isReal(walk.from,walk.to)){illSteps++;if(illSteps===1)toast('עברת דרך אשליה!')}charB=walk.to;walk=null;if(charB===goalB&&!queue.length)win()}}
+}
+function win(){won=true;setTimeout(()=>{$('winTxt').textContent=illSteps===1?'עברת דרך גשר אחד שלא קיים באמת.':`עברת דרך ${illSteps} גשרים שלא קיימים באמת.`;$('nextBtn').textContent=levelIdx<LEVELS.length-2?'לשלב הבא':'למגרש החופשי';$('win').hidden=false},500)}
+$('nextBtn').onclick=()=>loadLevel(Math.min(levelIdx+1,LEVELS.length-1));
+
+function sideColor(f){const t=(f.ry-f.rx+1.414)/2.828;return mix(C.right,C.left,Math.max(0,Math.min(1,t)))}
+function poly(pts){ctx.beginPath();pts.forEach((p,i)=>{const q=toPx(p);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])});ctx.closePath()}
+function drawChar(p,now,hop){
+  const [x,y]=toPx(p);const s=S,bob=Math.sin(now/380)*.03*s-hop*.35*s;
+  ctx.fillStyle=rgb(C.edge,.28);ctx.beginPath();ctx.ellipse(x,y,.26*s*(1-hop*.3),.13*s*(1-hop*.3),0,0,7);ctx.fill();
+  const by=y+bob;
+  ctx.fillStyle=rgb(C.body);ctx.strokeStyle=rgb(C.edge,.5);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(x-.22*s,by-.02*s);ctx.quadraticCurveTo(x,by+.06*s,x+.22*s,by-.02*s);ctx.lineTo(x+.07*s,by-.62*s);ctx.lineTo(x-.07*s,by-.62*s);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.arc(x,by-.72*s,.13*s,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=rgb(C.hat);ctx.beginPath();ctx.moveTo(x-.15*s,by-.76*s);ctx.lineTo(x+.15*s,by-.76*s);ctx.lineTo(x+.02*s,by-1.18*s);ctx.closePath();ctx.fill();
+}
+function frame(now){
+  step(now);layout();
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,rgb(C.bg1));g.addColorStop(1,rgb(C.bg2));
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const scene=buildScene(world,theta);
+  // character placement
+  let cp,ck,hop=0;
+  const ckey=b=>{const v=rotXY(world,b.x+.5,b.y+.5,theta);return v[0]+v[1]+b.z+1.51};
+  if(walk){const t=Math.min(1,(now-walk.t0)/walk.dur),e=ease(t);const a=topC(world,walk.from,theta),b=topC(world,walk.to,theta);cp=[a[0]+(b[0]-a[0])*e,a[1]+(b[1]-a[1])*e];ck=t<.5?ckey(walk.from):ckey(walk.to);hop=Math.sin(Math.PI*t)*(isReal(walk.from,walk.to)?.25:.6)}
+  else{cp=topC(world,charB,theta);ck=ckey(charB)}
+  let drawn=false;
+  ctx.lineJoin='round';
+  for(const it of scene){
+    if(!drawn&&it.k>ck){drawChar(cp,now,hop);drawn=true}
+    for(const f of it.faces){
+      poly(f.pts);
+      let c=f.top?C.top:sideColor(f);
+      if(f.top&&it.b===goalB){const pulse=.5+.5*Math.sin(now/300);c=mix(C.goal,C.top,.15*pulse)}
+      ctx.fillStyle=rgb(c);ctx.fill();ctx.strokeStyle=rgb(mix(c,C.edge,.45));ctx.lineWidth=Math.max(1,S/60);ctx.stroke();
+    }
+    if(it.b===goalB&&walkable(world,goalB)){const p=toPx(topC(world,goalB,theta));const r=S*(.35+.08*Math.sin(now/300));ctx.strokeStyle=rgb(C.goal,.9);ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p[0],p[1],r,r/2,0,0,7);ctx.stroke()}
+    if(truth&&!rotAnim&&walkable(world,it.b)){const p=toPx(topC(world,it.b,theta));ctx.fillStyle=rgb(C.ink,.75);ctx.font=`700 ${Math.round(S*.36)}px Assistant, system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(it.b.z+1),p[0],p[1])}
+  }
+  if(!drawn)drawChar(cp,now,hop);
+  if(hintMark&&!rotAnim&&!walk){const p=toPx(topC(world,hintMark,theta));const a=.55+.45*Math.sin(now/220);ctx.strokeStyle=rgb(C.hat,a);ctx.lineWidth=3;for(const r of[.32,.5]){ctx.beginPath();ctx.ellipse(p[0],p[1],S*r,S*r/2,0,0,7);ctx.stroke()}}
+  if(tapMark){const age=(now-tapMark.t)/600;if(age>1)tapMark=null;else{const p=toPx(tapMark.p);ctx.strokeStyle=rgb(tapMark.ok?C.hat:C.bad,1-age);ctx.lineWidth=2.5;const r=S*(.3+age*.4);ctx.beginPath();ctx.ellipse(p[0],p[1],r,r/2,0,0,7);ctx.stroke()}}
+  requestAnimationFrame(frame);
+}
+
+let down=null;
+cv.addEventListener('pointerdown',e=>{down={x:e.offsetX,y:e.offsetY}});
+cv.addEventListener('pointerup',e=>{if(!down)return;const dx=e.offsetX-down.x,dy=e.offsetY-down.y;down=null;if(dx*dx+dy*dy>200)return;tap(e.offsetX,e.offsetY)});
+function tap(px,py){
+  if(busy()||won)return;
+  const pt=[(px-ox)/S,(py-oy)/S];const scene=buildScene(world,theta);const h=hit(scene,pt);if(!h)return;
+  if(mode==='play'){
+    if(!h.f.top||!walkable(world,h.b))return;
+    const tgt=topC(world,h.b,theta);
+    if(h.b===charB)return;
+    const path=bfs(world,scene,charB,h.b,theta);
+    tapMark={p:tgt,t:performance.now(),ok:!!path};
+    if(!path){toast(visibleTop(world,scene,topC(world,charB,theta))!==charB?'הדמות מוסתרת מאחורי קוביות. סובב כדי לראות אותה':'מהזווית הזאת אין לשם דרך');return}
+    queue=path.slice(1);hintMark=null;
+  }else if(mode==='add'){
+    const n=h.f.n,nx=h.b.x+n[0],ny=h.b.y+n[1],nz=h.b.z+n[2];
+    if(at(world,nx,ny,nz))return;
+    if(nx===charB.x&&ny===charB.y&&(nz===charB.z+1||nz===charB.z+2)){toast('הדמות עומדת שם');return}
+    world.blocks.push({x:nx,y:ny,z:nz});reindex(world);computeBounds();
+  }else{
+    if(h.b===charB){toast('הדמות עומדת על הקוביה הזאת');return}
+    if(h.b===goalB){toast('את משבצת היעד אי אפשר למחוק');return}
+    world.blocks.splice(world.blocks.indexOf(h.b),1);reindex(world);computeBounds();
+  }
+}
+function setMode(m){mode=m;$('mPlay').setAttribute('aria-pressed',m==='play');$('mAdd').setAttribute('aria-pressed',m==='add');$('mDel').setAttribute('aria-pressed',m==='del')}
+$('mPlay').onclick=()=>setMode('play');$('mAdd').onclick=()=>setMode('add');$('mDel').onclick=()=>setMode('del');
+$('rotL').onclick=()=>rotate(1);$('rotR').onclick=()=>rotate(-1);
+$('truth').onclick=()=>{truth=!truth;$('truth').setAttribute('aria-pressed',truth)};
+function solve(){
+  const sc=[0,1,2,3].map(r=>buildScene(world,r*Math.PI/2));
+  const k=(b,r)=>key(b.x,b.y,b.z)+'|'+r;const s0={b:charB,r:rot,c:0,prev:null,act:null};
+  const dist=new Map([[k(charB,rot),s0]]),dq=[s0];
+  while(dq.length){const s=dq.shift();
+    for(const n of neighbors(world,sc[s.r],s.b,s.r*Math.PI/2)){const kk=k(n,s.r);if(!dist.has(kk)||dist.get(kk).c>s.c){const o={b:n,r:s.r,c:s.c,prev:s,act:'walk'};dist.set(kk,o);dq.unshift(o)}}
+    for(const [d,name] of [[1,'L'],[3,'R']]){const r=(s.r+d)%4,kk=k(s.b,r);if(!dist.has(kk)||dist.get(kk).c>s.c+1){const o={b:s.b,r,c:s.c+1,prev:s,act:name};dist.set(kk,o);dq.push(o)}}}
+  let best=null;for(let r=0;r<4;r++){const v=dist.get(k(goalB,r));if(v&&(!best||v.c<best.c))best=v}
+  if(!best)return null;const acts=[];for(let s=best;s.prev;s=s.prev)acts.unshift(s);
+  if(!acts.length)return null;
+  if(acts[0].act!=='walk')return {type:acts[0].act};
+  let last=acts[0];for(const a of acts){if(a.act!=='walk')break;last=a}
+  return {type:'walk',b:last.b};
+}
+$('hintBtn').onclick=()=>{
+  if(busy()||won)return;
+  if(!goalB){toast('במגרש החופשי אין יעד, אז אין רמז');return}
+  const h=solve();
+  if(!h){toast('לא נמצאה דרך מכאן. נסה להתחיל מחדש');return}
+  if(h.type==='walk'){hintMark=h.b;toast('הקש על המשבצת המסומנת',2500)}
+  else{const btn=$(h.type==='L'?'rotL':'rotR');btn.classList.remove('pulse');void btn.offsetWidth;btn.classList.add('pulse');toast(h.type==='L'?'סובב שמאלה':'סובב ימינה',2500)}
+};
+$('reset').onclick=()=>loadLevel(levelIdx);
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft')rotate(1);if(e.key==='ArrowRight')rotate(-1)});
+loadLevel(0);requestAnimationFrame(frame);
+</script>
+
+</body></html>

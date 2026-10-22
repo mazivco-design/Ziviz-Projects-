@@ -1,0 +1,408 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>נקודה טובה</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&family=Noto+Serif+Hebrew:wght@500;700&display=swap">
+<style>
+/* Layout: one centered play column; tabs on top, a "slate" panel with a giant letter, answer tiles below. Vowel families are color-coded (a/e/i/o/u) throughout. */
+:root{
+  --bg:#EEF2F8; --dot:#D5DDEB; --surface:#FFFFFF; --ink:#1A2238; --muted:#5A6684; --line:#D3DAE8;
+  --slate:#22304F; --slate-ink:#F4F6FB;
+  --fa:#E0533D; --fe:#2E9A5B; --fi:#2D7BD8; --fo:#8A4FC9; --fu:#D99A12; --fs:#7C879E;
+  --good:#2E9A5B; --bad:#D9432F;
+  --f-display:"Secular One","Assistant",system-ui,sans-serif;
+  --f-body:"Assistant",system-ui,"Segoe UI",Arial,sans-serif;
+  --f-letter:"Noto Serif Hebrew","Frank Ruhl Libre","David","Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111627; --dot:#1E2640; --surface:#1A2137; --ink:#E8ECF6; --muted:#9AA5C2; --line:#2C3654;
+  --slate:#0B1020; --slate-ink:#F4F6FB;
+  --fa:#FF7A63; --fe:#4CC67F; --fi:#5AA2FF; --fo:#B585F2; --fu:#F2B937; --fs:#97A1B8;
+  --good:#4CC67F; --bad:#FF6B55; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#111627; --dot:#1E2640; --surface:#1A2137; --ink:#E8ECF6; --muted:#9AA5C2; --line:#2C3654;
+  --slate:#0B1020; --slate-ink:#F4F6FB;
+  --fa:#FF7A63; --fe:#4CC67F; --fi:#5AA2FF; --fo:#B585F2; --fu:#F2B937; --fs:#97A1B8;
+  --good:#4CC67F; --bad:#FF6B55; color-scheme:dark }
+
+body{background:var(--bg) radial-gradient(var(--dot) 1.5px, transparent 1.6px) 0 0/22px 22px;color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(34px,8vw,48px);line-height:1;margin:0;letter-spacing:.01em}
+h1 .dot{color:var(--fa)}
+.tag{margin:6px 0 0;color:var(--muted)}
+.tools{display:flex;gap:8px}
+.icon-btn{font:600 15px var(--f-body);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer}
+.icon-btn[aria-pressed="false"]{color:var(--muted)}
+
+.voicebar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px}
+.voicebar:empty{display:none}
+.vb-field{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:700;color:var(--muted);min-width:0}
+.vb-field select{font:600 15px var(--f-body);color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:6px 8px;max-width:min(260px,80vw)}
+.vb-range{display:flex;align-items:center;gap:6px}
+.vb-range small{font-weight:400}
+.vb-range input{width:130px;accent-color:var(--fi)}
+.vb-note{margin:0;font-size:14px;color:var(--muted);background:var(--surface);border:1.5px dashed var(--line);border-radius:12px;padding:8px 12px}
+.vb-note strong{color:var(--ink)}
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:6px}
+nav button{font:700 16px/1.2 var(--f-body);border:0;background:transparent;color:var(--muted);padding:10px 6px;border-radius:11px;cursor:pointer}
+nav button[aria-selected="true"]{background:var(--slate);color:var(--slate-ink)}
+nav button small{display:block;font-weight:400;font-size:12px;opacity:.8}
+button:focus-visible{outline:3px solid var(--fi);outline-offset:2px}
+
+/* learn */
+.letters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.letters span{color:var(--muted);margin-inline-end:4px}
+.letters button{font:500 24px/1 var(--f-letter);width:44px;height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.letters button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.fam-legend{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;padding:3px 10px 3px 12px;border-radius:999px;background:var(--surface);border:1.5px solid var(--line)}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.card{position:relative;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:12px 12px 14px;cursor:pointer;text-align:center;display:flex;flex-direction:column;gap:4px;color:var(--ink);font:inherit;border-top:6px solid var(--c)}
+.card:hover{transform:translateY(-2px)}
+.card .syl{font:700 64px/1.35 var(--f-letter)}
+.card .nm{font:700 19px var(--f-letter)}
+.card .snd{font-size:14px;font-weight:700;color:var(--c)}
+.card .shape{font-size:13.5px;color:var(--muted);line-height:1.35}
+.card .ex{font:500 22px var(--f-letter);margin-top:4px}
+.card .ex mark{background:transparent;color:var(--c);font-weight:700}
+
+/* game */
+.panel{background:var(--surface);border:1.5px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.status{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.pips{display:flex;gap:6px}
+.pips b{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.pips b.ok{background:var(--good)} .pips b.no{background:var(--bad)} .pips b.now{outline:2px solid var(--ink);outline-offset:2px}
+.score{font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted)}
+.score strong{color:var(--ink)}
+.prompt{font:700 20px var(--f-body);margin:0;text-wrap:balance;text-align:center}
+.slate{background:var(--slate);color:var(--slate-ink);border-radius:16px;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px;position:relative}
+.slate .big{font:700 clamp(110px,30vw,170px)/1.25 var(--f-letter)}
+.slate .emoji{font-size:72px;line-height:1.1}
+.slate .word{font:700 clamp(56px,15vw,84px)/1.35 var(--f-letter);display:flex;align-items:baseline}
+.slot{display:inline-block;min-width:1.1em;text-align:center;border-bottom:4px dashed var(--fu);color:var(--fu)}
+.slot.filled{border-bottom-color:transparent}
+.say{position:absolute;inset-block-start:10px;inset-inline-start:10px;font:600 14px var(--f-body);background:transparent;color:var(--slate-ink);border:1.5px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 12px;cursor:pointer}
+.opts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.opt{font:700 26px/1.3 var(--f-letter);min-height:76px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;padding:8px;transition:transform .12s}
+.opt.syll{font-size:46px}
+.opt:hover:not(:disabled){border-color:var(--ink);transform:translateY(-2px)}
+.opt:disabled{cursor:default}
+.opt.right{background:var(--good);border-color:var(--good);color:#fff}
+.opt.wrong{background:var(--bad);border-color:var(--bad);color:#fff;animation:shake .35s}
+.opt.dim{opacity:.45}
+.feedback{min-height:52px;text-align:center;font-weight:600;margin:0;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.feedback .yes{color:var(--good);font-family:var(--f-display);font-size:22px;font-weight:400}
+.feedback .no{color:var(--bad);font-family:var(--f-display);font-size:22px;font-weight:400}
+.next{font:700 17px var(--f-body);background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:9px 22px;cursor:pointer}
+.end{text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;padding:20px 0}
+.end .stars{font-size:54px;letter-spacing:6px;color:var(--fu)}
+.end .stars .off{color:var(--line)}
+.end h2{font-family:var(--f-display);font-weight:400;font-size:34px;margin:0}
+.end p{margin:0;color:var(--muted)}
+@keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+@keyframes pop{0%{transform:scale(.9)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+.pop{animation:pop .3s}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}.card:hover,.opt:hover:not(:disabled){transform:none}}
+@media (max-width:520px){nav button{font-size:14px;padding:8px 2px} nav button small{display:none} .opt.syll{font-size:38px}}
+</style>
+
+<div class="wrap" dir="rtl" lang="he">
+  <header>
+    <div>
+      <h1>נקודה טובה<span class="dot">.</span></h1>
+      <p class="tag">לומדים לקרוא עם ניקוד: מכירים את הסימנים, שומעים את הצלילים ומשחקים.</p>
+    </div>
+    <div class="tools">
+      <button class="icon-btn" id="soundBtn" aria-pressed="true" type="button">צלילים: פועל</button>
+    </div>
+  </header>
+
+  <div class="voicebar" id="voicebar"></div>
+
+  <nav role="tablist" aria-label="מצבי משחק">
+    <button role="tab" id="tab-learn" data-mode="learn" aria-selected="true" type="button">לומדים<small>כל סימני הניקוד</small></button>
+    <button role="tab" id="tab-names" data-mode="names" aria-selected="false" type="button">איך קוראים לי?<small>שם הניקוד</small></button>
+    <button role="tab" id="tab-same" data-mode="same" aria-selected="false" type="button">אותו צליל<small>מי נשמע אותו דבר</small></button>
+    <button role="tab" id="tab-pics" data-mode="pics" aria-selected="false" type="button">מה חסר?<small>מילה ותמונה</small></button>
+  </nav>
+
+  <main id="view"></main>
+</div>
+
+<script>
+(function(){
+const DG='ּ', SD='ׁ', VAV='ו';
+const N = {
+  kamatz:    {name:'קָמָץ',        mark:'ָ', fam:'a', shape:'קו קטן ומתחתיו נקודה', ex:'יָד'},
+  patach:    {name:'פַּתָח',        mark:'ַ', fam:'a', shape:'קו קטן מתחת לאות', ex:'בַּיִת'},
+  tzere:     {name:'צֵירֵי',        mark:'ֵ', fam:'e', shape:'שתי נקודות זו ליד זו', ex:'עֵץ'},
+  segol:     {name:'סֶגּוֹל',        mark:'ֶ', fam:'e', shape:'שלוש נקודות במשולש', ex:'כֶּלֶב'},
+  chirik:    {name:'חִירִיק',       mark:'ִ', fam:'i', shape:'נקודה אחת מתחת לאות', ex:'פִּיל'},
+  chirikMale:{name:'חִירִיק מָלֵא', mark:'ִ', fam:'i', shape:'חיריק ואחריו האות י', ex:'תִּיק'},
+  cholam:    {name:'חוֹלָם',        mark:'ֹ', fam:'o', shape:'נקודה מעל האות, בצד שמאל', ex:'דֹּב'},
+  cholamMale:{name:'חוֹלָם מָלֵא',  mark:'ֹ', fam:'o', shape:'ו עם נקודה מעליה', ex:'קוֹף'},
+  kubutz:    {name:'קֻבּוּץ',        mark:'ֻ', fam:'u', shape:'שלוש נקודות באלכסון', ex:'שֻׁלְחָן'},
+  shuruk:    {name:'שׁוּרוּק',       mark:DG,       fam:'u', shape:'ו עם נקודה באמצע', ex:'סוּס'},
+  shva:      {name:'שְׁוָא',         mark:'ְ', fam:'s', shape:'שתי נקודות זו מעל זו', ex:'גְּלִידָה'}
+};
+const ORDER=['kamatz','patach','tzere','segol','chirik','chirikMale','cholam','cholamMale','kubutz','shuruk','shva'];
+const FAM = {
+  a:{sound:'אַ', label:'צליל אַ', c:'var(--fa)', forms:['kamatz','patach'], canon:'kamatz'},
+  e:{sound:'אֶ', label:'צליל אֶ', c:'var(--fe)', forms:['tzere','segol'], canon:'tzere'},
+  i:{sound:'אִי', label:'צליל אִי', c:'var(--fi)', forms:['chirik','chirikMale'], canon:'chirik'},
+  o:{sound:'אוֹ', label:'צליל אוֹ', c:'var(--fo)', forms:['cholam','cholamMale'], canon:'cholamMale'},
+  u:{sound:'אוּ', label:'צליל אוּ', c:'var(--fu)', forms:['kubutz','shuruk'], canon:'shuruk'},
+  s:{sound:'שקט / קצר', label:'בלי תנועה', c:'var(--fs)', forms:['shva'], canon:'shva'}
+};
+// letters used in the games (no ו / ש to keep dots unambiguous)
+const POOL=['ב'+DG,'ג','ד','ה','ז','ח','ט','י','כ'+DG,'ל','מ','נ','ס','פ'+DG,'ק','ר','ת'];
+const LEARN_LETTERS=['ב'+DG,'מ','ל','ס','ר','נ','ד'+DG,'ת'+DG,'ק','ג'+DG];
+// example word per letter + nikud; [brackets] mark the syllable that matches the card
+const EX={
+ 'ב':{kamatz:'[בָּ]נָנָה',patach:'[בַּ]יִת',tzere:'[בֵּ]יצָה',segol:'[בֶּ]גֶד',chirik:'[בִּ]יס',chirikMale:'[בִּי]מָה',cholam:'[בֹּ]קֶר',cholamMale:'[בּוֹ]ר',kubutz:'[בֻּ]בָּה',shuruk:'[בּוּ]ל',shva:'[בְּ]רֵכָה'},
+ 'מ':{kamatz:'[מָ]רָק',patach:'[מַ]יִם',tzere:'[מֵ]אָה',segol:'[מֶ]לֶךְ',chirik:'[מִ]כְתָּב',chirikMale:'[מִי]טָה',cholam:'[מֹ]חַ',cholamMale:'[מוֹ]רָה',kubutz:'[מֻ]סָּךְ',shuruk:'[מוּ]סִיקָה',shva:'[מְ]כוֹנִית'},
+ 'ל':{kamatz:'[לָ]בָן',patach:'[לַ]יְלָה',tzere:'[לֵ]ב',segol:'[לֶ]חֶם',chirik:'[לִ]מּוּד',chirikMale:'[לִי]מוֹן',cholam:'[לֹ]א',cholamMale:'[לוֹ]וְיָתָן',kubutz:'מְ[לֻ]כְלָךְ',shuruk:'[לוּ]חַ',shva:'[לְ]בָנָה'},
+ 'ס':{kamatz:'[סָ]בָא',patach:'[סַ]בְתָּא',tzere:'[סֵ]פֶר',segol:'[סֶ]רֶט',chirik:'[סִ]פּוּר',chirikMale:'[סִי]רָה',cholam:'[סֹ]לֶת',cholamMale:'[סוֹ]ף',kubutz:'[סֻ]כָּרִיָּה',shuruk:'[סוּ]ס',shva:'[סְ]פוֹג'},
+ 'ר':{kamatz:'[רָ]חוֹק',patach:'[רַ]כֶּבֶת',tzere:'[רֵ]יחַ',segol:'[רֶ]גֶל',chirik:'[רִ]מּוֹן',chirikMale:'[רִי]בָּה',cholam:'[רֹ]אשׁ',cholamMale:'[רוֹ]פֵא',kubutz:'מְ[רֻ]בָּע',shuruk:'[רוּ]חַ',shva:'[רְ]חוֹב'},
+ 'נ':{kamatz:'[נָ]מֵר',patach:'[נַ]עַל',tzere:'[נֵ]ר',segol:'[נֶ]שֶׁר',chirik:'[נִ]קּוּד',chirikMale:'[נִי]צָן',cholam:'[נֹ]חַ',cholamMale:'[נוֹ]צָה',kubutz:'מְ[נֻ]קָּד',shuruk:'תְּ[נוּ]עָה',shva:'[נְ]מָלָה'},
+ 'ד':{kamatz:'[דָּ]ג',patach:'[דַּ]ף',tzere:'[דֵּ]שֶׁא',segol:'[דֶּ]לֶת',chirik:'[דִּ]בּוּר',chirikMale:'[דִּי]נוֹזָאוּר',cholam:'[דֹּ]ב',cholamMale:'[דּוֹ]ד',kubutz:'[דֻּ]בִּי',shuruk:'[דּוּ]כִיפַת',shva:'[דְּ]בוֹרָה'},
+ 'ת':{kamatz:'[תָּ]מָר',patach:'[תַּ]פּוּחַ',tzere:'[תֵּ]ה',segol:'[תֶּ]רֶד',chirik:'[תִּ]נּוֹק',chirikMale:'[תִּי]ק',cholam:'[תֹּ]ף',cholamMale:'[תּוֹ]לַעַת',kubutz:'[תֻּ]כִּי',shuruk:'[תּוּ]ת',shva:'[תְּ]מוּנָה'},
+ 'ק':{kamatz:'[קָ]פֶה',patach:'[קַ]יִץ',tzere:'[קֵ]ן',segol:'[קֶ]שֶׁת',chirik:'[קִ]פּוֹד',chirikMale:'[קִי]ר',cholam:'[קֹ]ר',cholamMale:'[קוֹ]ף',kubutz:'[קֻ]פְסָה',shuruk:'[קוּ]מְקוּם',shva:'[קְ]עָרָה'},
+ 'ג':{kamatz:'[גָּ]מָל',patach:'[גַּ]ן',tzere:'[גֵּ]אוּת',segol:'[גֶּ]זֶר',chirik:'[גִּ]בּוֹר',chirikMale:'[גִּי]טָרָה',cholam:'[גֹּ]דֶל',cholamMale:'[גּוֹ]זָל',kubutz:'[גֻּ]מִּי',shuruk:'[גּוּ]ף',shva:'[גְּ]לִידָה'}
+};
+function exFor(letter,k){return (EX[letter[0]]&&EX[letter[0]][k])||N[k].ex}
+const plainEx=s=>s.replace(/[\[\]]/g,'');
+const htmlEx=s=>s.replace(/\[(.+?)\]/,'<mark>$1</mark>');
+
+function form(letter,key){
+  if(key==='shuruk') return letter+VAV+DG;
+  if(key==='cholamMale') return letter+VAV+'ֹ';
+  if(key==='chirikMale') return letter+'ִ'+'י';
+  return letter+N[key].mark;
+}
+// Spanish spelling of each consonant before "e" (ג → "gu" so it stays a hard g; ז and ש have no clean Spanish match)
+const E_LATIN={'ב':'b','ג':'gu','ד':'d','ה':'','ח':'j','ט':'t','י':'y','כ':'k','ל':'l','מ':'m','נ':'n','ס':'s','פ':'p','ק':'k','ר':'r','ת':'t','א':'','ע':'','צ':'ts'};
+let esVoice=null;
+// a syllable written so speech engines say the sound ("בָּה") instead of the letter name
+function sayable(letter,key){
+  const f=N[key].fam;
+  if(f==='a') return letter+N[key].mark+'ה';
+  if(f==='e'){
+    // Hebrew engines ignore the nikud in "בֵּה" and read the common word "בָּה".
+    // A Spanish voice says the pure vowel "e" exactly like Hebrew, so use it for this sound.
+    const c=E_LATIN[letter[0]];
+    if(esVoice&&c!==undefined) return {t:c+'e',v:esVoice};
+    return letter+'ֶ'+'ה';
+  }
+  if(f==='i') return letter+'ִ'+'י';
+  if(f==='o') return letter+VAV+'ֹ';
+  if(f==='u') return letter+VAV+DG;
+  return null;
+}
+// picture words: [emoji, first letter, vowel key, rest of word, plain word]
+const WORDS=[
+ ['🐟','ד'+DG,'kamatz','ג','דג'], ['🏠','ב'+DG,'patach','יִת','בית'], ['🐴','ס','shuruk','ס','סוס'],
+ ['🐘','פ'+DG,'chirik','יל','פיל'], ['☀️','ש'+SD,'segol','מֶשׁ','שמש'], ['🐻','ד'+DG,'cholam','ב','דוב'],
+ ['🐱','ח','kamatz','תוּל','חתול'], ['🐶','כ'+DG,'segol','לֶב','כלב'], ['🍓','ת'+DG,'shuruk','ת','תות'],
+ ['🌳','ע','tzere','ץ','עץ'], ['🐒','ק','cholamMale','ף','קוף'], ['📖','ס','tzere','פֶר','ספר'],
+ ['🎩','כ'+DG,'cholamMale','בַע','כובע'], ['🐦','צ','chirik','פּוֹר','ציפור'], ['🦊','ש'+SD,'shuruk','עָל','שועל'],
+ ['✋','י','kamatz','ד','יד'], ['🦵','ר','segol','גֶל','רגל'], ['🎒','ת'+DG,'chirik','יק','תיק'],
+ ['🌙','י','kamatz','רֵחַ','ירח'], ['🍎','ת'+DG,'patach','פּוּחַ','תפוח'], ['🌹','ו','segol','רֶד','ורד']
+];
+
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const store={get(k,d){try{const v=localStorage.getItem('nikud-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('nikud-'+k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- sound ---------- */
+let sfx=store.get('sfx',true), actx=null, heVoice=null;
+const soundBtn=document.getElementById('soundBtn');
+function paintSound(){soundBtn.setAttribute('aria-pressed',String(sfx));soundBtn.textContent='צלילים: '+(sfx?'פועל':'כבוי')}
+paintSound();
+soundBtn.onclick=()=>{sfx=!sfx;store.set('sfx',sfx);paintSound()};
+function tone(ok){
+  if(!sfx) return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const notes=ok?[660,880]:[300,220];
+    notes.forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type=ok?'triangle':'sine';o.frequency.value=f;
+      const t=actx.currentTime+i*0.11;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.18,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
+      o.connect(g).connect(actx.destination);o.start(t);o.stop(t+0.22)});
+  }catch(e){}
+}
+let voices=[], voicePref=store.get('voice',''), rate=store.get('rate',0.7);
+// prefer natural / enhanced voices over the basic robotic ones
+function scoreVoice(v){const n=v.name||'';let s=0;
+  if(/natural|neural/i.test(n))s+=60; if(/premium|enhanced|משופר|פרימיום/i.test(n))s+=50; if(/online/i.test(n))s+=20;
+  if(/google/i.test(n))s+=15; if(/carmit|כרמית|hila|avri/i.test(n))s+=10; if(/compact|eloquence/i.test(n))s-=30; return s}
+function findVoice(){
+  try{voices=speechSynthesis.getVoices().filter(x=>/^(he|iw)/i.test(x.lang)).sort((a,b)=>scoreVoice(b)-scoreVoice(a));
+      heVoice=voices.find(v=>v.voiceURI===voicePref)||voices[0]||null;
+      const es=speechSynthesis.getVoices().filter(x=>/^es/i.test(x.lang)).sort((a,b)=>scoreVoice(b)-scoreVoice(a));
+      esVoice=es.find(x=>/es[-_]ES/i.test(x.lang))||es[0]||null;
+  }catch(e){voices=[];heVoice=null;esVoice=null}
+  renderVoiceBar();
+}
+const voiceBar=document.getElementById('voicebar');
+function renderVoiceBar(){
+  if(!voices.length){
+    voiceBar.innerHTML=`<p class="vb-note"><strong>אין במכשיר הזה קול בעברית.</strong> באייפד או אייפון: הגדרות › נגישות › תוכן מוקרא › קולות › עברית, והורידו את הקול "כרמית" בגרסה המשופרת. אחר כך טענו את הדף מחדש.</p>`;
+    return;
+  }
+  const opts=voices.map(v=>`<option value="${v.voiceURI.replace(/"/g,'&quot;')}"${v===heVoice?' selected':''}>${v.name}</option>`).join('');
+  voiceBar.innerHTML=`<label class="vb-field" for="voiceSel">קול<select id="voiceSel">${opts}</select></label>
+    <label class="vb-field" for="rateIn">מהירות<span class="vb-range"><small>איטי</small><input id="rateIn" type="range" min="0.4" max="1.1" step="0.05" value="${rate}"><small>מהיר</small></span></label>
+    <button type="button" class="icon-btn" id="voiceTest">נסו את הקול</button>`;
+  document.getElementById('voiceSel').onchange=e=>{voicePref=e.target.value;store.set('voice',voicePref);heVoice=voices.find(v=>v.voiceURI===voicePref)||voices[0];speak('שָׁלוֹם',sayable('ב'+DG,'kamatz'),sayable('ב'+DG,'tzere'),sayable('ב'+DG,'chirik'))};
+  document.getElementById('rateIn').onchange=e=>{rate=+e.target.value;store.set('rate',rate);speak(...['kamatz','tzere','chirik','cholamMale','shuruk'].map(k=>sayable('ב'+DG,k)))};
+  document.getElementById('voiceTest').onclick=()=>speak('שָׁלוֹם! בּוֹאוּ נִלְמַד נִקּוּד.');
+}
+function speak(...parts){
+  parts=parts.filter(Boolean);
+  if(!heVoice||!sfx||!parts.length)return;
+  try{speechSynthesis.cancel();
+    setTimeout(()=>parts.forEach(p=>{const t=typeof p==='string'?p:p.t, v=typeof p==='string'?heVoice:p.v;
+      const u=new SpeechSynthesisUtterance(t);u.voice=v;u.lang=v.lang;u.rate=rate;u.pitch=1.05;speechSynthesis.speak(u)}),80);
+  }catch(e){}
+}
+try{findVoice();speechSynthesis.onvoiceschanged=()=>{findVoice();if(mode==='learn')renderLearn();else renderQuestion();}}catch(e){renderVoiceBar()}
+
+/* ---------- views ---------- */
+const view=document.getElementById('view');
+let mode='learn', learnLetter=store.get('letter','ב'+DG);
+if(!LEARN_LETTERS.includes(learnLetter)) learnLetter='ב'+DG;
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.mode===m)));
+  if(m==='learn') renderLearn(); else startRound();
+}
+
+function renderLearn(){
+  const legend=['a','e','i','o','u','s'].map(f=>`<span class="chip" style="--c:${FAM[f].c}"><i></i>${FAM[f].label}</span>`).join('');
+  const letters=LEARN_LETTERS.map(l=>`<button type="button" aria-pressed="${l===learnLetter}" data-l="${l}">${l}</button>`).join('');
+  const cards=ORDER.map(k=>{const n=N[k],f=FAM[n.fam];
+    return `<button type="button" class="card" style="--c:${f.c}" data-k="${k}">
+      <span class="syl">${form(learnLetter,k)}</span>
+      <span class="nm">${n.name}</span>
+      <span class="snd">${n.fam==='s'?'שְׁוָא: צליל קצר או שקט':'נשמע: '+f.sound}</span>
+      <span class="shape">${n.shape}</span>
+      <span class="ex">${htmlEx(exFor(learnLetter,k))}</span></button>`}).join('');
+  view.innerHTML=`<section class="panel">
+    <div class="letters"><span>בחרו אות:</span>${letters}</div>
+    <div class="fam-legend">${legend}</div>
+    <p class="tag" style="margin:0">כל צבע הוא צליל אחד. ניקוד באותו צבע נשמע אותו דבר.${heVoice?' לחצו על כרטיס כדי לשמוע.':''}</p>
+    <div class="grid">${cards}</div></section>`;
+  view.querySelectorAll('.letters button').forEach(b=>b.onclick=()=>{learnLetter=b.dataset.l;store.set('letter',learnLetter);renderLearn()});
+  view.querySelectorAll('.card').forEach(c=>c.onclick=()=>{const k=c.dataset.k;c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');speak(sayable(learnLetter,k),plainEx(exFor(learnLetter,k)))});
+}
+
+/* ---------- question makers ---------- */
+function qNames(){
+  const key=rnd(ORDER), letter=rnd(POOL);
+  const others=shuffle(ORDER.filter(k=>k!==key)).slice(0,3);
+  return {
+    prompt:'איך קוראים לניקוד הזה?',
+    big:form(letter,key), speakText:sayable(letter,key), optClass:'',
+    options:shuffle([key,...others]).map(k=>({label:N[k].name,ok:k===key})),
+    explain:`זה ${N[key].name}: ${N[key].shape}.`
+  };
+}
+function qSame(){
+  const fam=rnd(['a','e','i','o','u']), F=FAM[fam];
+  const [t,c]=shuffle(F.forms), letter=rnd(POOL);
+  const otherFams=shuffle(['a','e','i','o','u'].filter(x=>x!==fam)).slice(0,3);
+  const opts=[{label:form(letter,c),ok:true},...otherFams.map(x=>({label:form(letter,rnd(FAM[x].forms)),ok:false}))];
+  return {
+    prompt:'איזו הברה נשמעת בדיוק כמו ההברה על הלוח?',
+    big:form(letter,t), speakText:sayable(letter,t), optClass:'syll',
+    options:shuffle(opts),
+    explain:`${N[t].name} ו${N[c].name} נשמעים אותו דבר: ${F.sound}`
+  };
+}
+let wordBag=[];
+function qPics(){
+  if(!wordBag.length) wordBag=shuffle(WORDS);
+  const [emoji,letter,key,rest,plain]=wordBag.pop(), fam=N[key].fam;
+  const otherFams=shuffle(['a','e','i','o','u'].filter(x=>x!==fam)).slice(0,3);
+  const correct=form(letter,key);
+  const opts=[{label:correct,ok:true},...otherFams.map(x=>({label:form(letter,FAM[x].canon),ok:false}))];
+  return {
+    prompt:'מה התמונה? בחרו את ההברה שחסרה בתחילת המילה.',
+    pic:{emoji,rest,correct}, speakText:correct+rest, optClass:'syll',
+    options:shuffle(opts),
+    explain:`${plain} מתחילה ב${correct}, עם ${N[key].name}.`
+  };
+}
+const MAKERS={names:qNames,same:qSame,pics:qPics};
+const ROUND=10;
+let round=null;
+
+function startRound(){
+  round={i:0,score:0,res:[],q:null};
+  nextQ();
+}
+function nextQ(){
+  if(round.i>=ROUND) return renderEnd();
+  round.q=MAKERS[mode](); round.answered=false;
+  renderQuestion();
+}
+function renderQuestion(){
+  if(!round||!round.q) return;
+  const q=round.q;
+  const pips=Array.from({length:ROUND},(_,i)=>`<b class="${round.res[i]===true?'ok':round.res[i]===false?'no':i===round.i?'now':''}"></b>`).join('');
+  const board=q.pic
+    ? `<div class="emoji" aria-hidden="true">${q.pic.emoji}</div><div class="word"><span class="slot${round.answered?' filled':''}">${round.answered?q.pic.correct:'?'}</span><span>${q.pic.rest}</span></div>`
+    : `<div class="big">${q.big}</div>`;
+  view.innerHTML=`<section class="panel">
+    <div class="status"><div class="pips" aria-label="שאלה ${round.i+1} מתוך ${ROUND}">${pips}</div>
+      <div class="score">נקודות: <strong>${round.score}</strong> · שיא: <strong>${store.get('best-'+mode,0)}</strong></div></div>
+    <p class="prompt">${q.prompt}</p>
+    <div class="slate">${heVoice&&!q.pic?'<button type="button" class="say" id="say">השמעה</button>':''}${board}</div>
+    <div class="opts">${q.options.map((o,i)=>`<button type="button" class="opt ${q.optClass}" data-i="${i}">${o.label}</button>`).join('')}</div>
+    <p class="feedback" id="fb" aria-live="polite"></p></section>`;
+  const say=document.getElementById('say'); if(say) say.onclick=()=>speak(q.speakText);
+  view.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answer(+b.dataset.i));
+}
+function answer(i){
+  if(round.answered) return;
+  round.answered=true;
+  const q=round.q, ok=q.options[i].ok;
+  round.res[round.i]=ok; if(ok) round.score++;
+  tone(ok);
+  if(q.pic){const s=view.querySelector('.slot');s.textContent=q.pic.correct;s.classList.add('filled','pop')}
+  view.querySelectorAll('.opt').forEach((b,j)=>{b.disabled=true;
+    if(q.options[j].ok) b.classList.add('right'); else if(j===i) b.classList.add('wrong'); else b.classList.add('dim')});
+  const pip=view.querySelectorAll('.pips b')[round.i]; pip.className=ok?'ok':'no';
+  view.querySelector('.score strong').textContent=round.score;
+  const fb=document.getElementById('fb');
+  fb.innerHTML=`<span class="${ok?'yes':'no'}">${ok?rnd(['כל הכבוד!','מצוין!','יופי!','נכון!']):'כמעט!'}</span><span>${q.explain}</span><button type="button" class="next" id="nx">${round.i+1>=ROUND?'לתוצאות':'הבא'}</button>`;
+  if(ok) speak(q.speakText);
+  const nx=document.getElementById('nx'); nx.focus({preventScroll:true});
+  nx.onclick=()=>{round.i++;nextQ()};
+}
+function renderEnd(){
+  const s=round.score, stars=s>=9?3:s>=7?2:s>=4?1:0;
+  const best=store.get('best-'+mode,0); const isBest=s>best; if(isBest) store.set('best-'+mode,s);
+  const msg=stars===3?'אלופים של ניקוד!':stars===2?'עבודה טובה מאוד!':stars===1?'יפה! עוד סיבוב ותשתפרו.':'כדאי לחזור רגע ללשונית "לומדים" ולנסות שוב.';
+  view.innerHTML=`<section class="panel"><div class="end">
+    <div class="stars" aria-label="${stars} כוכבים">${[0,1,2].map(i=>`<span class="${i<stars?'':'off'}">★</span>`).join('')}</div>
+    <h2>${s} מתוך ${ROUND}</h2><p>${msg}${isBest?' שיא חדש!':''}</p>
+    <button type="button" class="next" id="again">עוד סיבוב</button></div></section>`;
+  document.getElementById('again').onclick=startRound;
+  document.getElementById('again').focus({preventScroll:true});
+}
+
+renderLearn();
+})();
+</script>
+
+<!-- סנכרון בין מכשירים (משותף לכל הפרויקטים) -->
+<script src="../firebase-config.js"></script>
+<script src="../ls-sync.js" data-app="good-point" data-prefix="nikud-"></script>
+<script type="module" src="../sync.js"></script>
+</body></html>

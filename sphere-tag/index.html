@@ -1,0 +1,379 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>תופסת כדור</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-screen WebGL canvas; console-style controls pinned to the two bottom corners; status strip on top. Single committed dark look (arcade). */
+:root{
+  --bg:#0a0f1e; --fg:#f3efe4; --muted:#a9b0c4;
+  --accent:#ffb347; --danger:#ff5a6a; --safe:#5fd68f;
+  --btn:rgba(255,255,255,.13); --btn-edge:rgba(255,255,255,.28); --btn-on:rgba(255,179,71,.55);
+  --panel:rgba(8,12,26,.72);
+  --font:"Rubik",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;direction:rtl}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block}
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;gap:10px;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none;font-variant-numeric:tabular-nums}
+.chip{background:var(--panel);border:1px solid var(--btn-edge);border-radius:999px;padding:6px 14px;font-size:15px;font-weight:500;backdrop-filter:blur(6px)}
+.chip.role{font-weight:700}
+.chip.role.chaser{color:var(--danger)}
+.chip.role.runner{color:var(--safe)}
+.chip.immune{color:var(--accent)}
+.pad{direction:ltr;position:absolute;bottom:0;display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(3,64px);gap:6px;padding-bottom:max(18px,env(safe-area-inset-bottom,0px))}
+#padL{left:0;padding-left:max(16px,env(safe-area-inset-left,0px))}
+.k{background:var(--btn);border:1px solid var(--btn-edge);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--fg);backdrop-filter:blur(6px);touch-action:none}
+.k.on{background:var(--btn-on);border-color:var(--accent)}
+.k:focus-visible{outline:2px solid var(--accent)}
+#up{grid-area:1/2}#left{grid-area:2/1}#right{grid-area:2/3}#down{grid-area:3/2}
+#padR{position:absolute;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:max(18px,env(safe-area-inset-bottom,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#cam{width:120px;height:44px;border-radius:12px;font-size:15px;font-weight:500}
+#sprint{width:120px;height:120px;border-radius:50%;font-size:19px;font-weight:700;flex-direction:column;gap:4px}
+#stam{width:92px;height:6px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
+#stam i{display:block;height:100%;width:100%;background:var(--accent);transform-origin:right}
+#hint{position:absolute;left:50%;transform:translateX(-50%);bottom:max(22px,env(safe-area-inset-bottom,0px));font-size:14px;color:var(--muted);pointer-events:none;white-space:nowrap}
+#msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:clamp(28px,6vw,54px);font-weight:700;text-shadow:0 2px 18px rgba(0,0,0,.8);opacity:0;transition:opacity .25s}
+#msg.show{opacity:1}
+#start{position:absolute;inset:0;background:rgba(6,9,20,.86);display:flex;align-items:center;justify-content:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#start .box{max-width:30rem;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+#start h1{margin:0;font-size:clamp(30px,7vw,48px);letter-spacing:-.01em;text-wrap:balance}
+#start p{margin:0;color:var(--muted);line-height:1.55;font-size:16px;text-wrap:balance}
+#start button{font:inherit;font-weight:700;font-size:20px;background:var(--accent);color:#1a1200;border:0;border-radius:14px;padding:14px 40px;cursor:pointer}
+#start button.alt{background:var(--btn);color:var(--fg);border:1px solid var(--btn-edge)}
+#start small{color:var(--muted);font-size:13px}
+@media (max-width:520px){.pad{grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px)}.k{font-size:22px}#sprint{width:96px;height:96px;font-size:16px}#cam{width:96px}}
+@media (prefers-reduced-motion:reduce){#msg{transition:none}}
+</style>
+
+<canvas id="c"></canvas>
+<div id="hud">
+  <span class="chip role runner" id="role">אתה בורח</span>
+  <span class="chip" id="timer">0.0 ש׳</span>
+  <span class="chip" id="score">תפיסות 0</span>
+</div>
+<div id="padL" class="pad">
+  <button class="k" id="up" data-k="fwd">▲</button>
+  <button class="k" id="left" data-k="left">◀</button>
+  <button class="k" id="right" data-k="right">▶</button>
+  <button class="k" id="down" data-k="back">▼</button>
+</div>
+<div id="padR">
+  <button class="k" id="cam">מצלמה</button>
+  <button class="k" id="sprint" data-k="sprint"><span>ריצה</span><span id="stam"><i></i></span></button>
+</div>
+<div id="hint" class="chip" hidden></div>
+<div id="msg"></div>
+<div id="start">
+  <div class="box">
+    <h1>תופסת כדור</h1>
+    <p>רוץ על פני כוכב קטן. הפתחים הכהים מובילים למחילות, ושם רואים רק כמה צעדים קדימה.</p><p><b>חיפוש אבנים</b>: להתרגל לתנועה. מצא את כל אבני האור, חלקן על פני השטח וחלקן במחילות. חץ בחלק העליון מראה את הכיוון לקרובה.<br><b>תופסת</b>: מי שנתפס הופך לרודף. אתה מתחיל כבורח.</p>
+    <p>שמאל: תנועה. במחילות המבט נעול לאורך המחילה, ובצומת ◀ ▶ בוחרים פתח (הטבעת הכתומה) ו-▲ נכנסים. ימין: ריצה מהירה והחלפת מצלמה. במקלדת: חצים, Shift, C.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="goFind">חיפוש אבנים</button><button id="goTag" class="alt">תופסת</button></div>
+    <small>מומלץ לסובב את המכשיר לרוחב</small>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const V3=THREE.Vector3;
+const R=22;
+let seed=7; function rnd(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}
+
+// ---------- renderer / scene ----------
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+const SKY=new THREE.Color(0x8fc2ee), DARK=new THREE.Color(0x050406);
+scene.background=SKY.clone();
+scene.fog=new THREE.FogExp2(SKY.clone().getHex(),0.006);
+const camera=new THREE.PerspectiveCamera(70,1,0.1,400);
+const sun=new THREE.DirectionalLight(0xfff2d8,1.2); sun.position.set(60,80,40); scene.add(sun);
+const amb=new THREE.HemisphereLight(0xcfe6ff,0x3a4a2a,0.7); scene.add(amb);
+const headlamp=new THREE.PointLight(0xffd9a8,0,26,1.6); camera.add(headlamp); scene.add(camera);
+
+// ---------- planet ----------
+function height(v){return 0.35*Math.sin(v.x*0.55+1.2)*Math.sin(v.y*0.7)*Math.sin(v.z*0.62+0.4)+0.22*Math.sin(v.x*1.3)*Math.cos(v.z*1.1);}
+{
+  const g=new THREE.SphereGeometry(R,72,48);
+  const pos=g.attributes.position, col=[]; const v=new V3(), c=new THREE.Color();
+  const g1=new THREE.Color(0x5aa75c), g2=new THREE.Color(0x8c7a46), g3=new THREE.Color(0x3f8a4a);
+  for(let i=0;i<pos.count;i++){
+    v.fromBufferAttribute(pos,i); const h=height(v); const k=(h+0.57)/1.14;
+    v.multiplyScalar((R+h)/R); pos.setXYZ(i,v.x,v.y,v.z);
+    c.copy(k>0.65?g2:g1).lerp(g3,rnd()*0.35); col.push(c.r,c.g,c.b);
+  }
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.computeVertexNormals();
+  scene.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,flatShading:true,roughness:1})));
+}
+function randDir(){const z=rnd()*2-1,a=rnd()*Math.PI*2,r=Math.sqrt(1-z*z);return new V3(Math.cos(a)*r,Math.sin(a)*r,z);}
+const Y=new V3(0,1,0), Z=new V3(0,0,1);
+// landmarks: trees and rocks, so the surface has orientation cues
+{
+  const trunkM=new THREE.MeshStandardMaterial({color:0x6b4a2e}), leafM=new THREE.MeshStandardMaterial({color:0x2f7a3a,flatShading:true}), rockM=new THREE.MeshStandardMaterial({color:0x8a8f99,flatShading:true});
+  for(let i=0;i<46;i++){
+    const u=randDir(); const g=new THREE.Group(); const h=height(u.clone().multiplyScalar(R));
+    if(rnd()<0.6){const s=1.4+rnd()*1.6;const t=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.25,1,6),trunkM);t.position.y=0.5;const l=new THREE.Mesh(new THREE.ConeGeometry(0.8+rnd()*0.4,s,7),leafM);l.position.y=1+s/2;g.add(t,l);}
+    else{const k=new THREE.Mesh(new THREE.IcosahedronGeometry(0.6+rnd()*0.9,0),rockM);k.position.y=0.3;k.rotation.set(rnd()*3,rnd()*3,0);g.add(k);}
+    g.position.copy(u).multiplyScalar(R+h-0.1); g.quaternion.setFromUnitVectors(Y,u); scene.add(g);
+  }
+}
+
+// ---------- tunnel graph ----------
+const nodes=[], edges=[], holes=[];
+// two straight tunnels through the planet: top-to-bottom and left-to-right, meeting in a room at the center
+function edgeUp(dir){return Math.abs(dir.z)>0.9?new V3(1,0,0):new V3(0,0,1);}
+[[0,1,0],[0,-1,0],[1,0,0],[-1,0,0]].forEach(a=>{const u=new V3(...a);const n={id:nodes.length,u,p:u.clone().multiplyScalar(R+0.3),hole:true,adj:[]};nodes.push(n);holes.push(n);});
+const center={id:nodes.length,u:null,p:new V3(0,0,0),hole:false,adj:[]};nodes.push(center);
+function addEdge(a,b){if(a===b||a.adj.some(e=>e.a===b||e.b===b))return;const dir=b.p.clone().sub(a.p);const len=dir.length();dir.normalize();const e={a,b,dir,len,up:edgeUp(dir)};edges.push(e);a.adj.push(e);b.adj.push(e);}
+holes.forEach(h=>addEdge(h,center));
+nodes.forEach(n=>{n.up=n.adj[0].up;});
+const inner=nodes.filter(n=>!n.hole);
+// path search; hole nodes are endpoints only (reaching one means climbing out)
+function bfs(from,to){const prev=new Map([[from,null]]);const q=[from];while(q.length){const x=q.shift();if(x===to)break;if(x.hole&&x!==from)continue;x.adj.forEach(e=>{const o=e.a===x?e.b:e.a;if(!prev.has(o)){prev.set(o,x);q.push(o);}});}if(!prev.has(to))return null;const path=[];for(let n=to;n;n=prev.get(n))path.unshift(n);return path;}
+function distMap(from){const d=new Map([[from,0]]);const q=[from];while(q.length){const x=q.shift();if(x.hole&&x!==from)continue;x.adj.forEach(e=>{const o=e.a===x?e.b:e.a;if(!d.has(o)){d.set(o,d.get(x)+1);q.push(o);}});}return d;}
+
+// tunnel meshes
+{
+  const rockM=new THREE.MeshStandardMaterial({vertexColors:true,flatShading:true,side:THREE.BackSide,roughness:1});
+  function tinted(g,base,spread){const n=g.attributes.position.count,col=[],c=new THREE.Color();for(let i=0;i<n;i++){c.copy(base).offsetHSL(0,0,(rnd()-0.5)*spread);col.push(c.r,c.g,c.b);}g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));return g;}
+  const brown=new THREE.Color(0x6a4a30);
+  const ROOM=3.4;
+  // round room at the center; its wall is carved open where each tunnel meets it
+  {
+    const rg=tinted(new THREE.SphereGeometry(ROOM,28,20),brown,0.3);
+    const rm=new THREE.MeshStandardMaterial({vertexColors:true,flatShading:true,side:THREE.BackSide,roughness:1});
+    rm.onBeforeCompile=sh=>{
+      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWp;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvWp=(modelMatrix*vec4(position,1.0)).xyz;');
+      sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vWp;').replace('void main() {','void main() {\n if(length(vWp.xz)<1.6||length(vWp.yz)<1.6) discard;');
+    };
+    const room=new THREE.Mesh(rg,rm);scene.add(room);
+    const fl=new THREE.Mesh(new THREE.CircleGeometry(Math.sqrt(ROOM*ROOM-1.42*1.42)-0.05,28),new THREE.MeshStandardMaterial({color:0xb09a78,flatShading:true}));fl.position.z=-1.42;scene.add(fl);
+  }
+  const ribM=new THREE.MeshStandardMaterial({color:0x9a7a55,flatShading:true}), mouthM=new THREE.MeshBasicMaterial({color:0xffb347}), lampM=new THREE.MeshBasicMaterial({color:0xffe4b0});
+  edges.forEach(e=>{
+    const L=e.len-ROOM;const g=tinted(new THREE.CylinderGeometry(1.6,1.6,L+1.3,16,Math.max(4,Math.round(L/1.2)),true),brown,0.34);const m=new THREE.Mesh(g,rockM);m.position.copy(e.a.p).addScaledVector(e.dir,(L-1.3)/2);m.quaternion.setFromUnitVectors(Y,e.dir);scene.add(m);
+    // ribs every few steps give depth and speed cues; glowing rings mark each tunnel mouth
+    const q=new THREE.Quaternion().setFromUnitVectors(Z,e.dir);
+    for(let d=2;d<L-1;d+=2){const r=new THREE.Mesh(new THREE.TorusGeometry(1.62,0.1,6,16),ribM);r.position.copy(e.a.p).addScaledVector(e.dir,d);r.quaternion.copy(q);scene.add(r);}
+    const floor=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.08,L),new THREE.MeshStandardMaterial({color:0xb09a78,flatShading:true}));floor.position.copy(e.a.p).addScaledVector(e.dir,L/2).addScaledVector(e.up,-1.42);floor.quaternion.copy(q);scene.add(floor);
+    const side=new V3().crossVectors(e.dir,e.up);[[1,1],[-1,1]].forEach(([sx,sy])=>{const st=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,L),ribM);st.position.copy(e.a.p).addScaledVector(e.dir,L/2).addScaledVector(side,sx*1.1).addScaledVector(e.up,sy*1.1);st.quaternion.copy(q);scene.add(st);});
+    [[e.a,1],[e.b,-1]].forEach(([n,s])=>{const r=new THREE.Mesh(new THREE.TorusGeometry(1.58,0.12,6,20),mouthM);r.position.copy(n.p).addScaledVector(e.dir,(n.hole?1.2:ROOM)*s);r.quaternion.copy(q);scene.add(r);});
+  });
+  // every junction is a lit room, so a crossing reads as a place
+  inner.forEach(n=>{const l=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,6),lampM);l.position.copy(n.p).addScaledVector(n.up,1.3);scene.add(l);const pt=new THREE.PointLight(0xffd090,0.9,11,2);pt.position.copy(l.position);scene.add(pt);});
+  const discM=new THREE.MeshBasicMaterial({color:0x08060a}), ringM=new THREE.MeshStandardMaterial({color:0x4a3220,flatShading:true});
+  holes.forEach(h=>{
+        const hh=height(h.u.clone().multiplyScalar(R));
+    const disc=new THREE.Mesh(new THREE.CircleGeometry(1.55,24),discM);disc.position.copy(h.u).multiplyScalar(R+hh+0.08);disc.quaternion.setFromUnitVectors(Z,h.u);scene.add(disc);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1.75,0.28,8,24),ringM);ring.position.copy(disc.position);ring.quaternion.copy(disc.quaternion);scene.add(ring);
+    const day=new THREE.PointLight(0xbfe3ff,1.1,9,2);day.position.copy(h.u).multiplyScalar(R-0.4);scene.add(day);const dr=new THREE.Mesh(new THREE.TorusGeometry(1.4,0.1,6,20),new THREE.MeshBasicMaterial({color:0xcfe9ff}));dr.position.copy(day.position);dr.quaternion.copy(disc.quaternion);scene.add(dr);
+  });
+}
+
+// ---------- players ----------
+function makeMesh(color){
+  const g=new THREE.Group(); const m=new THREE.MeshStandardMaterial({color,flatShading:true,emissive:color,emissiveIntensity:0.25});
+  const body=new THREE.Mesh(new THREE.SphereGeometry(0.55,12,10),m);body.position.y=0.6;
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.36,12,10),m);head.position.y=1.35;
+  const nose=new THREE.Mesh(new THREE.ConeGeometry(0.16,0.4,8),new THREE.MeshStandardMaterial({color:0xfff1c8}));nose.position.set(0,1.35,0.42);nose.rotation.x=Math.PI/2;
+  const halo=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.08,8,20),new THREE.MeshBasicMaterial({color:0xff5a6a}));halo.position.y=1.95;halo.rotation.x=Math.PI/2;halo.name='halo';
+  g.add(body,head,nose,halo);scene.add(g);return g;
+}
+function makePlayer(color,ai){
+  const u=randDir();const f=anyTangent(u);
+  return {mesh:makeMesh(color),ai,mode:'surface',u,f,pos:u.clone().multiplyScalar(R+0.4),node:null,edge:null,t:0,enterCd:0,chaser:ai,stamina:3,seen:null,goal:null,targetEnd:null,plan:0};
+}
+const hu=makePlayer(0x3d7bff,false), ai=makePlayer(0xff4b5c,true);
+// light stones to find: some in the open, some underground
+const gems=[];
+{
+  const gm=new THREE.MeshStandardMaterial({color:0x7ff3ff,emissive:0x3fd8ff,emissiveIntensity:1.2,flatShading:true});
+  function gem(pos){const m=new THREE.Mesh(new THREE.OctahedronGeometry(0.55,0),gm);m.position.copy(pos);scene.add(m);const l=new THREE.PointLight(0x7fe8ff,0.8,7,2);l.position.copy(pos);scene.add(l);gems.push({pos,mesh:m,light:l,found:false});}
+  for(let i=0;i<4;i++){const u=randDir();gem(u.clone().multiplyScalar(R+Math.max(0,height(u.clone().multiplyScalar(R)))+1.0));}
+  const used=new Set();
+  for(let i=0;i<4;i++){let e;do{e=edges[Math.floor(rnd()*edges.length)];}while(used.has(e));used.add(e);const t=0.3+rnd()*0.4;const p=e.a.p.clone().lerp(e.b.p,t);gem(p.addScaledVector(e.up,-0.6));}
+}
+// start them apart
+ai.u.copy(hu.u).negate().applyAxisAngle(hu.f,0.9).normalize(); ai.f.copy(hu.f).cross(ai.u).cross(ai.u).negate().normalize();
+
+const SPEED_HU=7, SPEED_AI=6.4, TURN=2.6;
+function tunnelUp(pl){return pl.edge?pl.edge.up:pl.node.up;}
+function anyTangent(u){const t=new V3(0,0,1).cross(u);if(t.length()<0.2)t.set(0,1,0).cross(u);return t.normalize();}
+function tangent(f,up){return f.sub(up.clone().multiplyScalar(f.dot(up)));}
+function tangentToward(u,g){const d=g.clone().sub(u.clone().multiplyScalar(u.dot(g)));return d.length()<1e-4?null:d.normalize();}
+function dirFrom(e,n){return n===e.a?e.dir:e.dir.clone().negate();}
+// exit choice at a junction: default is the one most in line with where you were heading, never the one you came from
+function pickSel(pl,exclude){let best=null,bd=-2;pl.node.adj.forEach(e=>{if(e===exclude&&pl.node.adj.length>1)return;const d=dirFrom(e,pl.node).dot(pl.f);if(d>bd){bd=d;best=e;}});pl.sel=best;}
+function cycleSel(pl,dir){const up=tunnelUp(pl);const fwd=pl.f.clone();const right=new V3().crossVectors(fwd,up).normalize();const ang=e=>{const d=dirFrom(e,pl.node);return Math.atan2(d.dot(right),d.dot(fwd));};const list=pl.node.adj.slice().sort((a,b)=>ang(a)-ang(b));const i=list.indexOf(pl.sel);pl.sel=list[(i-dir+list.length)%list.length];}
+function enterTunnel(pl,h){pl.mode='tunnel';pl.node=h;pl.edge=null;pl.pos.copy(h.p);if(!pl.ai)pickSel(pl,null);}
+function exitTunnel(pl,h){pl.mode='surface';pl.u.copy(h.u);tangent(pl.f,pl.u);if(pl.f.length()<0.2)pl.f.copy(anyTangent(pl.u));pl.f.normalize();pl.pos.copy(pl.u).multiplyScalar(R+0.4);pl.enterCd=1.6;pl.wasOut=false;pl.edge=null;pl.node=null;}
+function arrive(pl,n){const from=pl.edge;pl.node=n;pl.edge=null;if(n.hole)exitTunnel(pl,n);else if(!pl.ai)pickSel(pl,from);}
+
+function step(pl,inp,dt){
+  pl.enterCd=Math.max(0,pl.enterCd-dt);
+  const base=pl.ai?SPEED_AI:SPEED_HU;
+  let speed=base;
+  if(!pl.ai){if(inp.sprint&&pl.stamina>0&&(inp.fwd||inp.back)){speed=base*1.55;pl.stamina=Math.max(0,pl.stamina-dt);}else pl.stamina=Math.min(3,pl.stamina+0.6*dt);}
+  if(pl.mode==='surface'){
+    if(inp.left)pl.f.applyAxisAngle(pl.u,TURN*dt);if(inp.right)pl.f.applyAxisAngle(pl.u,-TURN*dt);
+    tangent(pl.f,pl.u).normalize();
+    const d=(inp.fwd?1:inp.back?-1:0)*speed*dt;
+    if(d){const axis=pl.u.clone().cross(pl.f).normalize();pl.u.applyAxisAngle(axis,d/R).normalize();pl.f.crossVectors(axis,pl.u).normalize();}
+    pl.pos.copy(pl.u).multiplyScalar(R+0.4+Math.max(0,height(pl.u.clone().multiplyScalar(R))));
+    let onHole=null;for(const h of holes){if(pl.u.angleTo(h.u)*R<1.45){onHole=h;break;}}
+    if(onHole&&pl.enterCd<=0&&pl.wasOut)enterTunnel(pl,onHole);else if(!onHole)pl.wasOut=true;
+  }else{
+    // tunnels are on rails: the view always looks down the tunnel; at a junction, left/right pick an exit
+    const up=tunnelUp(pl);
+    if(pl.edge===null){
+      const exits=pl.node.adj;
+      if(pl.ai){
+        if(inp.fwd){let best=null,bd=-2;exits.forEach(e=>{const d=dirFrom(e,pl.node).dot(pl.f);if(d>bd){bd=d;best=e;}});pl.edge=best;}
+      }else{
+        if(!pl.sel||!exits.includes(pl.sel))pickSel(pl,null);
+        if(inp.left&&!pl.pL)cycleSel(pl,1);if(inp.right&&!pl.pR)cycleSel(pl,-1);
+        pl.f.lerp(dirFrom(pl.sel,pl.node),Math.min(1,7*dt)).normalize();
+        if(inp.fwd&&pl.f.dot(dirFrom(pl.sel,pl.node))>0.9)pl.edge=pl.sel;
+      }
+      if(pl.edge){pl.s=pl.edge.a===pl.node?1:-1;pl.t=pl.s>0?0:1;pl.from=pl.edge;}
+    }
+    if(pl.edge){
+      const e=pl.edge;const s=pl.ai?(pl.f.dot(e.dir)>=0?1:-1):pl.s;const along=e.dir.clone().multiplyScalar(s);
+      pl.f.lerp(along,Math.min(1,8*dt)).normalize();
+      const mv=inp.fwd?1:inp.back?-1:0;
+      if(mv){pl.t+=mv*s*speed*dt/e.len;if(pl.t<=0){pl.t=0;arrive(pl,e.a);}else if(pl.t>=1){pl.t=1;arrive(pl,e.b);}}
+      if(pl.edge)pl.pos.copy(e.a.p).lerp(e.b.p,pl.t);
+    }
+    pl.pL=inp.left;pl.pR=inp.right;
+  }
+  // mesh
+  const up=pl.mode==='surface'?pl.pos.clone().normalize():tunnelUp(pl);const z=pl.f.clone().normalize();const x=new V3().crossVectors(up,z).normalize();const y=new V3().crossVectors(z,x).normalize();
+  pl.mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z));
+  pl.mesh.position.copy(pl.pos);if(pl.mode==='tunnel')pl.mesh.position.addScaledVector(up,-0.9);
+  pl.mesh.getObjectByName('halo').visible=pl.chaser;
+}
+
+// ---------- AI ----------
+function canSee(a,b){if(a.mode!==b.mode)return false;if(a.mode==='surface')return a.u.angleTo(b.u)<1.0;return a.pos.distanceTo(b.pos)<8.5;}
+function refNode(pl){if(pl.node)return pl.node;const e=pl.edge;return pl.t<0.5?e.a:e.b;}
+function randomHole(not){let h;do{h=holes[Math.floor(rnd()*holes.length)];}while(h===not&&holes.length>1);return h;}
+function aiInput(dt,now){
+  const inp={fwd:false,back:false,left:false,right:false,sprint:false};
+  if(canSee(ai,hu))ai.seen={mode:hu.mode,u:hu.u.clone(),node:hu.mode==='tunnel'?refNode(hu):null,time:now};
+  if(ai.seen&&now-ai.seen.time>6)ai.seen=null;
+  const seen=ai.seen;
+  if(ai.mode==='surface'){
+    let goalU=null;
+    if(ai.chaser){
+      if(seen&&seen.mode==='surface'){goalU=seen.u;if(ai.u.angleTo(goalU)<0.06&&!canSee(ai,hu))ai.seen=null;}
+      else if(seen&&seen.mode==='tunnel'){const h=holes.reduce((b,h)=>seen.node.p.distanceTo(h.p)<seen.node.p.distanceTo(b.p)?h:b,holes[0]);goalU=(seen.node.hole?seen.node:h).u;}
+      else{if(!ai.goal||ai.u.angleTo(ai.goal.u)<0.05)ai.goal=randomHole(ai.goal);goalU=ai.goal.u;}
+      const d=tangentToward(ai.u,goalU);if(d){ai.f.lerp(d,Math.min(1,4*dt));tangent(ai.f,ai.u).normalize();inp.fwd=true;}
+    }else{
+      if(seen&&seen.mode==='surface'){
+        const toC=tangentToward(ai.u,seen.u);const dist=ai.u.angleTo(seen.u)*R;
+        let d=toC?toC.clone().negate():null;
+        if(dist<10){let best=null,bs=1e9;holes.forEach(h=>{if(ai.enterCd>0&&ai.u.angleTo(h.u)*R<3)return;const th=tangentToward(ai.u,h.u);if(!th)return;const s=ai.u.angleTo(h.u)*R+(toC?12*Math.max(0,th.dot(toC)):0);if(s<bs){bs=s;best=h;}});if(best)d=tangentToward(ai.u,best.u);}
+        if(d){ai.f.lerp(d,Math.min(1,4*dt));tangent(ai.f,ai.u).normalize();inp.fwd=true;}
+      }else{
+        if(!ai.goal||ai.u.angleTo(ai.goal.u)<0.05)ai.goal=randomHole(ai.goal);
+        const d=tangentToward(ai.u,ai.goal.u);if(d){ai.f.lerp(d,Math.min(1,3*dt));tangent(ai.f,ai.u).normalize();inp.fwd=rnd()<0.75;}
+      }
+    }
+  }else{
+    // tunnels: choose a goal node, walk the path
+    if(ai.edge===null){
+      let goal=null;
+      if(ai.chaser){
+        if(seen&&seen.mode==='tunnel'){goal=seen.node;if(goal===ai.node&&!canSee(ai,hu)){ai.seen=null;goal=null;}}
+        else if(seen&&seen.mode==='surface')goal=holes.reduce((b,h)=>seen.u.angleTo(h.u)<seen.u.angleTo(b.u)?h:b,holes[0]);
+      }else if(seen&&seen.mode==='tunnel'){const dm=distMap(seen.node);let best=null,bd=-1;holes.forEach(h=>{const d=dm.has(h)?dm.get(h):99;if(h!==ai.node&&d>bd){bd=d;best=h;}});goal=best;}
+      if(!goal||goal===ai.node){if(!ai.goal||ai.goal===ai.node||!ai.goal.hole)ai.goal=randomHole(ai.node);goal=ai.goal;}
+      const path=bfs(ai.node,goal);
+      const next=path&&path[1]?path[1]:(ai.node.adj[Math.floor(rnd()*ai.node.adj.length)].a===ai.node?ai.node.adj[0].b:ai.node.adj[0].a);
+      ai.targetEnd=next;ai.f.copy(next.p).sub(ai.node.p).normalize();inp.fwd=true;
+    }else{
+      const e=ai.edge;const toEnd=ai.targetEnd===e.b?e.dir:e.dir.clone().negate();ai.f.copy(toEnd);inp.fwd=true;
+    }
+  }
+  return inp;
+}
+
+// ---------- input ----------
+const inp={fwd:false,back:false,left:false,right:false,sprint:false};
+document.querySelectorAll('.k[data-k]').forEach(b=>{const k=b.dataset.k;const on=e=>{e.preventDefault();inp[k]=true;b.classList.add('on');b.setPointerCapture&&b.setPointerCapture(e.pointerId);};const off=e=>{inp[k]=false;b.classList.remove('on');};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off);b.addEventListener('contextmenu',e=>e.preventDefault());});
+const keymap={ArrowUp:'fwd',w:'fwd',ArrowDown:'back',s:'back',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right',Shift:'sprint'};
+addEventListener('keydown',e=>{const k=keymap[e.key];if(k){inp[k]=true;e.preventDefault();}if(e.key==='c'||e.key==='C')toggleCam();});
+addEventListener('keyup',e=>{const k=keymap[e.key];if(k)inp[k]=false;});
+const pref={surface:0,tunnel:1}; // 0 = third person, 1 = first person
+function toggleCam(){pref[hu.mode]=1-pref[hu.mode];}
+document.getElementById('cam').addEventListener('pointerdown',e=>{e.preventDefault();toggleCam();});
+
+// ---------- game state ----------
+let running=false,game='find',last=0,tagCd=0,sinceTag=0,tags=0,fogT=0,camK=0,msgT=0,found=0,done=false;
+const hintEl=document.getElementById('hint'),roleEl=document.getElementById('role'),timerEl=document.getElementById('timer'),scoreEl=document.getElementById('score'),msgEl=document.getElementById('msg'),stamEl=document.querySelector('#stam i');
+function say(t){msgEl.textContent=t;msgEl.classList.add('show');msgT=1.6;}
+function tag(){hu.chaser=!hu.chaser;ai.chaser=!ai.chaser;tagCd=3;sinceTag=0;tags++;ai.seen=null;ai.goal=null;say(hu.chaser?'נתפסת! עכשיו אתה רודף':'תפסת! עכשיו אתה בורח');}
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+addEventListener('resize',resize);resize();
+
+const camPos=new V3(),look=new V3(),tmpA=new V3(),tmpB=new V3(),camUp=new V3(0,1,0);
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(0.05,(now-last)/1000||0);last=now;
+  if(!running){renderer.render(scene,camera);return;}
+  step(hu,inp,dt);
+  if(game==='tag'){step(ai,aiInput(dt,now/1000),dt);tagCd=Math.max(0,tagCd-dt);sinceTag+=dt;if(tagCd<=0&&hu.mode===ai.mode&&hu.pos.distanceTo(ai.pos)<1.7)tag();}
+  else{
+    if(!done)sinceTag+=dt;
+    gems.forEach(g=>{if(g.found)return;g.mesh.rotation.y+=dt*1.5;g.mesh.rotation.x+=dt*0.7;if(hu.pos.distanceTo(g.pos)<1.7){g.found=true;g.mesh.visible=false;g.light.visible=false;found++;if(found===gems.length){done=true;say('מצאת הכול! '+sinceTag.toFixed(1)+' שניות');}else say('אבן '+found+' מתוך '+gems.length);}});
+  }
+  // camera: third person on the surface, first person in tunnels (toggle flips per mode); blend between them
+  const wantUp=hu.mode==='surface'?hu.pos.clone().normalize():tunnelUp(hu);
+  camUp.lerp(wantUp,Math.min(1,5*dt)).normalize();const up=camUp;
+  camK+=(pref[hu.mode]-camK)*Math.min(1,4*dt);
+  tmpA.copy(hu.pos).addScaledVector(up,6).addScaledVector(hu.f,-10);
+  tmpB.copy(hu.pos).addScaledVector(up,hu.mode==='tunnel'?0.3:1.5);
+  camPos.copy(tmpA).lerp(tmpB,camK);
+  tmpA.copy(hu.pos).addScaledVector(up,1.5);
+  tmpB.copy(camPos).addScaledVector(hu.f,6);
+  look.copy(tmpA).lerp(tmpB,camK);
+  camera.position.copy(camPos);camera.up.copy(up);camera.lookAt(look);
+  hu.mesh.visible=camK<0.6;
+  // fog and light follow where the player is
+  fogT+=((hu.mode==='tunnel'?1:0)-fogT)*Math.min(1,4*dt);
+  scene.fog.color.copy(SKY).lerp(DARK,fogT);scene.background.copy(scene.fog.color);
+  scene.fog.density=0.006+fogT*0.10;
+  sun.intensity=1.2*(1-fogT);amb.intensity=0.7-0.5*fogT;headlamp.intensity=2.6*fogT;
+  // HUD
+  if(game==='tag'){
+    roleEl.textContent=tagCd>0?'אין תפיסה חוזרת…':(hu.chaser?'אתה רודף':'אתה בורח');
+    roleEl.className='chip role '+(tagCd>0?'immune':hu.chaser?'chaser':'runner');
+    scoreEl.textContent='תפיסות '+tags;
+  }else{
+    roleEl.textContent='אבנים '+found+'/'+gems.length;roleEl.className='chip role runner';
+    let near=null,nd=1e9;gems.forEach(g=>{if(g.found)return;const d=hu.pos.distanceTo(g.pos);if(d<nd){nd=d;near=g;}});
+    if(near){const d=hu.mode==='surface'?tangentToward(hu.u,near.pos.clone().normalize()):near.pos.clone().sub(hu.pos).normalize();
+      let txt='';if(d){const right=new V3().crossVectors(hu.f,up).normalize();const a=Math.atan2(d.dot(right),d.dot(hu.f));const arrows=['↑','↗','→','↘','↓','↙','←','↖'];txt=arrows[((Math.round(a/(Math.PI/4))%8)+8)%8]+' ';}
+      const dist=hu.mode==='surface'?hu.u.angleTo(near.pos.clone().normalize())*R:nd;
+      scoreEl.textContent=txt+Math.round(dist)+' מ׳'+(hu.mode==='surface'&&near.pos.length()<R?' · במחילה':'');
+    }else scoreEl.textContent='סיימת';
+  }
+  timerEl.textContent=sinceTag.toFixed(1)+' ש׳';
+  if(hu.mode==='tunnel'){hintEl.hidden=false;hintEl.textContent=hu.edge?'מחילה · ▲ קדימה · ▼ אחורה':'צומת, '+hu.node.adj.length+' יציאות · ◀ ▶ בחירה · ▲ קדימה';}else hintEl.hidden=true;
+  stamEl.style.transform='scaleX('+(hu.stamina/3).toFixed(3)+')';
+  if(msgT>0){msgT-=dt;if(msgT<=0)msgEl.classList.remove('show');}
+  renderer.render(scene,camera);
+}
+function begin(mode){game=mode;document.getElementById('start').hidden=true;running=true;last=performance.now();ai.mesh.visible=mode==='tag';if(mode==='find')gems.forEach(g=>{g.mesh.visible=true;g.light.visible=true;});else gems.forEach(g=>{g.mesh.visible=false;g.light.visible=false;});}
+document.getElementById('goFind').addEventListener('click',()=>begin('find'));
+document.getElementById('goTag').addEventListener('click',()=>begin('tag'));
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

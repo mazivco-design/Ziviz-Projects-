@@ -1,0 +1,906 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>מגדלים ליעד</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Assistant:wght@500;600;700;800&display=swap">
+<style>
+/* Layout: graph-paper notebook page; a yellow school ruler is the stage where block towers lay themselves down. Single deliberate light look. */
+:root{
+  --paper:#EEF3FA;
+  --grid:#D9E3F0;
+  --ink:#1D2B4F;
+  --ink-soft:#5B6B8E;
+  --card:#FFFFFF;
+  --card-tint:#F6F9FD;
+  --ruler:#FFE08A;
+  --ruler-edge:#E2B53C;
+  --flag:#FFC22E;
+  --flag-ink:#6B4300;
+  --base:#2F6FED;
+  --base-2:#5A8DF2;
+  --sel-soft:#E3ECFE;
+  --add:#139E84;
+  --sub:#EE7A1A;
+  --mul:#E5445A;
+  --mul-2:#F27D8E;
+  --div:#6A5AE0;
+  --div-2:#9D92F0;
+  --good:#16A36A;
+  --bad:#D93A4A;
+  --font-display:'Fredoka','Assistant',system-ui,sans-serif;
+  --font-body:'Assistant','Fredoka',system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  margin:0;background-color:var(--paper);color:var(--ink);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  font-family:var(--font-body);font-size:16px;
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;
+}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--base);outline-offset:3px}
+.num{font-family:var(--font-display);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+
+.app{max-width:1080px;margin:0 auto;padding-block:14px 28px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:14px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:40px;height:40px;flex:none}
+.brand h1{font-family:var(--font-display);font-weight:700;font-size:1.75rem;margin:0;line-height:1}
+.meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:8px;background:var(--card);border:2px solid var(--ink);border-radius:999px;padding:6px 12px;font-weight:700;white-space:nowrap}
+.chip .lv{font-family:var(--font-display);background:var(--ink);color:var(--card);border-radius:999px;padding:2px 10px;font-size:.9rem}
+.chip.stars svg{width:20px;height:20px}
+.icon-btn{background:var(--card);border:2px solid var(--ink);border-radius:14px;width:44px;height:44px;display:grid;place-items:center;padding:0}
+.icon-btn svg{width:22px;height:22px}
+.btn{border:2px solid var(--ink);border-radius:14px;padding:9px 16px;font-weight:800;background:var(--card);box-shadow:0 3px 0 var(--ink);transition:transform .1s,box-shadow .1s}
+.btn:active{transform:translateY(3px);box-shadow:0 0 0 var(--ink)}
+.btn.primary{background:var(--ink);color:var(--card)}
+.btn.flag{background:var(--flag);color:var(--flag-ink)}
+.btn:disabled{opacity:.4}
+
+.card{background:var(--card);border:2px solid var(--ink);border-radius:20px;box-shadow:-4px 4px 0 var(--ink)}
+
+.board{display:grid;grid-template-columns:1fr;gap:14px}
+.goal{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.goal-label{font-weight:800;color:var(--ink-soft);font-size:.95rem}
+.goal-num{font-family:var(--font-display);font-weight:700;font-size:4.2rem;line-height:.95}
+.goal-meta{font-weight:700;color:var(--ink-soft);margin-top:4px}
+.goal-meta.challenge{color:var(--mul)}
+.progress{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.progress small{font-weight:700;color:var(--ink-soft)}
+.dots{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:180px}
+.dots i{width:13px;height:13px;border-radius:50%;border:2px solid var(--ink);background:var(--card)}
+.dots i.on{background:var(--flag)}
+
+.stage-card{position:relative;padding:8px 8px 10px;min-width:0}
+.stage-card svg text{direction:ltr;unicode-bidi:embed}
+.stage-card svg{direction:ltr;display:block;width:100%;height:auto;touch-action:manipulation}
+.stage-note{min-height:28px;text-align:center;font-weight:800;font-size:1.05rem;color:var(--ink);padding:2px 8px}
+.stage-sub{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;font-weight:700;color:var(--ink-soft);min-height:24px;padding:0 8px}
+.stage-sub b{color:var(--ink);font-family:var(--font-display)}
+.ff{color:var(--ink-soft);font-size:.85rem;font-weight:700}
+
+/* svg */
+.ruler-body{fill:var(--ruler);stroke:var(--ruler-edge);stroke-width:2}
+.tick{stroke:var(--ink);stroke-width:1.6}
+.tick.unit{stroke:var(--ink-soft);stroke-width:1}
+.tick-label{fill:var(--ink);font:600 15px var(--font-display);text-anchor:middle}
+.seg{stroke:var(--ink);stroke-width:1.5}
+.seam{stroke:rgba(255,255,255,.75);stroke-width:1.2}
+.c-base{fill:var(--base)} .c-add{fill:var(--add)} .c-sub{fill:var(--sub)} .c-subzone{fill:var(--sub);fill-opacity:.35}
+.c-mul1{fill:var(--mul)} .c-mul2{fill:var(--mul-2)} .c-div1{fill:var(--div)} .c-div2{fill:var(--div-2)}
+.pole{stroke:var(--ink);stroke-width:3}
+.pole-guide{stroke:var(--flag-ink);stroke-width:2;stroke-dasharray:4 4}
+.flag-shape{fill:var(--flag);stroke:var(--ink);stroke-width:2}
+.flag-text{fill:var(--flag-ink);font:700 19px var(--font-display);text-anchor:middle;dominant-baseline:central}
+.edge-flag{fill:var(--flag-ink);font:700 16px var(--font-display);dominant-baseline:central}
+.counter rect{fill:var(--ink)}
+.counter text{fill:#fff;font:700 20px var(--font-display);text-anchor:middle;dominant-baseline:central}
+.counter line{stroke:var(--ink);stroke-width:2;stroke-dasharray:3 4}
+.glabel{fill:var(--ink);font:700 14px var(--font-display);text-anchor:middle}
+.badge circle{fill:var(--card);stroke:var(--div);stroke-width:2.5}
+.token{stroke:var(--ink);stroke-width:2}
+.token.on{fill:var(--flag)}
+.token.on.div{fill:var(--div-2)}
+.token.off{fill:none;stroke:var(--grid);stroke-dasharray:3 3}
+.token-more{fill:var(--ink);font:700 15px var(--font-display);dominant-baseline:central}
+.badge text{fill:var(--div);font:700 14px var(--font-display);text-anchor:middle;dominant-baseline:central}
+.peg rect{fill:var(--card);stroke:var(--ink);stroke-width:2}
+.peg text{fill:var(--ink);font:700 16px var(--font-display);text-anchor:middle;dominant-baseline:central}
+.peg{cursor:pointer}
+.peg.sel rect{fill:var(--base);stroke:var(--base)}
+.peg.sel text{fill:#fff}
+.peg.hinted rect{stroke:var(--flag-ink);stroke-dasharray:5 4;stroke-width:3}
+.ghost{fill:none;stroke:var(--flag-ink);stroke-width:3;stroke-dasharray:6 5}
+.ghost-text{fill:var(--flag-ink);font:700 15px var(--font-body);text-anchor:middle}
+
+/* play */
+.play{padding:16px;display:flex;flex-direction:column;gap:14px}
+.desk{display:grid;grid-template-columns:1fr;gap:12px}
+.bench{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:8px;align-items:center;direction:ltr}
+.slot{height:72px;border-radius:16px;border:2px dashed var(--ink-soft);background:var(--card-tint);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:2.2rem;min-width:0}
+.slot.op{width:62px;font-size:2rem}
+.slot small{font-family:var(--font-body);font-size:.85rem;color:var(--ink-soft);font-weight:700}
+.slot.filled{border-style:solid;border-color:var(--base);background:var(--sel-soft)}
+.eqs{font-family:var(--font-display);font-weight:700;font-size:2rem;color:var(--ink-soft)}
+.ops{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;direction:ltr}
+.op-btn{height:72px;border-radius:16px;border:2px solid var(--ink);background:var(--card);font-family:var(--font-display);font-weight:700;font-size:2.3rem;box-shadow:0 4px 0 var(--ink);transition:transform .1s,box-shadow .1s,background .15s}
+.op-btn:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
+.op-btn[data-op="+"]{color:var(--add)} .op-btn[data-op="-"]{color:var(--sub)} .op-btn[data-op="*"]{color:var(--mul)} .op-btn[data-op="/"]{color:var(--div)}
+.op-btn.on{background:var(--ink);color:var(--card)}
+.op-btn.hinted{outline:3px dashed var(--flag-ink);outline-offset:3px}
+
+.msg{text-align:center;font-weight:700;font-size:1.05rem;padding:9px 12px;border-radius:12px;background:var(--card-tint);min-height:44px;display:flex;align-items:center;justify-content:center}
+.msg.err{background:#FDE8EA;color:var(--bad)}
+.msg.good{background:#E3F6EC;color:var(--good)}
+
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;direction:ltr}
+.tile{height:92px;border-radius:18px;border:2px solid var(--ink);background:var(--card);box-shadow:0 5px 0 var(--ink);transition:transform .1s,box-shadow .1s,background .15s,opacity .2s;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px}
+.tile b{font-family:var(--font-display);font-weight:700;font-size:2.3rem;line-height:1}
+.tile svg{height:14px;max-width:88%}
+.tile .gh{fill:var(--base)} .tile .gt{fill:var(--base)} .tile .gu{fill:var(--base)}
+.tile:active{transform:translateY(5px);box-shadow:0 0 0 var(--ink)}
+.tile.sel{background:var(--base);border-color:var(--base);color:#fff;box-shadow:0 5px 0 #1C4FB8}
+.tile.sel .gh,.tile.sel .gt,.tile.sel .gu{fill:#fff}
+.tile.used{opacity:.35}
+.tile.new{animation:popin .3s ease-out}
+.tile.hit{background:var(--good);border-color:var(--good);color:#fff}
+.tile.hit .gh,.tile.hit .gt,.tile.hit .gu{fill:#fff}
+.tile.hinted{outline:3px dashed var(--flag-ink);outline-offset:3px}
+@keyframes popin{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+
+.tools{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.tools .grp{display:flex;gap:8px;flex-wrap:wrap}
+.tool{display:flex;align-items:center;gap:6px;border:2px solid var(--ink);border-radius:12px;background:var(--card);padding:8px 12px;font-weight:800}
+.tool svg{width:18px;height:18px}
+.tool:disabled{opacity:.35;cursor:default}
+.tool.hint{background:var(--flag);color:var(--flag-ink)}
+.history{display:flex;gap:6px;flex-wrap:wrap;direction:ltr;justify-content:flex-end;min-height:32px;align-items:center}
+.history span{font-family:var(--font-display);font-weight:600;border-radius:10px;padding:4px 10px;background:var(--card-tint);border:1.5px solid var(--grid)}
+.history .empty{font-family:var(--font-body);color:var(--ink-soft);border:none;background:none;direction:rtl}
+
+.veil{position:fixed;inset:0;background:rgba(29,43,79,.45);display:grid;place-items:center;padding:20px;z-index:20}
+.sheet{background:var(--card);border:2px solid var(--ink);border-radius:24px;box-shadow:-5px 5px 0 var(--ink);padding:24px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:14px;text-align:center;animation:popin .25s ease-out}
+.sheet h2{font-family:var(--font-display);font-size:2.2rem;margin:0;line-height:1}
+.sheet p{margin:0;font-weight:600;color:var(--ink-soft);font-size:1.05rem}
+.star-list{display:flex;flex-direction:column;gap:8px;text-align:right}
+.star-row{display:flex;align-items:center;gap:10px;font-weight:700;padding:8px 10px;border-radius:12px;background:var(--card-tint)}
+.star-row svg{width:28px;height:28px;flex:none}
+.star-row.off{color:var(--ink-soft)}
+.star-row.on svg{animation:starpop .4s ease-out backwards}
+.star-row:nth-child(2) svg{animation-delay:.15s}
+.star-row:nth-child(3) svg{animation-delay:.3s}
+@keyframes starpop{from{transform:scale(0) rotate(-40deg)}to{transform:none}}
+.sheet .actions{display:flex;flex-direction:column;gap:8px}
+.sheet .actions .btn{padding:13px;font-size:1.1rem}
+.levelup{background:var(--flag);color:var(--flag-ink);border-radius:14px;padding:10px;font-weight:800}
+
+.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+
+@media (min-width:640px){ .tiles{grid-template-columns:repeat(6,1fr)} }
+@media (min-width:900px){
+  .board{grid-template-columns:220px 1fr}
+  .goal{flex-direction:column;align-items:flex-start;justify-content:space-between}
+  .goal-num{font-size:5rem}
+  .progress{align-items:flex-start}
+  .dots{justify-content:flex-start}
+  .desk{grid-template-columns:1.25fr 1fr;align-items:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition:none!important}
+}
+</style>
+
+<div class="app" dir="rtl">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="11" fill="#1D2B4F"/><rect x="7" y="27" width="26" height="6" rx="1.5" fill="#FFE08A"/><rect x="11" y="21" width="7" height="6" fill="#139E84" stroke="#fff" stroke-width="1"/><rect x="11" y="15" width="7" height="6" fill="#139E84" stroke="#fff" stroke-width="1"/><rect x="11" y="9" width="7" height="6" fill="#139E84" stroke="#fff" stroke-width="1"/><rect x="20" y="21" width="7" height="6" fill="#2F6FED" stroke="#fff" stroke-width="1"/><path d="M30 27V9" stroke="#fff" stroke-width="2"/><path d="M30 9l6 3-6 3z" fill="#FFC22E"/></svg>
+      <h1>מגדלים ליעד</h1>
+    </div>
+    <div class="meta">
+      <div class="chip"><span class="lv" id="levelNum">שלב 1</span><span id="levelName"></span></div>
+      <div class="chip stars" aria-label="כוכבים"><svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="#FFC22E" stroke="#1D2B4F" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="num" id="starsTotal">0</span></div>
+      <button class="icon-btn" id="soundBtn" aria-label="צלילים"></button>
+      <button class="btn" id="newBtn">חידה חדשה</button>
+    </div>
+  </header>
+
+  <section class="board">
+    <div class="card goal">
+      <div>
+        <div class="goal-label">היעד</div>
+        <div class="goal-num num" id="targetNum">--</div>
+        <div class="goal-meta" id="goalMeta"></div>
+      </div>
+      <div class="progress">
+        <small id="progressLabel">התקדמות בשלב</small>
+        <div class="dots" id="dots"></div>
+      </div>
+    </div>
+    <div class="card stage-card">
+      <div class="stage-note" id="stageNote"></div>
+      <svg id="stage" viewBox="0 0 1000 330" role="img" aria-label="הסרגל"></svg>
+      <div class="stage-sub" id="stageSub"></div>
+    </div>
+  </section>
+
+  <section class="card play">
+    <div class="desk">
+      <div class="bench" id="bench">
+        <div class="slot" id="slotA"><small>מספר</small></div>
+        <div class="slot op" id="slotOp">?</div>
+        <div class="slot" id="slotB"><small>מספר</small></div>
+        <div class="eqs">=</div>
+        <div class="slot" id="slotR">?</div>
+      </div>
+      <div class="ops" id="ops">
+        <button class="op-btn" data-op="+" aria-label="חיבור">+</button>
+        <button class="op-btn" data-op="-" aria-label="חיסור">−</button>
+        <button class="op-btn" data-op="*" aria-label="כפל">×</button>
+        <button class="op-btn" data-op="/" aria-label="חילוק">÷</button>
+      </div>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="tools">
+      <div class="grp">
+        <button class="tool" id="undoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-5-5 5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>בטל צעד</button>
+        <button class="tool" id="resetBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9.5 9.5 0 00-6.5 2.7L3 8"/><path d="M3 3v5h5"/></svg>התחל מחדש</button>
+        <button class="tool hint" id="hintBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 00-4 12.7V16h8v-1.3A7 7 0 0012 2z"/></svg><span id="hintLabel">רמז</span></button>
+      </div>
+      <div class="history" id="history"></div>
+    </div>
+  </section>
+</div>
+
+<div class="veil" id="veil" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const PER_LEVEL = 10;
+const LEVELS = [null,
+  {name:'צעד ראשון',      bigs:0, smalls:6, steps:[2],     min:20,  max:99},
+  {name:'מספר גדול אחד',  bigs:1, smalls:5, steps:[2,3],   min:50,  max:200, bigSet:[25,50]},
+  {name:'שלושה צעדים',    bigs:1, smalls:5, steps:[3],     min:100, max:300, bigSet:[25,50,75,100]},
+  {name:'מתכננים קדימה',  bigs:2, smalls:4, steps:[3],     min:150, max:500, bigSet:[25,50,75,100]},
+  {name:'אלוף המגדלים',   bigs:2, smalls:4, steps:[3,4,4], min:200, max:700, bigSet:[25,50,75,100]}
+];
+const SYM = {'+':'+','-':'−','*':'×','/':'÷'};
+const OPNAME = {'+':'חיבור','-':'חיסור','*':'כפל','/':'חילוק'};
+const $ = id => document.getElementById(id);
+const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- saved progress ---------- */
+const KEY = 'migdalim-layaad-v1';
+const S = {level:1, solved:0, stars:0, sound:true};
+try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d) Object.assign(S, d); } catch(e){}
+if (!LEVELS[S.level]) S.level = 1;
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+
+/* ---------- sound ---------- */
+let ctx = null;
+function tone(f1, f2, dur, type, vol, delay){
+  if (!S.sound) return;
+  try {
+    if (!ctx) { const A = window.AudioContext || window.webkitAudioContext; if (!A) return; ctx = new A(); }
+    if (ctx.state === 'suspended') ctx.resume();
+    const t = ctx.currentTime + (delay||0);
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(f1, t);
+    if (f2 !== f1) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(vol || .14, t);
+    g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + dur + .02);
+  } catch(e){}
+}
+const sfx = {
+  tap(){ tone(520, 760, .06, 'sine', .14); },
+  op(){ tone(420, 620, .07, 'triangle', .12); },
+  block(i, up){ const f = up ? 380 * Math.pow(1.06, Math.min(i, 30)) : 700 / Math.pow(1.05, Math.min(i, 30)); tone(f, f*1.02, .09, 'triangle', .12); },
+  land(){ tone(160, 90, .12, 'sine', .18); },
+  err(){ tone(200, 100, .22, 'sawtooth', .1); },
+  win(){ [523,659,784,1047].forEach((f,i)=>tone(f, f, .35, 'sine', .16, i*.09)); },
+  level(){ [440,554,659,880,1109].forEach((f,i)=>tone(f, f, .3, 'triangle', .15, i*.1)); }
+};
+const ICON_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="#1D2B4F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 010 7M19 5a10 10 0 010 14"/></svg>';
+const ICON_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="#1D2B4F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>';
+
+/* ---------- math engine ---------- */
+function combos(x, y){
+  const a = Math.max(x,y), b = Math.min(x,y), out = [{a,b,op:'+',r:a+b}];
+  if (a > b) out.push({a,b,op:'-',r:a-b});
+  if (b > 1) out.push({a,b,op:'*',r:a*b});
+  if (b > 1 && a % b === 0) out.push({a,b,op:'/',r:a/b});
+  return out;
+}
+const keyOf = arr => arr.slice().sort((p,q)=>p-q).join(',');
+function reachMap(pool, maxDepth){
+  const map = new Map();
+  pool.forEach(v => { if (!map.has(v)) map.set(v, {steps:0, path:[]}); });
+  let frontier = [{arr:pool, path:[]}];
+  const seen = new Set([keyOf(pool)]);
+  for (let d = 1; d <= maxDepth; d++){
+    const next = [];
+    for (const s of frontier){
+      const arr = s.arr;
+      for (let i = 0; i < arr.length; i++) for (let j = i+1; j < arr.length; j++){
+        const rest = arr.filter((_,k)=>k!==i&&k!==j);
+        for (const st of combos(arr[i], arr[j])){
+          const path = s.path.concat([st]);
+          if (!map.has(st.r)) map.set(st.r, {steps:d, path});
+          if (d < maxDepth){
+            const na = rest.concat([st.r]), k = keyOf(na);
+            if (!seen.has(k)){ seen.add(k); next.push({arr:na, path}); }
+          }
+        }
+      }
+    }
+    frontier = next;
+  }
+  return map;
+}
+function solveFrom(pool, target, maxDepth){
+  if (pool.includes(target)) return [];
+  let nodes = 0; const BUDGET = 400000; const fail = new Set();
+  function dfs(arr, depth){
+    if (++nodes > BUDGET) throw 0;
+    const k = keyOf(arr) + '|' + depth;
+    if (fail.has(k)) return null;
+    for (let i = 0; i < arr.length; i++) for (let j = i+1; j < arr.length; j++){
+      for (const st of combos(arr[i], arr[j])){
+        if (st.r === target) return [st];
+        if (depth > 1 && arr.length > 2){
+          const p = dfs(arr.filter((_,x)=>x!==i&&x!==j).concat([st.r]), depth-1);
+          if (p) return [st].concat(p);
+        }
+      }
+    }
+    fail.add(k); return null;
+  }
+  try { for (let d = 1; d <= Math.min(maxDepth, pool.length-1); d++){ const p = dfs(pool, d); if (p) return p; } }
+  catch(e){ return null; }
+  return null;
+}
+function shuffle(a){ a = a.slice(); for (let i = a.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function makePuzzle(){
+  const L = LEVELS[S.level];
+  const maxD = Math.max.apply(null, L.steps);
+  for (let tries = 0; tries < 60; tries++){
+    const smalls = shuffle([1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10]).slice(0, L.smalls);
+    const bigs = L.bigs ? shuffle(L.bigSet).slice(0, L.bigs) : [];
+    const pool = shuffle(bigs.concat(smalls));
+    const map = reachMap(pool, maxD);
+    const want = tries < 40 ? pick(L.steps) : null;
+    const cands = [];
+    map.forEach((info, v) => {
+      if (v >= L.min && v <= L.max && info.steps >= 1 && !pool.includes(v) && (want === null ? L.steps.includes(info.steps) : info.steps === want)) cands.push([v, info]);
+    });
+    if (cands.length){
+      const [target, info] = pick(cands);
+      return {target, pool, minSteps:info.steps, path:info.path, hintUsed:false, solvedOnce:false, aw:null};
+    }
+  }
+  return {target:96, pool:[4,8,25,3,7,1], minSteps:2, path:[{a:25,b:4,op:'*',r:100},{a:100,b:4,op:'-',r:96}], hintUsed:false, solvedOnce:false, aw:null};
+}
+// a number as base-ten blocks, biggest first: 156 -> [100,10,10,10,10,10,1,1,1,1,1,1]
+function decompose(v){
+  const out = [];
+  for (let i = 0; i < Math.floor(v/100); i++) out.push(100);
+  for (let i = 0; i < Math.floor(v%100/10); i++) out.push(10);
+  for (let i = 0; i < v%10; i++) out.push(1);
+  return out;
+}
+
+/* ---------- game state ---------- */
+let P = null, tiles = [], nextId = 1, selA = null, op = null, moves = [], undoStack = [];
+let hint = {level:0, step:null, ids:[]}, retry = false, busy = false, usedIds = [], newId = null;
+
+/* ---------- stage (ruler) state ---------- */
+const W = 1000, PL = 36, PR = 36, Y = 268, BAR = 26;
+const SC = {lo:0, hi:100, segs:[], tower:null, fly:[], counter:null, labels:[], badges:[], tokens:null, pegs:true, th:BAR};
+let speed = 1;
+const easeIO = k => k < .5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3) / 2;
+const easeOut = k => 1 - Math.pow(1 - k, 3);
+const easeIn = k => k*k;
+function tween(ms, fn, ease){
+  ease = ease || easeIO;
+  return new Promise(res => {
+    let k = 0, last = performance.now();
+    const dur = reduced ? 1 : ms;
+    function f(now){
+      k += Math.max(0, now - last) * speed / dur; last = now;
+      if (k > 1) k = 1;
+      fn(ease(k)); drawStage();
+      if (k < 1) requestAnimationFrame(f); else res();
+    }
+    requestAnimationFrame(f);
+  });
+}
+const wait = ms => tween(ms, () => {});
+function tweenView(lo2, hi2, ms){
+  const lo1 = SC.lo, hi1 = SC.hi;
+  return tween(ms, e => { SC.lo = lo1 + (lo2 - lo1) * e; SC.hi = hi1 + (hi2 - hi1) * e; });
+}
+function niceStep(x){
+  if (x <= 1) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(x))), n = x / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+}
+function niceMax(v){ const s = niceStep(v / 8); return Math.ceil(v / s) * s; }
+function overviewWindow(){
+  let m = Math.max(P.target * 1.15, 20);
+  tiles.forEach(t => m = Math.max(m, t.v * 1.05));
+  return [0, niceMax(m)];
+}
+function setNote(t){ $('stageNote').textContent = t || ''; }
+
+function drawStage(){
+  const lo = SC.lo, hi = SC.hi, span = Math.max(hi - lo, 1e-6);
+  const ppu = (W - PL - PR) / span;
+  const X = v => PL + (v - lo) * ppu;
+  let s = '';
+
+  // ruler
+  s += `<rect class="ruler-body" x="-4" y="${Y}" width="${W+8}" height="50" rx="4"/>`;
+  const step = niceStep(span / 9);
+  if (ppu >= 7){
+    for (let v = Math.ceil(lo); v <= hi; v++) if (v % step) s += `<line class="tick unit" x1="${X(v)}" x2="${X(v)}" y1="${Y}" y2="${Y+8}"/>`;
+  } else {
+    const minor = step >= 5 && step % 5 === 0 ? step / 5 : step % 2 === 0 ? step / 2 : 0;
+    if (minor && minor * ppu >= 7) for (let v = Math.ceil(lo / minor) * minor; v <= hi; v += minor) if (v % step) s += `<line class="tick unit" x1="${X(v)}" x2="${X(v)}" y1="${Y}" y2="${Y+8}"/>`;
+  }
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step)
+    s += `<line class="tick" x1="${X(v)}" x2="${X(v)}" y1="${Y}" y2="${Y+15}"/><text class="tick-label" x="${X(v)}" y="${Y+34}">${Math.round(v)}</text>`;
+
+  // laid blocks
+  const seams = (from, to, y, h) => {
+    const unit = ppu >= 5 ? 1 : ppu * 10 >= 5 ? 10 : ppu * 100 >= 5 ? 100 : 0;
+    if (!unit) return '';
+    let o = '', c = 0;
+    for (let v = from + unit; v < to - 1e-9 && c < 500; v += unit, c++){
+      if (v < lo || v > hi) continue;
+      o += `<line class="seam" x1="${X(v)}" x2="${X(v)}" y1="${y+2}" y2="${y+h-2}"/>`;
+    }
+    return o;
+  };
+  const block = (from, to, y, h, cls, extra) => {
+    const x1 = Math.max(X(from), -20), x2 = Math.min(X(to), W + 20);
+    if (x2 <= x1) return '';
+    return `<g ${extra||''}><rect class="seg c-${cls}" x="${x1}" y="${y}" width="${x2 - x1}" height="${h}" rx="3"/>${seams(from, to, y, h)}</g>`;
+  };
+  SC.segs.forEach(g => { s += block(g.from, g.to, Y - BAR, BAR, g.cls); });
+
+  // target flag
+  const T = P.target;
+  if (T >= lo && T <= hi){
+    const tx = X(T), flip = tx > W - 80, fw = 22 + String(T).length * 12, fx = flip ? tx - fw : tx;
+    s += `<line class="pole" x1="${tx}" x2="${tx}" y1="${Y}" y2="8"/>`;
+    s += `<path class="flag-shape" d="M${fx} 6 h${fw} ${flip ? '' : 'l-8 16 l8 16'} h-${fw} ${flip ? 'l8 -16 l-8 -16' : ''}z"/>`;
+    s += `<text class="flag-text" x="${fx + fw/2 + (flip ? 3 : -3)}" y="22">${T}</text>`;
+  } else if (T > hi){
+    const fw = 22 + String(T).length * 12;
+    s += `<path class="flag-shape" d="M${W - 26 - fw} 6 h${fw} l14 16 l-14 16 h-${fw}z"/><text class="flag-text" x="${W - 26 - fw/2}" y="22">${T}</text>`;
+  } else {
+    const fw = 22 + String(T).length * 12;
+    s += `<path class="flag-shape" d="M${26 + fw} 6 h-${fw} l-14 16 l14 16 h${fw}z"/><text class="flag-text" x="${26 + fw/2}" y="22">${T}</text>`;
+  }
+
+  // group labels (×) — skip ones that would crowd
+  let lastX = -999;
+  SC.labels.forEach((l, i) => {
+    const x = X(l.v);
+    if (x - lastX < 38 && i !== SC.labels.length - 1) return;
+    lastX = x;
+    s += `<text class="glabel" x="${x}" y="${Y - BAR - 8}">${l.text}</text>`;
+  });
+  // division badges
+  let lastB = -999;
+  SC.badges.forEach((b, i) => {
+    const x = X(b.v);
+    if (x - lastB < 26 && i !== SC.badges.length - 1) return;
+    lastB = x;
+    s += `<g class="badge"><circle cx="${x}" cy="${Y - BAR - 18}" r="12"/><text x="${x}" y="${Y - BAR - 17}">${b.n}</text></g>`;
+  });
+
+  // overview pegs + hint ghost
+  if (SC.pegs){
+    if (hint.level >= 1 && hint.step){
+      const gx = X(hint.step.r);
+      s += `<rect class="ghost" x="${gx - 22}" y="${Y - BAR - 6}" width="44" height="${BAR + 12}" rx="10"/><text class="ghost-text" x="${gx}" y="${Y - BAR - 14}">בערך כאן</text>`;
+    }
+    const placed = [];
+    tiles.slice().sort((p,q) => p.v - q.v).forEach(t => {
+      const x = X(t.v), w = 18 + String(t.v).length * 11;
+      let lvl = 0;
+      while (placed.some(p => p.lvl === lvl && Math.abs(p.x - x) < (p.w + w) / 2 + 4)) lvl++;
+      placed.push({x, w, lvl});
+      const y = Y - BAR - 26 - lvl * 32;
+      const cls = ['peg', t.id === selA ? 'sel' : '', hint.level >= 2 && hint.ids.includes(t.id) ? 'hinted' : ''].join(' ');
+      s += `<line x1="${x}" x2="${x}" y1="${y + 14}" y2="${Y - BAR}" stroke="#5B6B8E" stroke-width="1.5"/>`;
+      s += `<g class="${cls}" data-id="${t.id}"><rect x="${x - w/2}" y="${y - 14}" width="${w}" height="28" rx="14"/><text x="${x}" y="${y + 1}">${t.v}</text></g>`;
+    });
+  }
+
+  // tower (caterpillar: bottom block stays, the rest walks forward and drops one row)
+  if (SC.tower){
+    const tw = SC.tower, th = SC.th;
+    tw.pieces.forEach((p, i) => {
+      const left = tw.baseV + (i > 0 ? tw.shift : 0);
+      const rr = i + tw.rowOff;
+      const bottom = Y - rr * th - tw.lift;
+      s += block(left, left + p, bottom - th, th, tw.cls);
+    });
+  }
+  // flying blocks
+  SC.fly.forEach(f => { s += block(f.from, f.to, Y - BAR + f.y, BAR, f.cls, `opacity="${f.op == null ? 1 : f.op}"`); });
+
+  // token pile: how many times (×) or how many pieces (÷)
+  if (SC.tokens){
+    const t = SC.tokens, MAX = 40, shown = Math.min(t.total, MAX);
+    for (let i = 0; i < shown; i++){
+      const cx = 48 + (i % 10) * 25, cy = 92 + Math.floor(i / 10) * 25;
+      s += `<circle class="token ${i < t.filled ? 'on' : 'off'} ${t.cls || ''}" cx="${cx}" cy="${cy}" r="10"/>`;
+    }
+    if (t.total > MAX) s += `<text class="token-more" x="${48 + 10 * 25}" y="${92 + 3 * 25}">+${t.total - MAX}</text>`;
+  }
+
+  // counter bubble
+  if (SC.counter){
+    const cx = Math.max(60, Math.min(W - 60, X(SC.counter.v)));
+    const txt = String(SC.counter.text), w = 26 + txt.length * 11.5;
+    s += `<g class="counter"><line x1="${X(SC.counter.v)}" x2="${X(SC.counter.v)}" y1="${62}" y2="${Y - BAR}"/><rect x="${cx - w/2}" y="34" width="${w}" height="30" rx="15"/><text x="${cx}" y="49" ${/[\u05D0-\u05EA]/.test(txt) ? 'direction="rtl" style="unicode-bidi:embed"' : ''}>${txt}</text></g>`;
+  }
+  $('stage').innerHTML = s;
+}
+
+/* ---------- operation animations ---------- */
+async function animAdd(a, b){
+  SC.segs = [{from:0, to:a, cls:'base'}];
+  const sp = Math.max(b * 1.35, 22);
+  await tweenView(Math.max(0, a - sp * 0.35), a + b + sp * 0.18, 550);
+  const pieces = decompose(b), n = pieces.length;
+  SC.th = Math.min(BAR, 190 / n);
+  SC.tower = {baseV:a, pieces:pieces.slice(), shift:0, rowOff:0, lift:260, cls:'add'};
+  SC.counter = {v:a, text:a};
+  setNote(`מגדל של ${b} עומד על ${a} ונשכב קדימה, קובייה אחרי קובייה`);
+  await tween(400, e => SC.tower.lift = 260 * (1 - e), easeOut);
+  sfx.land();
+  const per = Math.max(120, Math.min(440, 3600 / n));
+  let cur = a, i = 0;
+  while (SC.tower.pieces.length){
+    const p = SC.tower.pieces[0];
+    if (SC.tower.pieces.length > 1) await tween(per * .55, e => SC.tower.shift = p * e);
+    SC.segs.push({from:cur, to:cur + p, cls:'add'});
+    SC.tower.pieces.shift(); cur += p;
+    SC.tower.baseV = cur; SC.tower.shift = 0;
+    SC.counter = {v:cur, text:cur};
+    sfx.block(i++, true);
+    if (SC.tower.pieces.length){ SC.tower.rowOff = 1; await tween(per * .45, e => SC.tower.rowOff = 1 - e, easeIn); }
+    else drawStage();
+  }
+  SC.tower = null;
+  await wait(450);
+}
+async function animSub(a, b){
+  SC.segs = [{from:0, to:a, cls:'base'}];
+  const sp = Math.max(b * 1.35, 22);
+  await tweenView(Math.max(0, a - b - sp * 0.2), a + sp * 0.3, 550);
+  SC.segs = [{from:0, to:a - b, cls:'base'}, {from:a - b, to:a, cls:'subzone'}];
+  SC.counter = {v:a, text:a};
+  setNote(`מ־${a} מורידים ${b}, קובייה אחרי קובייה אחורה`);
+  await wait(450);
+  const pieces = decompose(b).reverse(), n = pieces.length;
+  const per = Math.max(120, Math.min(440, 3400 / n));
+  let cur = a, i = 0;
+  for (const p of pieces){
+    const f = {from:cur - p, to:cur, y:0, op:1, cls:'sub'};
+    SC.fly = [f];
+    cur -= p;
+    SC.segs[1].to = cur;
+    SC.counter = {v:cur, text:cur};
+    sfx.block(i++, false);
+    await tween(per, e => { f.y = -150 * e; f.op = 1 - e; }, easeOut);
+  }
+  SC.fly = [];
+  SC.segs = [{from:0, to:a - b, cls:'base'}];
+  await wait(450);
+}
+async function animMul(a, b){
+  // a = the number chosen first (the thing that repeats), b = how many times
+  const R = a * b;
+  SC.segs = [{from:0, to:a, cls:'mul1'}]; SC.labels = [{v:a, text:a}];
+  await tweenView(0, Math.max(R * 1.08, 22), 550);
+  SC.tokens = {total:b, filled:b - 1, cls:''};
+  SC.counter = {v:a, text:`1 × ${a} = ${a}`};
+  setNote(`${a} שוב ושוב, ${b} פעמים. כל אסימון זה עוד פעם`);
+  sfx.block(0, true);
+  await wait(650);
+  const per = Math.max(60, Math.min(560, 3800 / b));
+  for (let k = 1; k < b; k++){
+    const cls = k % 2 ? 'mul2' : 'mul1';
+    const f = {from:(k - 1) * a, to:k * a, y:0, op:1, cls};
+    SC.fly = [f];
+    SC.tokens.filled = b - 1 - k;
+    await tween(per, e => { f.from = (k - 1 + e) * a; f.to = (k + e) * a; f.y = -70 * Math.sin(Math.PI * e); }, easeIO);
+    SC.fly = [];
+    SC.segs.push({from:k * a, to:(k + 1) * a, cls});
+    const v = (k + 1) * a;
+    SC.labels.push({v, text:v});
+    SC.counter = {v, text:`${k + 1} × ${a} = ${v}`};
+    sfx.block(k, true);
+  }
+  drawStage();
+  await wait(500);
+  if (a !== b){ setNote(`${a} × ${b} = ${R}. אגב, גם ${b} פעמים ${a} נותן ${R}`); await wait(1300); }
+  else await wait(500);
+  SC.tokens = null;
+}
+async function animDiv(a, b){
+  const R = a / b;
+  SC.segs = [{from:0, to:a, cls:'base'}]; SC.badges = [];
+  await tweenView(0, Math.max(a * 1.08, 22), 550);
+  SC.tokens = {total:R, filled:0, cls:'div'};
+  setNote(`חותכים את ${a} לחתיכות של ${b}. כל חתיכה הופכת לאסימון`);
+  await wait(450);
+  const per = Math.max(70, Math.min(480, 3400 / R));
+  const chunks = [];
+  for (let k = 0; k < R; k++){
+    chunks.push({from:k * b, to:(k + 1) * b, cls:k % 2 ? 'div2' : 'div1'});
+    SC.segs = chunks.concat((k + 1) * b < a ? [{from:(k + 1) * b, to:a, cls:'base'}] : []);
+    SC.badges.push({v:k * b + b / 2, n:k + 1});
+    SC.tokens.filled = k + 1;
+    SC.counter = {v:(k + 1) * b, text:`${k + 1} חתיכות`};
+    sfx.block(k, true);
+    await wait(per);
+  }
+  setNote(`יצאו ${R} אסימונים, לכן ${a} ÷ ${b} = ${R}`);
+  await wait(1300);
+  SC.tokens = null;
+}
+async function toOverview(){
+  SC.counter = null; SC.labels = []; SC.badges = []; SC.fly = []; SC.tower = null; SC.tokens = null;
+  const [lo, hi] = overviewWindow();
+  await tweenView(lo, hi, 600);
+  syncStage();
+}
+// static overview: the selected number lies on the ruler from 0
+function syncStage(){
+  if (busy) return;
+  SC.pegs = true; SC.counter = null; SC.labels = []; SC.badges = []; SC.fly = []; SC.tower = null; SC.tokens = null;
+  const A = tiles.find(t => t.id === selA);
+  SC.segs = A ? [{from:0, to:A.v, cls:'base'}] : [];
+  const [lo, hi] = overviewWindow();
+  if (Math.abs(SC.lo - lo) > 1e-6 || Math.abs(SC.hi - hi) > 1e-6){
+    const lo1 = SC.lo, hi1 = SC.hi;
+    tween(450, e => { if (busy) return; SC.lo = lo1 + (lo - lo1) * e; SC.hi = hi1 + (hi - hi1) * e; });
+  } else drawStage();
+  setNote(A ? `${A.v} מונח על הסרגל` : 'כל מספר הוא מגדל של קוביות. בחר מספר כדי לראות אותו על הסרגל');
+}
+
+/* ---------- actions ---------- */
+function newPuzzle(){ P = makePuzzle(); retry = false; resetBoard(); }
+function resetBoard(){
+  nextId = 1;
+  tiles = P.pool.map(v => ({id:nextId++, v}));
+  selA = null; op = null; moves = []; undoStack = []; busy = false; usedIds = []; newId = null;
+  hint = {level:0, step:null, ids:[]};
+  render();
+  say(retry ? `אתגר: להגיע ל־${P.target} ב־${P.minSteps} צעדים בלבד.` : 'בחר מספר, אחר כך פעולה, ואז מספר שני.');
+}
+function onTile(id){
+  if (busy) return;
+  const t = tiles.find(x => x.id === id); if (!t) return;
+  newId = null;
+  if (selA === null || (op === null && selA !== id)){ sfx.tap(); selA = id; render(); say(`בחרת ${t.v}. עכשיו בחר פעולה.`); return; }
+  if (selA === id){ sfx.tap(); selA = null; op = null; render(); say('הבחירה בוטלה.'); return; }
+  calc(tiles.find(x => x.id === selA), op, t);
+}
+function onOp(o){
+  if (busy) return;
+  if (selA === null){ sfx.err(); shake(); say('קודם בחר מספר.', 'err'); return; }
+  sfx.op(); op = o; render();
+  say(`${tiles.find(x => x.id === selA).v} ${SYM[o]} ? — עכשיו בחר את המספר השני.`);
+}
+async function calc(A, o, B){
+  const a = A.v, b = B.v; let r;
+  if (o === '+') r = a + b;
+  else if (o === '-'){ if (a <= b){ sfx.err(); shake(); say(`${a} − ${b} לא יוצא מספר חיובי. נסה בסדר הפוך.`, 'err'); return; } r = a - b; }
+  else if (o === '*') r = a * b;
+  else { if (a % b !== 0){ sfx.err(); shake(); say(`${a} לא מתחלק ב־${b} בלי שארית.`, 'err'); return; } r = a / b; }
+
+  undoStack.push({tiles: tiles.map(t => ({...t})), moves: moves.slice()});
+  busy = true; speed = 1; usedIds = [A.id, B.id]; newId = null;
+  hint = {level:0, step:null, ids:[]};
+  SC.pegs = false;
+  render();
+  const eq = `${a} ${SYM[o]} ${b} = ${r}`;
+  say(`${a} ${SYM[o]} ${b} = ?`);
+  $('stageSub').innerHTML = '<span class="ff">אפשר להקיש על הסרגל כדי להאיץ</span>';
+
+  if (o === '+') await animAdd(a, b);
+  else if (o === '-') await animSub(a, b);
+  else if (o === '*') await animMul(a, b);
+  else await animDiv(a, b);
+
+  tiles = tiles.filter(t => t.id !== A.id && t.id !== B.id);
+  const nt = {id:nextId++, v:r};
+  tiles.push(nt);
+  moves.push({a, op:o, b, r});
+  selA = nt.id; op = null; usedIds = []; newId = nt.id;
+  speed = 1;
+  await toOverview();
+  busy = false;
+  render();
+  if (r === P.target){ busy = true; say(`${eq} — בול!`, 'good'); sfx.win(); setTimeout(win, reduced ? 100 : 500); return; }
+  if (tiles.length === 1) say(`${eq}. נשאר מספר אחד ולא הגעת ליעד. לחץ "בטל צעד" ונסה דרך אחרת.`, 'err');
+  else say(`${eq}. התוצאה כבר נבחרה. בחר פעולה כדי להמשיך ממנה, או בחר מספר אחר.`);
+}
+function undo(){
+  if (busy || !undoStack.length) return;
+  sfx.tap();
+  const s = undoStack.pop();
+  tiles = s.tiles; moves = s.moves; selA = null; op = null; newId = null;
+  hint = {level:0, step:null, ids:[]};
+  render(); say('הצעד האחרון בוטל.');
+}
+function onHint(){
+  if (busy) return;
+  const path = moves.length === 0 ? P.path : solveFrom(tiles.map(t => t.v), P.target, 5);
+  if (!path || !path.length){ sfx.err(); say('מהמספרים שנשארו כבר אי אפשר להגיע ליעד. נסה לבטל צעד.', 'err'); return; }
+  sfx.tap();
+  P.hintUsed = true;
+  const st = path[0];
+  hint.level = Math.min(3, hint.level + 1); hint.step = st;
+  const t1 = tiles.find(t => t.v === st.a);
+  const t2 = tiles.find(t => t.v === st.b && (!t1 || t.id !== t1.id));
+  hint.ids = [t1 && t1.id, t2 && t2.id].filter(Boolean);
+  render();
+  if (hint.level === 1) say('רמז: כדאי שהצעד הראשון יגיע בערך למקום המסומן על הסרגל.');
+  else if (hint.level === 2) say('רמז: נסה להשתמש בשני המספרים המסומנים.');
+  else say(`רמז: ${st.a} ו־${st.b} בפעולת ${OPNAME[st.op]}.`);
+}
+
+/* ---------- win ---------- */
+const STAR_ON = '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="#FFC22E" stroke="#1D2B4F" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+const STAR_OFF = '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="none" stroke="#9AA7C2" stroke-width="1.6" stroke-linejoin="round" stroke-dasharray="3 2"/></svg>';
+function win(){
+  const steps = moves.length;
+  let gained = 0;
+  if (!P.solvedOnce){
+    P.solvedOnce = true;
+    P.aw = {solve:true, noHint:!P.hintUsed, short: steps <= P.minSteps};
+    gained = 1 + (P.aw.noHint ? 1 : 0) + (P.aw.short ? 1 : 0);
+    S.solved++;
+  } else if (!P.aw.short && steps <= P.minSteps){ P.aw.short = true; gained = 1; }
+  S.stars += gained; save();
+  const levelDone = S.solved >= PER_LEVEL;
+  const rows = [[P.aw.solve, 'הגעת ליעד'], [P.aw.noHint, 'בלי רמזים'], [P.aw.short, `בדרך הקצרה ביותר (${P.minSteps} צעדים)`]]
+    .map(([on, txt]) => `<div class="star-row ${on ? 'on' : 'off'}">${on ? STAR_ON : STAR_OFF}<span>${txt}</span></div>`).join('');
+  const text = steps <= P.minSteps
+    ? `הגעת ל־<span class="num">${P.target}</span> ב־${steps} צעדים. זו הדרך הקצרה ביותר!`
+    : `הגעת ל־<span class="num">${P.target}</span> ב־${steps} צעדים. יש דרך ב־${P.minSteps} צעדים בלבד.`;
+  let lvl = '';
+  if (levelDone) lvl = S.level < 5 ? `<div class="levelup">סיימת את שלב ${S.level}! השלב הבא מחכה.</div>` : `<div class="levelup">סיימת סבב בשלב האלופים! ממשיכים לאתגרים חדשים.</div>`;
+  $('sheet').innerHTML = `
+    <h2>בול!</h2><p>${text}</p>
+    <div class="star-list">${rows}</div>${lvl}
+    <div class="actions">
+      ${!P.aw.short ? `<button class="btn flag" id="retryBtn">לנסות ב־${P.minSteps} צעדים (כוכב נוסף)</button>` : ''}
+      <button class="btn primary" id="nextBtn">${levelDone && S.level < 5 ? `לשלב ${S.level + 1}` : 'לחידה הבאה'}</button>
+    </div>`;
+  $('veil').hidden = false;
+  if (levelDone) sfx.level();
+  const rb = $('retryBtn');
+  if (rb) rb.onclick = () => { $('veil').hidden = true; retry = true; resetBoard(); };
+  $('nextBtn').onclick = () => {
+    $('veil').hidden = true;
+    if (S.solved >= PER_LEVEL){ S.solved = 0; if (S.level < 5) S.level++; save(); }
+    newPuzzle();
+  };
+  $('nextBtn').focus();
+}
+
+/* ---------- render ---------- */
+function say(text, kind){ const m = $('msg'); m.textContent = text; m.className = 'msg' + (kind ? ' ' + kind : ''); }
+function shake(){ const b = $('bench'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
+// tiny base-ten picture under each number: squares = hundreds, bars = tens, dots = ones
+function glyph(v){
+  const h = Math.floor(v / 100), t = Math.floor(v % 100 / 10), u = v % 10;
+  let x = 0, s = '';
+  for (let i = 0; i < h; i++){ s += `<rect class="gh" x="${x}" y="0" width="13" height="13" rx="1.5"/>`; x += 15.5; }
+  for (let i = 0; i < t; i++){ s += `<rect class="gt" x="${x}" y="0" width="3.6" height="13" rx="1"/>`; x += 5.6; }
+  for (let i = 0; i < u; i++){ const col = Math.floor(i / 3), row = i % 3; s += `<rect class="gu" x="${x + col * 4.8}" y="${9.6 - row * 4.8}" width="3.6" height="3.6" rx=".8"/>`; }
+  if (u) x += Math.ceil(u / 3) * 4.8;
+  return `<svg viewBox="0 0 ${Math.max(x, 4)} 13" aria-hidden="true">${s}</svg>`;
+}
+function render(){
+  const L = LEVELS[S.level];
+  $('levelNum').textContent = `שלב ${S.level}`;
+  $('levelName').textContent = L.name;
+  $('starsTotal').textContent = S.stars;
+  $('soundBtn').innerHTML = S.sound ? ICON_ON : ICON_OFF;
+  $('soundBtn').setAttribute('aria-label', S.sound ? 'כבה צלילים' : 'הפעל צלילים');
+  $('targetNum').textContent = P.target;
+  const gm = $('goalMeta');
+  gm.textContent = retry ? `אתגר: ${P.minSteps} צעדים בלבד` : `אפשר להגיע ב־${P.minSteps} צעדים`;
+  gm.className = 'goal-meta' + (retry ? ' challenge' : '');
+  $('dots').innerHTML = Array.from({length:PER_LEVEL}, (_, i) => `<i class="${i < S.solved ? 'on' : ''}"></i>`).join('');
+  $('progressLabel').textContent = `התקדמות בשלב: ${Math.min(S.solved, PER_LEVEL)} מתוך ${PER_LEVEL}`;
+
+  const A = tiles.find(t => t.id === selA);
+  const sA = $('slotA'), sO = $('slotOp');
+  if (A && !busy){ sA.textContent = A.v; sA.className = 'slot filled num'; } else if (!busy){ sA.innerHTML = '<small>מספר</small>'; sA.className = 'slot'; }
+  if (op){ sO.textContent = SYM[op]; sO.className = 'slot op filled'; } else if (!busy){ sO.textContent = '?'; sO.className = 'slot op'; }
+  if (!busy){ $('slotB').innerHTML = '<small>מספר</small>'; $('slotB').className = 'slot'; $('slotR').textContent = '?'; $('slotR').className = 'slot'; }
+  else if (usedIds.length){
+    const ua = tiles.find(t => t.id === usedIds[0]), ub = tiles.find(t => t.id === usedIds[1]);
+    sA.textContent = ua.v; sA.className = 'slot filled num';
+    $('slotB').textContent = ub.v; $('slotB').className = 'slot filled num';
+  }
+
+  document.querySelectorAll('.op-btn').forEach(btn => {
+    btn.classList.toggle('on', btn.dataset.op === op);
+    btn.classList.toggle('hinted', hint.level >= 3 && !!hint.step && btn.dataset.op === hint.step.op);
+  });
+
+  $('tiles').innerHTML = tiles.map(t => {
+    const c = ['tile', t.id === selA && !busy ? 'sel' : '', usedIds.includes(t.id) ? 'used' : '', t.id === newId ? 'new' : '', t.v === P.target ? 'hit' : '', hint.level >= 2 && hint.ids.includes(t.id) ? 'hinted' : ''].join(' ');
+    return `<button class="${c}" data-id="${t.id}" aria-label="מספר ${t.v}"><b class="num">${t.v}</b>${glyph(t.v)}</button>`;
+  }).join('');
+
+  if (!busy){
+    let best = tiles[0];
+    tiles.forEach(t => { if (Math.abs(t.v - P.target) < Math.abs(best.v - P.target)) best = t; });
+    const diff = P.target - best.v;
+    $('stageSub').innerHTML = diff === 0 ? '<span>הגעת ליעד!</span>'
+      : `<span>הכי קרוב ליעד: <b class="num">${best.v}</b></span><span>${diff > 0 ? 'חסרים' : 'עודף של'} <b class="num">${Math.abs(diff)}</b></span>`;
+  }
+
+  $('undoBtn').disabled = busy || !undoStack.length;
+  $('resetBtn').disabled = busy; $('hintBtn').disabled = busy; $('newBtn').disabled = busy;
+  $('hintLabel').textContent = hint.level ? `רמז ${Math.min(hint.level + 1, 3)}/3` : 'רמז';
+  $('history').innerHTML = moves.length
+    ? moves.map(m => `<span>${m.a} ${SYM[m.op]} ${m.b} = ${m.r}</span>`).join('')
+    : '<span class="empty">עוד לא עשית צעדים</span>';
+
+  syncStage();
+}
+
+/* ---------- wiring ---------- */
+$('tiles').addEventListener('click', e => { const b = e.target.closest('.tile'); if (b) onTile(+b.dataset.id); });
+$('stage').addEventListener('click', e => {
+  if (busy){ speed = 5; return; }
+  const g = e.target.closest('.peg'); if (g) onTile(+g.dataset.id);
+});
+document.querySelectorAll('.op-btn').forEach(b => b.addEventListener('click', () => onOp(b.dataset.op)));
+$('undoBtn').addEventListener('click', undo);
+$('resetBtn').addEventListener('click', () => { if (busy) return; sfx.tap(); resetBoard(); });
+$('hintBtn').addEventListener('click', onHint);
+$('newBtn').addEventListener('click', () => { if (busy) return; sfx.tap(); newPuzzle(); });
+$('soundBtn').addEventListener('click', () => { S.sound = !S.sound; save(); $('soundBtn').innerHTML = S.sound ? ICON_ON : ICON_OFF; if (S.sound) sfx.tap(); });
+
+P = makePuzzle();
+const [lo0, hi0] = (function(){ tiles = P.pool.map(v => ({id:0, v})); return overviewWindow(); })();
+SC.lo = lo0; SC.hi = hi0;
+resetBoard();
+})();
+</script>
+
+<!-- סנכרון בין מכשירים (משותף לכל הפרויקטים) -->
+<script src="../firebase-config.js"></script>
+<script src="../ls-sync.js" data-app="towers" data-prefix="migdalim-layaad"></script>
+<script type="module" src="../sync.js"></script>
+</body></html>

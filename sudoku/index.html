@@ -1,0 +1,1970 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>מעבדת סודוקו</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&family=IBM+Plex+Sans:wght@500;600;700&family=Suez+One&display=swap">
+<style>
+:root{
+  --bg:#E9EDF5; --grid:rgba(23,37,74,.055); --surface:#FFFFFF; --surface-2:#F3F6FC;
+  --ink:#17254A; --ink-2:#44526F; --ink-3:#566384; --line:#C6D0E4; --line-strong:#17254A;
+  --accent:#2D55E6; --accent-ink:#FFFFFF; --accent-soft:#E1E8FD;
+  --mark:#FFD84A; --on-mark:#3A2D00; --mark-soft:#FFF1B8;
+  --ok:#0E7F5C; --ok-soft:#D8F3E9; --bad:#C92D23; --bad-soft:#FBE0DD;
+  --peer:#EEF2FC; --same:#C4D4FA; --selbg:#B2C5F8; --hit:#B25A00; --accent-strong:#1F3FC4; --hc:#2D55E6; --hc-strong:#1F3FC4;
+  --shadow:0 1px 0 rgba(23,37,74,.06),0 14px 34px -16px rgba(23,37,74,.35);
+  --f-head:'Suez One','Frank Ruhl Libre',Georgia,serif;
+  --f-ui:'IBM Plex Sans Hebrew','Segoe UI',system-ui,Arial,sans-serif;
+  --f-num:'IBM Plex Sans','Segoe UI',system-ui,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1426; --grid:rgba(170,190,255,.05); --surface:#161E38; --surface-2:#1C2646;
+  --ink:#E8EEFF; --ink-2:#B3BFDF; --ink-3:#93A1C9; --line:#2C3860; --line-strong:#B6C4F2;
+  --accent:#7C9BFF; --accent-ink:#0E1426; --accent-soft:#25335F;
+  --mark:#F5CB42; --on-mark:#2A2000; --mark-soft:#4A3F14;
+  --ok:#3FD6A0; --ok-soft:#133A33; --bad:#FF7A70; --bad-soft:#4A1F27;
+  --peer:#1B2547; --same:#31448A; --selbg:#3C54A3; --hit:#FFD24A; --accent-strong:#A9BEFF; --hc:#7C9BFF; --hc-strong:#A9BEFF;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.7); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1426; --grid:rgba(170,190,255,.05); --surface:#161E38; --surface-2:#1C2646;
+  --ink:#E8EEFF; --ink-2:#B3BFDF; --ink-3:#93A1C9; --line:#2C3860; --line-strong:#B6C4F2;
+  --accent:#7C9BFF; --accent-ink:#0E1426; --accent-soft:#25335F;
+  --mark:#F5CB42; --on-mark:#2A2000; --mark-soft:#4A3F14;
+  --ok:#3FD6A0; --ok-soft:#133A33; --bad:#FF7A70; --bad-soft:#4A1F27;
+  --peer:#1B2547; --same:#31448A; --selbg:#3C54A3; --hit:#FFD24A; --accent-strong:#A9BEFF; --hc:#7C9BFF; --hc-strong:#A9BEFF;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.7); color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background-color:var(--bg);color:var(--ink);font:16px/1.55 var(--f-ui);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,summary:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+svg.i{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+.app{max-width:78rem;margin:0 auto;padding:18px 16px 40px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:10px;margin:0;font:400 1.7rem/1 var(--f-head);letter-spacing:.01em}
+.brand .logo{width:34px;height:34px;color:var(--accent)}
+.tabs{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;box-shadow:var(--shadow)}
+.tabs button{border:0;background:transparent;padding:7px 16px;border-radius:999px;font-weight:600;font-size:.95rem;color:var(--ink-2);min-height:38px}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+
+.grid{display:flex;flex-direction:column;gap:14px}
+.side,.stage{display:contents}
+#rail{order:1}#task{order:2}.boardwrap{order:3}#coach{order:4}#entry{order:4}#pad{order:5}#tools{order:6}#lesson{order:7}
+@media (min-width:900px){
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,36rem);gap:22px;align-items:start}
+  .side,.stage{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .stage{position:sticky;top:16px}
+  #rail,#task,.boardwrap,#coach,#entry,#pad,#tools,#lesson{order:0}
+}
+
+/* technique rail */
+.rail{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin;scroll-snap-type:x proximity}
+@media (min-width:900px){.rail{flex-wrap:wrap;overflow:visible;padding-bottom:2px}}
+.chip{flex:none;scroll-snap-align:start;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:start;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px 7px 12px;min-height:52px;box-shadow:0 1px 0 rgba(23,37,74,.05)}
+.chip .lv{grid-row:1 / span 2;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:600 .78rem var(--f-num);background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.chip .nm{font-weight:600;font-size:.95rem;line-height:1.2;white-space:nowrap}
+.chip .dots{display:flex;gap:3px;margin-top:3px}
+.dots i{width:7px;height:7px;border-radius:50%;background:transparent;border:1.5px solid var(--line)}
+.dots i.on{background:var(--ok);border-color:var(--ok)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent) inset}
+.chip[aria-pressed="true"] .lv{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);min-width:0}
+.task .t-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.t-name{font:400 1.45rem/1.2 var(--f-head)}
+.t-name .en{font:500 .8rem var(--f-num);color:var(--ink-3);margin-inline-start:8px;letter-spacing:.02em}
+.t-meta{color:var(--ink-3);font-size:.85rem;margin-top:2px}
+.t-goal{margin:10px 0 4px;font-weight:600}
+.t-why{margin:0;color:var(--ink-2);font-size:.9rem}
+.t-status{margin:12px 0 0;min-height:3.1em;padding:9px 12px;border-radius:10px;background:var(--surface-2);color:var(--ink-2);font-size:.92rem;display:flex;align-items:center;gap:8px}
+.t-status.ok{background:var(--ok-soft);color:var(--ok);font-weight:600}
+.t-status.bad{background:var(--bad-soft);color:var(--bad);font-weight:600}
+.t-status.wait::before{content:"";width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.t-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:8px 16px;border-radius:11px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:.94rem}
+.btn:hover:not(:disabled){border-color:var(--ink-3)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.mk{background:var(--mark);border-color:var(--mark);color:var(--on-mark)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.btn:disabled{opacity:.45;cursor:default}
+select.btn{padding-inline:12px;appearance:auto}
+
+/* coach */
+.coach{border-color:var(--mark);box-shadow:0 0 0 2px var(--mark-soft),var(--shadow)}
+.co-h{display:flex;align-items:center;gap:10px}
+.co-tag{background:var(--mark);color:var(--on-mark);font-weight:700;font-size:.82rem;padding:2px 10px;border-radius:999px}
+.co-n{color:var(--ink-3);font-size:.85rem;flex:1}
+.x-btn{border:0;background:transparent;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:var(--ink-2)}
+.x-btn:hover{background:var(--surface-2)}
+.pips{display:flex;gap:6px;margin:10px 0 8px}
+.pips i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.pips i.on{background:var(--mark)}
+.coach h3{margin:0 0 4px;font:400 1.15rem/1.3 var(--f-head)}
+.coach p{margin:0;max-width:62ch}
+.co-b{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pos{font:600 .85em var(--f-num);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:0 5px;white-space:nowrap;direction:ltr;unicode-bidi:isolate;display:inline-block}
+.dg{font-family:var(--f-num);color:var(--accent);font-size:1.05em}
+
+/* lesson */
+.lesson summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:32px}
+.lesson summary::-webkit-details-marker{display:none}
+.lesson summary::after{content:"+";font:400 1.4rem/1 var(--f-num);color:var(--ink-3)}
+.lesson[open] summary::after{content:"−"}
+.lesson p{margin:8px 0}
+.lesson ol{margin:6px 0 8px;padding-inline-start:1.3rem}
+.lesson li{margin:3px 0}
+.lesson .tip{background:var(--mark-soft);border-radius:10px;padding:8px 12px;font-size:.92rem}
+
+/* board */
+.boardwrap{display:flex;justify-content:center}
+.frame{container-type:inline-size;position:relative;width:min(100%,36rem);aspect-ratio:1;transition:transform .45s cubic-bezier(.3,.7,.2,1);transform:rotate(var(--rot,0deg));direction:ltr;
+  background:var(--surface);border:3px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow)}
+.board{position:absolute;inset:0;display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr);gap:1px;background:var(--line);border-radius:6px;overflow:hidden;direction:ltr}
+.board.dim{opacity:.55}
+.board.paused{filter:blur(9px);pointer-events:none}
+.board{touch-action:none}
+.c{position:relative;background:var(--surface);display:grid;place-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;min-width:0;min-height:0;outline:none}
+.c.peer{background:var(--peer)}
+.c.same{background:var(--same)}
+.c.same .v{color:var(--hc-strong)}
+.c.msel{background:var(--selbg)}
+.app[data-peer="off"] .c.peer{background:var(--surface)}
+.app[data-hl="1"]{--hlp:16%}.app[data-hl="2"]{--hlp:27%}.app[data-hl="3"]{--hlp:42%}
+.app[data-cs="1"]{--cdsz:2.3cqw}.app[data-cs="3"]{--cdsz:3.2cqw}
+@supports (color:color-mix(in srgb,red,blue)){
+  .app{--hlp:27%}
+  .c.same{background:color-mix(in srgb,var(--hc) var(--hlp),var(--surface))}
+  .c.peer{background:color-mix(in srgb,var(--hc) 7%,var(--surface))}
+  .c.sel,.c.msel{background:color-mix(in srgb,var(--hc) 38%,var(--surface))}
+  .app[data-peer="off"] .c.peer{background:var(--surface)}
+}
+.c.sel{background:var(--selbg);box-shadow:inset 0 0 0 .5cqw var(--hc)}
+.c.bad{background:var(--bad-soft)}
+.c.unsure{box-shadow:inset 0 0 0 .5cqw var(--mark)}
+.c.shake{animation:shake .32s}
+@keyframes shake{20%,60%{transform:translateX(-3px)}40%,80%{transform:translateX(3px)}}
+.c > *{transform:rotate(calc(-1 * var(--rot,0deg)));transition:transform .45s cubic-bezier(.3,.7,.2,1)}
+.v{font:600 6.4cqw/1 var(--f-num);color:var(--ink)}
+.c.bad .v{color:var(--bad)}
+.v.ghost{color:var(--ok);opacity:.9;animation:pop .35s}
+@keyframes pop{from{transform:scale(.4);opacity:0}}
+.cs{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:.3cqw}
+.cd{display:grid;place-items:center;font:500 var(--cdsz,2.7cqw)/1 var(--f-num);color:var(--ink-3);font-style:normal;margin:.15cqw}
+.cd.same{color:var(--hc-strong);font-weight:800}
+.cd.hit{color:var(--hit);font-weight:800}
+.cd.x{color:var(--bad);font-weight:800;text-decoration:line-through;text-decoration-thickness:.35cqw}
+.cd.on{cursor:pointer}
+.ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.ov .box{stroke:var(--line-strong);stroke-width:.06;stroke-linecap:square}
+.ov .u{fill:var(--accent);fill-opacity:.11;stroke:var(--accent);stroke-opacity:.45;stroke-width:.035;animation:fade .4s}
+.ov .rg{fill:none;stroke:var(--mark);stroke-width:.075;animation:fade .4s}
+.ov .lk{stroke:var(--accent);stroke-width:.05;stroke-dasharray:.14 .1;stroke-linecap:round;animation:fade .5s}
+@keyframes fade{from{opacity:0}}
+.board.fill-ok .c{animation:none}
+
+/* input */
+.pad{display:flex;flex-direction:column;gap:10px}
+.padmode{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;min-height:40px}
+.padcap{color:var(--ink-2);font-size:.88rem;flex:1;min-width:12rem}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:7px 14px;font-weight:600;font-size:.9rem;min-height:38px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.keys{direction:ltr;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.key{position:relative;min-height:54px;border-radius:12px;border:1px solid var(--line);background:var(--surface);box-shadow:0 2px 0 var(--line);font:600 1.5rem/1 var(--f-num);display:grid;place-items:center;padding:0}
+.key:active{transform:translateY(2px);box-shadow:none}
+.key .r{position:absolute;top:4px;inset-inline-end:7px;font:500 .62rem var(--f-num);color:var(--ink-3)}
+.key.done{opacity:.4}
+.key.mk{background:var(--accent-soft)}
+.key.er{font-size:1rem;font-family:var(--f-ui)}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tools .btn{min-height:40px;padding:6px 12px;font-size:.88rem}
+.tools .btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+
+/* entry */
+.entry h3{margin:0 0 6px;font:400 1.25rem var(--f-head)}
+.entry p{margin:4px 0 10px;color:var(--ink-2);font-size:.92rem}
+.entry textarea{width:100%;min-height:64px;resize:vertical;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font:500 .85rem/1.4 var(--f-num);padding:8px 10px;direction:ltr}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:420px){.card{padding:14px}.t-name{font-size:1.3rem}.key{min-height:50px}.brand{font-size:1.45rem}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+button,.board,.key{touch-action:manipulation}
+
+.set-btn{min-height:40px}
+.settings h3{margin:0 0 8px;font:400 1.2rem var(--f-head)}
+.settings{margin-bottom:14px}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:7px 0;border-top:1px solid var(--line)}
+.set-row:first-of-type{border-top:0}
+.set-l{font-weight:600;font-size:.94rem}
+.clock{font:600 1.5rem/1 var(--f-num);font-variant-numeric:tabular-nums;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:7px 11px;direction:ltr}
+.journal{display:flex;flex-direction:column;gap:14px}
+.j-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{display:flex;flex-direction:column;gap:2px}
+.tile b{font:400 2rem/1.1 var(--f-head);font-variant-numeric:tabular-nums}
+.tile span{color:var(--ink-2);font-size:.88rem}
+.j-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,21rem),1fr));gap:14px}
+.journal h3{margin:0 0 8px;font:400 1.2rem var(--f-head)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:start;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th{color:var(--ink-3);font-weight:600;font-size:.82rem}
+tbody th{font-weight:600}
+td small{color:var(--ink-3)}
+.j-list{list-style:none;margin:0;padding:0}
+.j-list li{display:grid;grid-template-columns:7.5rem 1fr auto;gap:2px 10px;padding:8px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.j-time{font:600 1rem var(--f-num);direction:ltr}
+.j-meta{grid-column:2 / -1;color:var(--ink-3);font-size:.82rem}
+.j-when{color:var(--ink-3);font-size:.82rem}
+.j-name{font-weight:600}
+.tagx{background:var(--mark-soft);color:var(--ink);border-radius:6px;padding:0 6px;font-size:.78rem}
+.j-empty{color:var(--ink-2);margin:0}
+@media (max-width:560px){.top{gap:8px}.tabs button{padding:7px 11px;font-size:.88rem}}
+.settings{max-width:38rem}
+
+.ov .selp{fill:none;stroke:var(--hc);stroke-width:.085;stroke-linecap:round;stroke-linejoin:round}
+.clockbox{display:flex;align-items:center;gap:6px;flex:none}
+.pb{border:1px solid var(--line);background:var(--surface);width:40px;height:40px}
+.sw{width:34px;height:34px;border-radius:50%;border:3px solid var(--surface);background:var(--c);box-shadow:0 0 0 1.5px var(--line)}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+.swatches{display:flex;gap:10px;padding:2px}
+.app[data-hc="green"]{--hc:#0E8F63;--hc-strong:#09694A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app[data-hc="green"]{--hc:#3FD6A0;--hc-strong:#8CF0CC}}
+:root[data-theme="dark"] .app[data-hc="green"]{--hc:#3FD6A0;--hc-strong:#8CF0CC}
+.app[data-hc="purple"]{--hc:#7A4FE0;--hc-strong:#5630B8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app[data-hc="purple"]{--hc:#B39BFF;--hc-strong:#D4C6FF}}
+:root[data-theme="dark"] .app[data-hc="purple"]{--hc:#B39BFF;--hc-strong:#D4C6FF}
+.app[data-hc="orange"]{--hc:#E0680F;--hc-strong:#A94A00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app[data-hc="orange"]{--hc:#FF9A4D;--hc-strong:#FFC08F}}
+:root[data-theme="dark"] .app[data-hc="orange"]{--hc:#FF9A4D;--hc-strong:#FFC08F}
+.app[data-hc="pink"]{--hc:#D62E86;--hc-strong:#A31C63}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app[data-hc="pink"]{--hc:#FF7FBF;--hc-strong:#FFB3D8}}
+:root[data-theme="dark"] .app[data-hc="pink"]{--hc:#FF7FBF;--hc-strong:#FFB3D8}
+.app[data-ht="green"]{--mark:#43D9A3;--hit:#0E7F5C;--mark-soft:#D5F5E8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app[data-ht="green"]{--mark:#3FD6A0;--hit:#5CE6B4;--mark-soft:#134034}}
+:root[data-theme="dark"] .app[data-ht="green"]{--mark:#3FD6A0;--hit:#5CE6B4;--mark-soft:#134034}
+.app[data-ht="violet"]{--mark:#A68BFF;--hit:#6B3FD0;--mark-soft:#E6DEFF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app[data-ht="violet"]{--mark:#9C86F0;--hit:#C3B0FF;--mark-soft:#2E2658}}
+:root[data-theme="dark"] .app[data-ht="violet"]{--mark:#9C86F0;--hit:#C3B0FF;--mark-soft:#2E2658}
+.app[data-ht="cyan"]{--mark:#4CCFE6;--hit:#0B7C94;--mark-soft:#D0F1F8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app[data-ht="cyan"]{--mark:#38BDD9;--hit:#6EE0F5;--mark-soft:#123B45}}
+:root[data-theme="dark"] .app[data-ht="cyan"]{--mark:#38BDD9;--hit:#6EE0F5;--mark-soft:#123B45}
+.app[data-hc="blue"]{--hc:var(--accent);--hc-strong:var(--accent-strong)}
+
+.app[data-hc="red"]{--hc:#D9382E;--hc-strong:#A81F16}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app[data-hc="red"]{--hc:#FF7A70;--hc-strong:#FFB0A8}}
+:root[data-theme="dark"] .app[data-hc="red"]{--hc:#FF7A70;--hc-strong:#FFB0A8}
+
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-logo" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3.5"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18" stroke-width="1"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+<symbol id="i-rot" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M20 4v5h-5"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 10 6 10 6a17 17 0 0 1-3.2 3.7M6.4 7.6A17 17 0 0 0 2 12s4 7 10 7a9.5 9.5 0 0 0 4-.9"/></symbol>
+<symbol id="i-fill" viewBox="0 0 24 24"><path d="M4 20 15 9"/><path d="m14 4 1.2 2.8L18 8l-2.8 1.2L14 12l-1.2-2.8L10 8l2.8-1.2z"/><path d="M19 14l.7 1.5L21 16l-1.3.5L19 18l-.7-1.5L17 16l1.3-.5z"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></symbol>
+<symbol id="i-new" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="m4 20 1-4L16 5l3 3L8 19z"/></symbol>
+<symbol id="i-ar" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-al" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+<symbol id="i-again" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+</defs></svg>
+<div class="app" id="app" dir="rtl" lang="he">
+  <header class="top">
+    <h1 class="brand"><svg class="i logo" aria-hidden="true"><use href="#i-logo"/></svg>מעבדת סודוקו</h1>
+    <nav class="tabs" role="tablist" aria-label="מצב">
+      <button role="tab" data-mode="drill" aria-selected="true">תרגול טכניקות</button>
+      <button role="tab" data-mode="free" aria-selected="false">משחק חופשי</button>
+      <button role="tab" data-mode="journal" aria-selected="false">יומן</button>
+    </nav>
+    <button class="btn set-btn" data-act="settings" aria-expanded="false" aria-controls="settings"><svg class="i" aria-hidden="true"><use href="#i-gear"/></svg>עיצוב</button>
+  </header>
+  <section id="settings" class="card settings" hidden></section>
+  <main class="grid">
+    <div class="side">
+      <div id="rail" class="rail" role="group" aria-label="בחירת טכניקה"></div>
+      <section id="task" class="card task"></section>
+      <section id="coach" class="card coach" hidden aria-live="polite"></section>
+      <section id="entry" class="card entry" hidden></section>
+      <details id="lesson" class="card lesson"></details>
+    </div>
+    <div class="stage">
+      <div class="boardwrap">
+        <div class="frame" id="frame">
+          <div class="board" id="board" role="grid" aria-label="לוח סודוקו"></div>
+          <svg class="ov" id="ov" viewBox="0 0 9 9" aria-hidden="true">
+            <g id="lay"></g>
+            <path class="box" d="M3 0V9M6 0V9M0 3H9M0 6H9"/>
+            <g id="selg"></g>
+          </svg>
+        </div>
+      </div>
+      <div id="pad" class="pad"></div>
+      <div id="tools" class="tools"></div>
+    </div>
+  </main>
+  <section id="journal" class="journal" hidden></section>
+</div>
+
+<script>
+(()=>{
+/* ============================================================
+   Sudoku engine: bitmask candidates, technique finders,
+   solver, puzzle generator and drill-position harvesting.
+   Pure logic, no DOM.
+   Candidate masks: bit d (1..9) set = digit d is possible.
+   ============================================================ */
+
+const ALL = 0x3FE;
+const POP = new Uint8Array(1024);
+for (let i = 1; i < 1024; i++) POP[i] = POP[i >> 1] + (i & 1);
+const lowDigit = m => 31 - Math.clz32(m & -m);
+const digitsOf = m => { const o = []; for (let d = 1; d <= 9; d++) if (m & (1 << d)) o.push(d); return o; };
+
+const ROWA = new Uint8Array(81), COLA = new Uint8Array(81), BOXA = new Uint8Array(81);
+for (let i = 0; i < 81; i++) {
+  ROWA[i] = (i / 9) | 0;
+  COLA[i] = i % 9;
+  BOXA[i] = (((i / 27) | 0) * 3) + (((i % 9) / 3) | 0);
+}
+const ROW = i => ROWA[i], COL = i => COLA[i], BOX = i => BOXA[i];
+
+const UNITS = [];
+for (let x = 0; x < 9; x++) {
+  const cells = [], br = ((x / 3) | 0) * 3, bc = (x % 3) * 3;
+  for (let r = br; r < br + 3; r++) for (let c = bc; c < bc + 3; c++) cells.push(r * 9 + c);
+  UNITS.push({ type: 'box', idx: x, cells });
+}
+for (let r = 0; r < 9; r++) UNITS.push({ type: 'row', idx: r, cells: Array.from({ length: 9 }, (_, c) => r * 9 + c) });
+for (let c = 0; c < 9; c++) UNITS.push({ type: 'col', idx: c, cells: Array.from({ length: 9 }, (_, r) => r * 9 + c) });
+const BOXES = UNITS.slice(0, 9), ROWS = UNITS.slice(9, 18), COLS = UNITS.slice(18, 27);
+const LINES = ROWS.concat(COLS);
+const PEERS = Array.from({ length: 81 }, (_, i) => {
+  const s = new Set();
+  for (const u of UNITS) if (u.cells.includes(i)) for (const c of u.cells) if (c !== i) s.add(c);
+  return [...s];
+});
+
+/* easiest -> hardest. "Exhausted" always means: no technique earlier in this list applies. */
+const TECH_ORDER = ['naked-single', 'hidden-single', 'pointing-pair', 'box-line',
+  'naked-pair', 'hidden-pair', 'naked-triple', 'hidden-triple', 'x-wing', 'xy-wing', 'swordfish'];
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; const t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+
+/* ---------- candidates ---------- */
+function ruleMasks(b) {
+  const m = new Array(81).fill(0);
+  for (let i = 0; i < 81; i++) {
+    if (b[i]) continue;
+    let used = 0;
+    const ps = PEERS[i];
+    for (let k = 0; k < ps.length; k++) { const v = b[ps[k]]; if (v) used |= 1 << v; }
+    m[i] = ALL & ~used;
+  }
+  return m;
+}
+
+function placeValue(b, cand, cell, d) {
+  b[cell] = d; cand[cell] = 0;
+  const nb = ~(1 << d), ps = PEERS[cell];
+  for (let k = 0; k < ps.length; k++) cand[ps[k]] &= nb;
+}
+
+function applyHint(h, b, cand) {
+  if (h.kind === 'place') placeValue(b, cand, h.place.cell, h.place.value);
+  else for (const r of h.removals) cand[r.cell] &= ~(1 << r.digit);
+}
+
+/* ---------- technique finders ----------
+   Every finder reports hints through emit(hint); emit returns true when the caller has
+   enough, and the finder then stops.
+   hint = { tech, kind:'place'|'elim', unit, cells, digits, place, removals, ...extra } */
+const FINDERS = {};
+
+FINDERS['naked-single'] = (b, cand, emit) => {
+  for (let i = 0; i < 81; i++) {
+    if (b[i] === 0 && POP[cand[i]] === 1) {
+      const d = lowDigit(cand[i]);
+      if (emit({ tech: 'naked-single', kind: 'place', unit: null, cells: [i], digits: [d], place: { cell: i, value: d }, removals: [] })) return;
+    }
+  }
+};
+
+FINDERS['hidden-single'] = (b, cand, emit) => {
+  const seen = new Set();
+  for (const u of UNITS) {
+    for (let d = 1; d <= 9; d++) {
+      const bit = 1 << d;
+      let n = 0, at = -1, placed = false;
+      for (const c of u.cells) {
+        if (b[c] === d) { placed = true; break; }
+        if (b[c] === 0 && (cand[c] & bit)) { n++; at = c; }
+      }
+      if (placed || n !== 1 || POP[cand[at]] < 2) continue;
+      const key = at * 10 + d;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (emit({ tech: 'hidden-single', kind: 'place', unit: u, cells: [at], digits: [d], place: { cell: at, value: d }, removals: [] })) return;
+    }
+  }
+};
+
+FINDERS['pointing-pair'] = (b, cand, emit) => {
+  for (const u of BOXES) {
+    for (let d = 1; d <= 9; d++) {
+      const bit = 1 << d;
+      const cs = u.cells.filter(c => b[c] === 0 && (cand[c] & bit));
+      if (cs.length < 2 || cs.length > 3) continue;
+      const sameRow = cs.every(c => ROWA[c] === ROWA[cs[0]]);
+      const sameCol = cs.every(c => COLA[c] === COLA[cs[0]]);
+      if (!sameRow && !sameCol) continue;
+      const line = sameRow ? ROWS[ROWA[cs[0]]] : COLS[COLA[cs[0]]];
+      const removals = [];
+      for (const c of line.cells) if (BOXA[c] !== u.idx && b[c] === 0 && (cand[c] & bit)) removals.push({ cell: c, digit: d });
+      if (!removals.length) continue;
+      if (emit({ tech: 'pointing-pair', kind: 'elim', unit: u, line, cells: cs, digits: [d], place: null, removals })) return;
+    }
+  }
+};
+
+FINDERS['box-line'] = (b, cand, emit) => {
+  for (const u of LINES) {
+    for (let d = 1; d <= 9; d++) {
+      const bit = 1 << d;
+      const cs = u.cells.filter(c => b[c] === 0 && (cand[c] & bit));
+      if (cs.length < 2 || cs.length > 3) continue;
+      const bx = BOXA[cs[0]];
+      if (!cs.every(c => BOXA[c] === bx)) continue;
+      const box = BOXES[bx];
+      const removals = [];
+      for (const c of box.cells) if (!u.cells.includes(c) && b[c] === 0 && (cand[c] & bit)) removals.push({ cell: c, digit: d });
+      if (!removals.length) continue;
+      if (emit({ tech: 'box-line', kind: 'elim', unit: u, box, cells: cs, digits: [d], place: null, removals })) return;
+    }
+  }
+};
+
+FINDERS['naked-pair'] = (b, cand, emit) => {
+  for (const u of UNITS) {
+    const e = u.cells.filter(c => b[c] === 0 && POP[cand[c]] === 2);
+    for (let i = 0; i < e.length; i++) for (let j = i + 1; j < e.length; j++) {
+      if (cand[e[i]] !== cand[e[j]]) continue;
+      const mask = cand[e[i]], removals = [];
+      for (const c of u.cells) {
+        if (c === e[i] || c === e[j] || b[c] !== 0) continue;
+        const hit = cand[c] & mask;
+        if (hit) for (const d of digitsOf(hit)) removals.push({ cell: c, digit: d });
+      }
+      if (!removals.length) continue;
+      if (emit({ tech: 'naked-pair', kind: 'elim', unit: u, cells: [e[i], e[j]], digits: digitsOf(mask), place: null, removals })) return;
+    }
+  }
+};
+
+FINDERS['hidden-pair'] = (b, cand, emit) => {
+  for (const u of UNITS) {
+    const pos = new Array(10);
+    for (let d = 1; d <= 9; d++) { pos[d] = []; for (const c of u.cells) if (b[c] === 0 && (cand[c] & (1 << d))) pos[d].push(c); }
+    for (let d1 = 1; d1 <= 9; d1++) {
+      if (pos[d1].length !== 2) continue;
+      for (let d2 = d1 + 1; d2 <= 9; d2++) {
+        if (pos[d2].length !== 2 || pos[d2][0] !== pos[d1][0] || pos[d2][1] !== pos[d1][1]) continue;
+        const keep = (1 << d1) | (1 << d2), removals = [];
+        for (const c of pos[d1]) {
+          const extra = cand[c] & ~keep;
+          if (extra) for (const d of digitsOf(extra)) removals.push({ cell: c, digit: d });
+        }
+        if (!removals.length) continue;
+        if (emit({ tech: 'hidden-pair', kind: 'elim', unit: u, cells: pos[d1].slice(), digits: [d1, d2], place: null, removals })) return;
+      }
+    }
+  }
+};
+
+FINDERS['naked-triple'] = (b, cand, emit) => {
+  for (const u of UNITS) {
+    const e = u.cells.filter(c => b[c] === 0 && POP[cand[c]] >= 2 && POP[cand[c]] <= 3);
+    for (let i = 0; i < e.length; i++) for (let j = i + 1; j < e.length; j++) for (let k = j + 1; k < e.length; k++) {
+      const mask = cand[e[i]] | cand[e[j]] | cand[e[k]];
+      if (POP[mask] !== 3) continue;
+      const removals = [];
+      for (const c of u.cells) {
+        if (c === e[i] || c === e[j] || c === e[k] || b[c] !== 0) continue;
+        const hit = cand[c] & mask;
+        if (hit) for (const d of digitsOf(hit)) removals.push({ cell: c, digit: d });
+      }
+      if (!removals.length) continue;
+      if (emit({ tech: 'naked-triple', kind: 'elim', unit: u, cells: [e[i], e[j], e[k]], digits: digitsOf(mask), place: null, removals })) return;
+    }
+  }
+};
+
+FINDERS['x-wing'] = (b, cand, emit) => {
+  for (let d = 1; d <= 9; d++) {
+    const bit = 1 << d;
+    for (const base of ['rows', 'cols']) {
+      const lines = base === 'rows' ? ROWS : COLS;
+      const pairs = [];
+      for (const u of lines) {
+        const cs = u.cells.filter(c => b[c] === 0 && (cand[c] & bit));
+        if (cs.length === 2) pairs.push({ u, cs });
+      }
+      for (let i = 0; i < pairs.length; i++) for (let j = i + 1; j < pairs.length; j++) {
+        const A = pairs[i], B = pairs[j];
+        const ia = A.cs.map(c => base === 'rows' ? COLA[c] : ROWA[c]);
+        const ib = B.cs.map(c => base === 'rows' ? COLA[c] : ROWA[c]);
+        if (ia[0] !== ib[0] || ia[1] !== ib[1]) continue;
+        const cover = ia.map(x => (base === 'rows' ? COLS : ROWS)[x]);
+        const inBase = c => (base === 'rows' ? ROWA[c] : COLA[c]) === A.u.idx || (base === 'rows' ? ROWA[c] : COLA[c]) === B.u.idx;
+        const removals = [];
+        for (const cu of cover) for (const c of cu.cells) if (!inBase(c) && b[c] === 0 && (cand[c] & bit)) removals.push({ cell: c, digit: d });
+        if (!removals.length) continue;
+        if (emit({ tech: 'x-wing', kind: 'elim', unit: null, base, baseLines: [A.u, B.u], coverLines: cover,
+          cells: A.cs.concat(B.cs), digits: [d], place: null, removals })) return;
+      }
+    }
+  }
+};
+
+FINDERS['hidden-triple'] = (b, cand, emit) => {
+  for (const u of UNITS) {
+    const pos = new Array(10);
+    for (let d = 1; d <= 9; d++) { pos[d] = []; for (const c of u.cells) if (b[c] === 0 && (cand[c] & (1 << d))) pos[d].push(c); }
+    const ds = []; for (let d = 1; d <= 9; d++) if (pos[d].length >= 2 && pos[d].length <= 3) ds.push(d);
+    for (let i = 0; i < ds.length; i++) for (let j = i + 1; j < ds.length; j++) for (let k = j + 1; k < ds.length; k++) {
+      const cs = new Set([...pos[ds[i]], ...pos[ds[j]], ...pos[ds[k]]]);
+      if (cs.size !== 3) continue;
+      const keep = (1 << ds[i]) | (1 << ds[j]) | (1 << ds[k]), removals = [];
+      for (const c of cs) { const extra = cand[c] & ~keep; if (extra) for (const d of digitsOf(extra)) removals.push({ cell: c, digit: d }); }
+      if (!removals.length) continue;
+      if (emit({ tech: 'hidden-triple', kind: 'elim', unit: u, cells: [...cs], digits: [ds[i], ds[j], ds[k]], place: null, removals })) return;
+    }
+  }
+};
+
+FINDERS['xy-wing'] = (b, cand, emit) => {
+  for (let p = 0; p < 81; p++) {
+    if (b[p] || POP[cand[p]] !== 2) continue;
+    const [x, y] = digitsOf(cand[p]);
+    const wings = PEERS[p].filter(c => !b[c] && POP[cand[c]] === 2);
+    for (const a of wings) {
+      if (!(cand[a] & (1 << x)) || (cand[a] & (1 << y))) continue;
+      const z = lowDigit(cand[a] & ~(1 << x));
+      for (const w of wings) {
+        if (w === a || cand[w] !== ((1 << y) | (1 << z))) continue;
+        const bit = 1 << z, removals = [];
+        for (const c of PEERS[a]) if (c !== p && c !== w && !b[c] && (cand[c] & bit) && PEERS[w].includes(c)) removals.push({ cell: c, digit: z });
+        if (!removals.length) continue;
+        if (emit({ tech: 'xy-wing', kind: 'elim', unit: null, pivot: p, wings: [a, w], cells: [p, a, w], digits: [x, y, z], place: null, removals })) return;
+      }
+    }
+  }
+};
+
+FINDERS['swordfish'] = (b, cand, emit) => {
+  for (let d = 1; d <= 9; d++) {
+    const bit = 1 << d;
+    for (const base of ['rows', 'cols']) {
+      const lines = base === 'rows' ? ROWS : COLS, idx = c => base === 'rows' ? COLA[c] : ROWA[c], bidx = c => base === 'rows' ? ROWA[c] : COLA[c];
+      const cand3 = [];
+      for (const u of lines) { const cs = u.cells.filter(c => b[c] === 0 && (cand[c] & bit)); if (cs.length >= 2 && cs.length <= 3) cand3.push({ u, cs }); }
+      for (let i = 0; i < cand3.length; i++) for (let j = i + 1; j < cand3.length; j++) for (let k = j + 1; k < cand3.length; k++) {
+        const set = new Set(); for (const L of [cand3[i], cand3[j], cand3[k]]) for (const c of L.cs) set.add(idx(c));
+        if (set.size !== 3) continue;
+        const baseIdx = new Set([cand3[i].u.idx, cand3[j].u.idx, cand3[k].u.idx]);
+        const cover = [...set].sort((a, c) => a - c).map(x => (base === 'rows' ? COLS : ROWS)[x]);
+        const removals = [];
+        for (const cu of cover) for (const c of cu.cells) if (!baseIdx.has(bidx(c)) && b[c] === 0 && (cand[c] & bit)) removals.push({ cell: c, digit: d });
+        if (!removals.length) continue;
+        if (emit({ tech: 'swordfish', kind: 'elim', unit: null, base, baseLines: [cand3[i].u, cand3[j].u, cand3[k].u], coverLines: cover,
+          cells: [].concat(cand3[i].cs, cand3[j].cs, cand3[k].cs), digits: [d], place: null, removals })) return;
+      }
+    }
+  }
+};
+
+function findHints(tech, b, cand, limit) {
+  const out = [], max = limit || 1e9;
+  FINDERS[tech](b, cand, h => { out.push(h); return out.length >= max; });
+  return out;
+}
+
+function easiestHint(b, cand, maxIdx) {
+  const top = maxIdx === undefined ? TECH_ORDER.length - 1 : maxIdx;
+  for (let t = 0; t <= top; t++) {
+    const hs = findHints(TECH_ORDER[t], b, cand, 1);
+    if (hs.length) return hs[0];
+  }
+  return null;
+}
+
+/* A hint is sound when it agrees with the real solution. Hints computed from the player's own
+   (possibly wrong) pencil marks can fail this. */
+function isSoundHint(h, solution) {
+  if (h.kind === 'place') return solution[h.place.cell] === h.place.value;
+  return h.removals.every(r => solution[r.cell] !== r.digit);
+}
+
+/* ---------- solver / generator ---------- */
+function search(g0, opt) {
+  const limit = (opt && opt.limit) || 2, budget = (opt && opt.budget) || 20000, randomize = !!(opt && opt.randomize);
+  const g = g0.slice();
+  const rowM = new Int32Array(9), colM = new Int32Array(9), boxM = new Int32Array(9);
+  for (let i = 0; i < 81; i++) {
+    const v = g[i]; if (!v) continue;
+    const bit = 1 << v;
+    if ((rowM[ROWA[i]] | colM[COLA[i]] | boxM[BOXA[i]]) & bit) return { count: 0, solution: null, aborted: false };
+    rowM[ROWA[i]] |= bit; colM[COLA[i]] |= bit; boxM[BOXA[i]] |= bit;
+  }
+  let count = 0, sol = null, nodes = 0, aborted = false;
+  function rec() {
+    let best = -1, bm = 0, bn = 10;
+    for (let i = 0; i < 81; i++) {
+      if (g[i]) continue;
+      const m = ALL & ~(rowM[ROWA[i]] | colM[COLA[i]] | boxM[BOXA[i]]);
+      const n = POP[m];
+      if (n === 0) return;
+      if (n < bn) { best = i; bm = m; bn = n; if (n === 1) break; }
+    }
+    if (best < 0) { count++; if (!sol) sol = g.slice(); return; }
+    if (++nodes > budget) { aborted = true; return; }
+    const digs = digitsOf(bm);
+    if (randomize) shuffle(digs);
+    const r = ROWA[best], c = COLA[best], x = BOXA[best];
+    for (const d of digs) {
+      const bit = 1 << d;
+      g[best] = d; rowM[r] |= bit; colM[c] |= bit; boxM[x] |= bit;
+      rec();
+      g[best] = 0; rowM[r] &= ~bit; colM[c] &= ~bit; boxM[x] &= ~bit;
+      if (count >= limit || aborted) return;
+    }
+  }
+  rec();
+  return { count, solution: sol, aborted };
+}
+
+function randomGrid() {
+  for (;;) {
+    const r = search(new Array(81).fill(0), { limit: 1, budget: 4000, randomize: true });
+    if (r.solution) return r.solution;
+  }
+}
+
+/* Remove clues in random order while the solution stays unique. */
+function punch(full, targetClues) {
+  const b = full.slice();
+  let clues = 81;
+  for (const i of shuffle([...Array(81).keys()])) {
+    if (clues <= targetClues) break;
+    const keep = b[i];
+    b[i] = 0;
+    const r = search(b, { limit: 2, budget: 3000 });
+    if (r.count !== 1 || r.aborted) b[i] = keep; else clues--;
+  }
+  return b;
+}
+
+function makePuzzle(targetClues) {
+  const solution = randomGrid();
+  return { puzzle: punch(solution, targetClues), solution };
+}
+
+/* Solve a puzzle with the easiest-first ladder. In one pass this gives
+   - level: index of the hardest technique the puzzle needs (-1 when the ladder gets stuck),
+   - positions: for every technique, one random board state in which that technique is the
+     easiest step available (a "drill position"). */
+function analyzePuzzle(puzzle, solution) {
+  const b = puzzle.slice(), cand = ruleMasks(b);
+  const snaps = {}, counts = {};
+  let step = 0, maxIdx = 0, stuck = false;
+  for (let it = 0; it < 600; it++) {
+    if (!b.includes(0)) break;
+    const h = easiestHint(b, cand);
+    if (!h) { stuck = true; break; }
+    const t = TECH_ORDER.indexOf(h.tech);
+    if (t > maxIdx) maxIdx = t;
+    counts[h.tech] = (counts[h.tech] || 0) + 1;
+    if (Math.random() * counts[h.tech] < 1) snaps[h.tech] = { tech: h.tech, step, puzzle, solution, board: b.slice(), cand: cand.slice() };
+    applyHint(h, b, cand);
+    step++;
+  }
+  const solved = !stuck && !b.includes(0);
+  return { solved, level: solved ? maxIdx : -1, positions: snaps };
+}
+
+/* Rebuild a drill position from a puzzle and the number of ladder steps before it. */
+function replay(puzzle, steps) {
+  const b = puzzle.slice(), cand = ruleMasks(b);
+  for (let s = 0; s < steps; s++) {
+    const h = easiestHint(b, cand);
+    if (!h) break;
+    applyHint(h, b, cand);
+  }
+  return { board: b, cand };
+}
+
+const STR = {
+  toArr: s => s.split('').map(Number),
+  toStr: a => a.join('')
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { ALL, POP, lowDigit, digitsOf, ROW, COL, BOX, UNITS, BOXES, ROWS, COLS, LINES, PEERS, TECH_ORDER,
+    shuffle, ruleMasks, placeValue, applyHint, FINDERS, findHints, easiestHint, isSoundHint, search, randomGrid, punch,
+    makePuzzle, analyzePuzzle, replay, STR };
+}
+
+/* ============================================================
+   Hebrew copy for the techniques and the step-by-step explainer.
+   explain(hint) turns an engine hint into three steps:
+   where to look -> the pattern -> the conclusion.
+   Each step carries the layers the board draws for it.
+   ============================================================ */
+
+const TECH = {
+  'naked-single': {
+    he: 'יחיד חשוף', en: 'Naked Single', level: 1, kind: 'place',
+    summary: 'בתא אחד נשארה אפשרות אחת בלבד, אז זו הספרה שלו.',
+    how: ['מלאו את כל המועמדים בתאים הריקים.', 'חפשו תא שנשארה בו ספרה אחת בלבד.', 'רשמו אותה, והסירו אותה ממועמדי התאים שבאותה שורה, עמודה וקוביה.'],
+    tip: 'זו הטכניקה הראשונה לבדוק. בלוחות קלים היא מספיקה כמעט לכל הצעדים.',
+    goal: 'מצאו תא שנשאר בו מועמד אחד בלבד, ורשמו אותו.',
+    how_to: 'בחרו תא ולחצו על הספרה.'
+  },
+  'hidden-single': {
+    he: 'יחיד נסתר', en: 'Hidden Single', level: 1, kind: 'place',
+    summary: 'ספרה שיכולה להיכנס רק לתא אחד בשורה, בעמודה או בקוביה, גם אם בתא עצמו יש עוד מועמדים.',
+    how: ['בחרו שורה, עמודה או קוביה.', 'לכל ספרה חסרה, בדקו באילו תאים היא עדיין אפשרית.', 'אם נשאר רק תא אחד, הספרה שייכת לו, וכל שאר המועמדים בתא נעלמים.'],
+    tip: 'כדאי להתחיל מקוביות ושורות שכבר כמעט מלאות. שם הספרות הנסתרות קלות לזיהוי.',
+    goal: 'מצאו ספרה שיש לה מקום אחד בלבד בשורה, בעמודה או בקוביה, ורשמו אותה.',
+    how_to: 'בחרו תא ולחצו על הספרה.'
+  },
+  'pointing-pair': {
+    he: 'זוג מצביע', en: 'Pointing Pair', level: 2, kind: 'elim',
+    summary: 'בקוביה, ספרה שמופיעה כמועמדת רק על קו אחד מצביעה על הקו הזה. היא לא יכולה להיות בשאר הקו, מחוץ לקוביה.',
+    how: ['בחרו קוביה וספרה שעוד לא נרשמה בה.', 'בדקו אם כל המועמדים של הספרה בקוביה נמצאים על שורה אחת או על עמודה אחת.', 'הסירו את הספרה משאר התאים בקו, מחוץ לקוביה.'],
+    tip: 'גם שלושה תאים על קו אחד נחשבים. זה זוג או שלישייה מצביעה.',
+    goal: 'מצאו ספרה שמוגבלת בקוביה לקו אחד, והסירו אותה משאר הקו.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  },
+  'box-line': {
+    he: 'קו וקוביה', en: 'Box/Line', level: 2, kind: 'elim',
+    summary: 'בשורה או בעמודה, ספרה שכל המועמדים שלה נמצאים באותה קוביה. היא לא יכולה להיות בשאר תאי הקוביה.',
+    how: ['בחרו שורה או עמודה וספרה שעוד לא נרשמה בה.', 'בדקו אם כל המועמדים של הספרה נמצאים באותה קוביה.', 'הסירו את הספרה משאר תאי הקוביה, מחוץ לקו.'],
+    tip: 'זה ההיפך מזוג מצביע. שם הקוביה מצביעה על קו, כאן הקו מצביע על קוביה.',
+    goal: 'מצאו ספרה שכל המועמדים שלה בקו נמצאים בקוביה אחת, והסירו אותה משאר הקוביה.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  },
+  'naked-pair': {
+    he: 'זוג חשוף', en: 'Naked Pair', level: 3, kind: 'elim',
+    summary: 'שני תאים באותה יחידה עם אותם שני מועמדים בדיוק. שתי הספרות שמורות להם, אז אפשר להסיר אותן משאר היחידה.',
+    how: ['חפשו שני תאים באותה שורה, עמודה או קוביה עם אותם שני מועמדים בלבד.', 'שתי הספרות חייבות להתחלק ביניהם, ולכן אין להן מקום אחר ביחידה.', 'הסירו אותן משאר התאים ביחידה.'],
+    tip: 'זוג יכול להיות חשוף בשורה ובקוביה בו זמנית. במקרה כזה בדקו את שתי היחידות.',
+    goal: 'מצאו שני תאים עם אותם שני מועמדים, והסירו אותם משאר היחידה.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  },
+  'hidden-pair': {
+    he: 'זוג נסתר', en: 'Hidden Pair', level: 3, kind: 'elim',
+    summary: 'שתי ספרות שיכולות להיכנס רק לאותם שני תאים ביחידה. התאים שייכים להן, ולכן כל מועמד אחר בהם נפסל.',
+    how: ['בחרו יחידה ובדקו לכל ספרה באילו תאים היא אפשרית.', 'חפשו שתי ספרות שמופיעות בדיוק באותם שני תאים.', 'הסירו משני התאים את כל המועמדים האחרים.'],
+    tip: 'בתאים של זוג נסתר יש בדרך כלל עוד מועמדים. בזה הוא שונה מזוג חשוף.',
+    goal: 'מצאו שתי ספרות שמופיעות רק בשני תאים, והסירו מהם כל מועמד אחר.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  },
+  'naked-triple': {
+    he: 'שלישייה חשופה', en: 'Naked Triple', level: 4, kind: 'elim',
+    summary: 'שלושה תאים ביחידה שכל המועמדים שלהם יחד הם שלוש ספרות בלבד. לא חייב שבכל תא יופיעו כולן.',
+    how: ['חפשו שלושה תאים ביחידה עם שניים או שלושה מועמדים בכל תא.', 'בדקו שהמועמדים של שלושתם יחד הם שלוש ספרות בלבד.', 'הסירו את שלוש הספרות משאר התאים ביחידה.'],
+    tip: 'השלישייה יכולה להיראות כך: {1,2}, {2,3}, {1,3}. אף תא לא מכיל את שלוש הספרות, והיא עדיין תקפה.',
+    goal: 'מצאו שלושה תאים שחולקים שלוש ספרות, והסירו אותן משאר היחידה.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  },
+  'x-wing': {
+    he: 'אקס־וינג', en: 'X-Wing', level: 5, kind: 'elim',
+    summary: 'ספרה שמופיעה בדיוק בשני תאים בכל אחת משתי שורות, ובאותן שתי עמודות. אפשר להסיר אותה משאר שתי העמודות.',
+    how: ['חפשו ספרה שמופיעה בשורה רק בשני תאים.', 'מצאו שורה נוספת שבה אותה ספרה מופיעה באותן שתי עמודות בדיוק.', 'הסירו את הספרה משאר התאים בשתי העמודות. אותו כלל תקף גם לעמודות ושורות מוחלפות.'],
+    tip: 'ארבעת התאים יוצרים מלבן. בדקו את הספרות אחת אחת, וחפשו מלבן כזה.',
+    goal: 'מצאו מלבן של ארבעה תאים, והסירו את הספרה משאר הקווים שמצטלבים איתו.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  },
+  'hidden-triple': {
+    he: 'שלישייה נסתרת', en: 'Hidden Triple', level: 4, kind: 'elim',
+    summary: 'שלוש ספרות שיכולות להיכנס ביחידה רק לשלושה תאים. שלושת התאים שמורים להן, ואפשר להסיר מהם כל מועמד אחר.',
+    how: ['בחרו שורה, עמודה או קוביה.', 'חפשו שלוש ספרות שכל המקומות האפשריים שלהן ביחידה הם אותם שלושה תאים.', 'הסירו מהתאים האלה את כל המועמדים האחרים.'],
+    tip: 'לא חייבים שכל ספרה תופיע בכל שלושת התאים. מספיק שהיחידה מוגבלת לשלושה תאים בסך הכל.',
+    goal: 'מצאו שלוש ספרות שמוגבלות לשלושה תאים, והסירו מהתאים האלה את שאר המועמדים.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  },
+  'xy-wing': {
+    he: 'XY־וינג', en: 'XY-Wing', level: 5, kind: 'elim',
+    summary: 'שלושה תאים עם שני מועמדים כל אחד: תא מרכזי ושתי כנפיים. ספרה אחת משותפת לשתי הכנפיים, ולכן אפשר להסיר אותה מכל תא שרואה את שתיהן.',
+    how: ['חפשו תא מרכזי עם שני מועמדים, למשל {X,Y}.', 'מצאו שתי כנפיים שרואות אותו: {X,Z} ו־{Y,Z}.', 'הסירו את Z מכל תא שרואה את שתי הכנפיים.'],
+    tip: 'בלי קשר למה שיש במרכז, Z תהיה באחת הכנפיים. לכן Z לא יכולה להיות בתא ששתיהן רואות.',
+    goal: 'מצאו תא מרכזי עם שתי כנפיים, והסירו את הספרה המשותפת מהתאים שרואים את שתיהן.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  },
+  'swordfish': {
+    he: 'דג חרב', en: 'Swordfish', level: 5, kind: 'elim',
+    summary: 'הרחבה של אקס־וינג לשלוש שורות ושלוש עמודות. ספרה שמוגבלת בשלוש שורות לשלוש עמודות בלבד, ולכן אפשר להסיר אותה משאר העמודות.',
+    how: ['חפשו ספרה שמופיעה בשורה רק בשניים או שלושה תאים.', 'מצאו שלוש שורות כאלה שכל התאים שלהן נמצאים בשלוש עמודות בלבד.', 'הסירו את הספרה משאר התאים בשלוש העמודות. אותו כלל תקף גם לעמודות ושורות מוחלפות.'],
+    tip: 'לא חייבים שבכל שורה יהיו שלושה תאים. שניים מספיקים, כל עוד כולם בשלוש עמודות בלבד.',
+    goal: 'מצאו שלוש שורות שהספרה בהן מוגבלת לשלוש עמודות, והסירו אותה משאר העמודות.',
+    how_to: 'לחצו על ספרה קטנה כדי להסיר אותה.'
+  }
+};
+
+/* ---------- naming helpers (all output is trusted HTML built from numbers) ---------- */
+const BOX_NAMES = ['השמאלית העליונה', 'העליונה האמצעית', 'הימנית העליונה', 'האמצעית השמאלית', 'המרכזית',
+  'האמצעית הימנית', 'השמאלית התחתונה', 'התחתונה האמצעית', 'הימנית התחתונה'];
+
+const P = i => `<span class="pos">ש${ROW(i) + 1}·ע${COL(i) + 1}</span>`;
+const DG = d => `<b class="dg">${d}</b>`;
+const joinHe = (items) => items.length === 1 ? items[0] : items.slice(0, -1).join(', ') + ' ו' + items[items.length - 1];
+const PL = cells => joinHe(cells.map(P));
+const DL = digits => joinHe(digits.map(DG));
+const unitName = u => u.type === 'row' ? `שורה ${u.idx + 1}` : u.type === 'col' ? `עמודה ${u.idx + 1}` : `הקוביה ${BOX_NAMES[u.idx]}`;
+const inUnit = u => u.type === 'row' ? `בשורה ${u.idx + 1}` : u.type === 'col' ? `בעמודה ${u.idx + 1}` : `בקוביה ${BOX_NAMES[u.idx]}`;
+const cellsWord = n => n === 1 ? 'תא אחד' : `${n} תאים`;
+const fromCells = n => n === 1 ? 'מתא אחד' : `מ־${n} תאים`;
+const uref = u => ({ type: u.type, idx: u.idx });
+
+function marksOf(cells, digitsFor) {
+  const m = {};
+  for (const c of cells) m[c] = digitsFor(c).slice();
+  return m;
+}
+
+function explain(h) {
+  const t = h.tech;
+  if (t === 'naked-single') {
+    const c = h.cells[0], d = h.digits[0];
+    return [
+      { t: 'איפה להסתכל', x: 'חפשו תא ריק שנשארה בו ספרה אחת בלבד. אין יחידה מסוימת לבדוק: זה קורה בתוך התא עצמו.', L: {} },
+      { t: 'התא', x: `בתא ${P(c)} נשאר רק מועמד אחד: ${DG(d)}.`, L: { ring: [c], marks: { [c]: [d] } } },
+      { t: 'המסקנה', x: `שאר הספרות כבר מופיעות בשורה, בעמודה או בקוביה של התא. לכן ${DG(d)} היא הספרה שלו, ורושמים אותה.`, L: { ring: [c], place: h.place } }
+    ];
+  }
+  if (t === 'hidden-single') {
+    const c = h.cells[0], d = h.digits[0], u = h.unit;
+    return [
+      { t: 'איפה להסתכל', x: `${inUnit(u)} יש ספרה שיכולה להיכנס רק לתא אחד.`, L: { units: [uref(u)] } },
+      { t: 'הספרה והתא', x: `בכל תאי ${unitName(u)} חוץ מאחד הספרה ${DG(d)} כבר נפסלה. המקום היחיד שנשאר לה הוא ${P(c)}.`, L: { units: [uref(u)], ring: [c], marks: { [c]: [d] } } },
+      { t: 'המסקנה', x: `${DG(d)} חייבת להיות בתא ${P(c)}, גם אם יש בו מועמדים נוספים. רושמים אותה.`, L: { units: [uref(u)], ring: [c], place: h.place } }
+    ];
+  }
+  if (t === 'pointing-pair') {
+    const u = h.unit, d = h.digits[0], line = h.line, n = h.removals.length;
+    const base = { units: [uref(u), uref(line)], ring: h.cells, marks: marksOf(h.cells, () => [d]) };
+    return [
+      { t: 'איפה להסתכל', x: `${inUnit(u)} יש ספרה שהמועמדים שלה נמצאים כולם על קו אחד.`, L: { units: [uref(u)] } },
+      { t: 'התבנית', x: `בקוביה הזו הספרה ${DG(d)} אפשרית רק ב${PL(h.cells)}, וכולם ב${unitName(line)}. אחד מהם חייב להיות ${DG(d)}.`, L: base },
+      { t: 'המסקנה', x: `הספרה ${DG(d)} של הקוביה נמצאת בהכרח בתוך ${unitName(line)}, ולכן אי אפשר שתהיה בשאר הקו. מסירים אותה ${fromCells(n)}.`, L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  if (t === 'box-line') {
+    const u = h.unit, d = h.digits[0], box = h.box, n = h.removals.length;
+    const base = { units: [uref(u), uref(box)], ring: h.cells, marks: marksOf(h.cells, () => [d]) };
+    return [
+      { t: 'איפה להסתכל', x: `${inUnit(u)} יש ספרה שכל המועמדים שלה נמצאים באותה קוביה.`, L: { units: [uref(u)] } },
+      { t: 'התבנית', x: `ב${unitName(u)} הספרה ${DG(d)} אפשרית רק ב${PL(h.cells)}, וכולם ב${unitName(box)}. אחד מהם חייב להיות ${DG(d)}.`, L: base },
+      { t: 'המסקנה', x: `הספרה ${DG(d)} של ${unitName(u)} נמצאת בהכרח בקוביה הזו, ולכן אי אפשר שתהיה בשאר תאיה. מסירים אותה ${fromCells(n)}.`, L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  if (t === 'naked-pair') {
+    const u = h.unit, [a, b] = h.cells, ds = h.digits;
+    const base = { units: [uref(u)], ring: h.cells, marks: marksOf(h.cells, () => ds), links: [[a, b]] };
+    return [
+      { t: 'איפה להסתכל', x: `${inUnit(u)} חפשו שני תאים שיש בהם רק אותם שני מועמדים.`, L: { units: [uref(u)] } },
+      { t: 'התבנית', x: `התאים ${P(a)} ו${P(b)} מכילים רק ${DG(ds[0])} ו${DG(ds[1])}. אחד מהם יהיה ${DG(ds[0])} והשני ${DG(ds[1])}, ואין להם אפשרות אחרת.`, L: base },
+      { t: 'המסקנה', x: `שתי הספרות שמורות לשני התאים האלה, ולכן אי אפשר שיופיעו בשאר ${unitName(u)}. מסירים אותן ${fromCells(new Set(h.removals.map(r => r.cell)).size)}.`, L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  if (t === 'hidden-pair') {
+    const u = h.unit, [a, b] = h.cells, ds = h.digits;
+    const base = { units: [uref(u)], ring: h.cells, marks: marksOf(h.cells, () => ds), links: [[a, b]] };
+    return [
+      { t: 'איפה להסתכל', x: `${inUnit(u)} יש שתי ספרות שיכולות להיכנס רק לשני תאים.`, L: { units: [uref(u)] } },
+      { t: 'התבנית', x: `הספרות ${DL(ds)} אפשריות ${inUnit(u)} רק ב${P(a)} וב${P(b)}. שני התאים האלה חייבים להכיל אותן.`, L: base },
+      { t: 'המסקנה', x: 'כשהתאים האלה שייכים לשתי הספרות, אין בהם מקום לספרות אחרות. מסירים את כל שאר המועמדים משניהם.', L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  if (t === 'naked-triple') {
+    const u = h.unit, ds = h.digits, cs = h.cells;
+    const base = { units: [uref(u)], ring: cs, marks: marksOf(cs, () => ds), links: [[cs[0], cs[1]], [cs[1], cs[2]]] };
+    return [
+      { t: 'איפה להסתכל', x: `${inUnit(u)} חפשו שלושה תאים שכל המועמדים שלהם יחד הם שלוש ספרות בלבד.`, L: { units: [uref(u)] } },
+      { t: 'התבנית', x: `התאים ${PL(cs)} מכילים יחד רק את ${DL(ds)}. שלושה תאים ושלוש ספרות: כל ספרה חייבת להיות באחד מהם.`, L: base },
+      { t: 'המסקנה', x: `שלוש הספרות שמורות לשלושת התאים, ולכן אי אפשר שיופיעו בשאר ${unitName(u)}. מסירים אותן.`, L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  if (t === 'x-wing') {
+    const d = h.digits[0], rows = h.base === 'rows';
+    const [A, B] = h.baseLines, [X, Y] = h.coverLines;
+    const [a1, a2, b1, b2] = h.cells;
+    const units = [uref(A), uref(B), uref(X), uref(Y)];
+    const base = { units, ring: h.cells, marks: marksOf(h.cells, () => [d]), links: [[a1, a2], [a2, b2], [b2, b1], [b1, a1]] };
+    const baseWord = rows ? 'שורות' : 'עמודות', coverWord = rows ? 'עמודות' : 'שורות';
+    return [
+      { t: 'איפה להסתכל', x: `חפשו ספרה שמופיעה בדיוק בשני תאים בכל אחת משתי ${baseWord}, ובאותן שתי ${coverWord}.`, L: { units: [uref(A), uref(B)] } },
+      { t: 'התבנית', x: `הספרה ${DG(d)} ב${unitName(A)} וב${unitName(B)} אפשרית רק ב${unitName(X)} וב${unitName(Y)}. ארבעת התאים ${PL(h.cells)} יוצרים מלבן.`, L: base },
+      { t: 'המסקנה', x: `יש רק שני סידורים אפשריים, באלכסון, ובשניהם ${DG(d)} נמצאת ב${unitName(X)} וב${unitName(Y)}. לכן אי אפשר שתהיה בשאר תאיהן. מסירים אותה ${fromCells(h.removals.length)}.`, L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  if (t === 'hidden-triple') {
+    const u = h.unit, ds = h.digits, cs = h.cells;
+    const base = { units: [uref(u)], ring: cs, marks: marksOf(cs, () => ds), links: [[cs[0], cs[1]], [cs[1], cs[2]]] };
+    return [
+      { t: 'איפה להסתכל', x: `${inUnit(u)} יש שלוש ספרות שיכולות להיכנס רק לשלושה תאים.`, L: { units: [uref(u)] } },
+      { t: 'התבנית', x: `הספרות ${DL(ds)} אפשריות ${inUnit(u)} רק ב${PL(cs)}. שלוש ספרות ושלושה תאים: התאים האלה חייבים להכיל אותן.`, L: base },
+      { t: 'המסקנה', x: 'כשהתאים האלה שמורים לשלוש הספרות, אין בהם מקום לספרות אחרות. מסירים את כל שאר המועמדים משלושתם.', L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  if (t === 'xy-wing') {
+    const [p, a, w] = h.cells, [x, y, z] = h.digits;
+    const base = { ring: h.cells, marks: { [p]: [x, y], [a]: [x, z], [w]: [y, z] }, links: [[p, a], [p, w]] };
+    return [
+      { t: 'איפה להסתכל', x: `חפשו תא עם שני מועמדים בלבד, ושני תאים נוספים עם שני מועמדים שרואים אותו (באותה שורה, עמודה או קוביה).`, L: { ring: [p], marks: { [p]: [x, y] } } },
+      { t: 'התבנית', x: `התא המרכזי ${P(p)} מכיל ${DL([x, y])}. הכנף ${P(a)} מכילה ${DL([x, z])}, והכנף ${P(w)} מכילה ${DL([y, z])}. שתי הכנפיים רואות את המרכז.`, L: base },
+      { t: 'המסקנה', x: `אם במרכז ${DG(x)}, ב${P(a)} חייבת להיות ${DG(z)}. אם במרכז ${DG(y)}, ב${P(w)} חייבת להיות ${DG(z)}. בכל מקרה ${DG(z)} נמצאת באחת הכנפיים, ולכן מסירים אותה ${fromCells(h.removals.length)} שרואים את שתיהן.`, L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  if (t === 'swordfish') {
+    const d = h.digits[0], rows = h.base === 'rows';
+    const [A, B, C] = h.baseLines, [X, Y, Z] = h.coverLines;
+    const units = [A, B, C, X, Y, Z].map(uref);
+    const base = { units, ring: h.cells, marks: marksOf(h.cells, () => [d]) };
+    const baseWord = rows ? 'שורות' : 'עמודות', coverWord = rows ? 'עמודות' : 'שורות';
+    return [
+      { t: 'איפה להסתכל', x: `חפשו ספרה שבשלוש ${baseWord} מופיעה רק בשניים או שלושה תאים, וכל התאים האלה נמצאים בשלוש ${coverWord} בלבד.`, L: { units: [uref(A), uref(B), uref(C)] } },
+      { t: 'התבנית', x: `הספרה ${DG(d)} ב${unitName(A)}, ב${unitName(B)} וב${unitName(C)} אפשרית רק ב${unitName(X)}, ב${unitName(Y)} וב${unitName(Z)}.`, L: base },
+      { t: 'המסקנה', x: `שלוש ${baseWord} צריכות שלושה מקומות ל־${DG(d)}, ויש להן בדיוק שלוש ${coverWord} לרשותן. לכן ${DG(d)} של ${coverWord} האלה נמצאת בהכרח בתוכן, ואי אפשר שתופיע בשאר תאיהן. מסירים אותה ${fromCells(h.removals.length)}.`, L: Object.assign({}, base, { elim: h.removals }) }
+    ];
+  }
+  return [];
+}
+
+/* Shown when something was tried that the technique does not justify */
+function wrongRemovalText(tech, cell, digit, solution) {
+  if (solution[cell] === digit) return `לא אפשר להסיר את ${digit}. זו הספרה הנכונה של התא ${'ש' + (ROW(cell) + 1) + '·ע' + (COL(cell) + 1)}.`;
+  return `ההסרה הזו לא נובעת מ${TECH[tech].he} בלוח הזה. בדקו שוב את התבנית.`;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { TECH, explain, BOX_NAMES, P, DG, PL, DL, unitName, inUnit, wrongRemovalText };
+}
+
+/* ============================================================
+   App: state, drill (practice) mode, free play, rendering
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const ic = n => `<svg class="i" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const bit = d => 1 << d;
+const rcName = i => `ש${ROW(i) + 1}·ע${COL(i) + 1}`;
+const PEERSET = PEERS.map(a => new Set(a));
+const LS_KEY = 'sudoku-lab-v3';
+
+/* r = range of technique indexes (TECH_ORDER) the hardest step may come from. The top level is
+   made of puzzles the taught techniques cannot finish: they need chains and other advanced methods. */
+const LEVELS = [
+  { n: 'קל', r: [0, 1], clues: 34 },
+  { n: 'בינוני', r: [2, 3], clues: 30 },
+  { n: 'קשה', r: [4, 6], clues: 27 },
+  { n: 'מומחה', r: [7, 10], clues: 25 },
+  { n: 'אלוף', r: null, clues: 24 }
+];
+const levelIdx = lv => lv === 99 ? 4 : LEVELS.findIndex(L => L.r && lv >= L.r[0] && lv <= L.r[1]);
+const levelLabel = lv => { const k = levelIdx(lv); return k < 0 ? '?' : LEVELS[k].n; };
+const J_KEY = 'sudoku-lab-journal';
+let J = [];
+
+const S = {
+  mode: 'drill', tech: 'naked-single', sel: -1, focus: 0, rot: 0,
+  marksOn: true, strict: true, pencil: false, diff: 1,
+  progress: {}, notice: null, coach: null, photo: false, count: {}, multi: new Set(), paused: false, setOpen: false, jConfirm: false,
+  set: { hl: 2, peer: true, cs: 2, theme: 'auto', hc: 'blue', ht: 'amber' }
+};
+let D = null;          // practice example
+let G = null;          // free-play game (or entry board)
+let prevG = null;      // game to return to when entry is cancelled
+let tokD = 0, tokG = 0, noticeTimer = 0;
+let cellEls = [];
+let drag = null, suppressClick = false;
+
+/* ---------- storage ---------- */
+function loadStore() {
+  try {
+    const o = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    if (o.progress && typeof o.progress === 'object') S.progress = o.progress;
+    if (TECH[o.tech]) S.tech = o.tech;
+    if (o.mode === 'free' || o.mode === 'drill') S.mode = o.mode;
+    if (typeof o.strict === 'boolean') S.strict = o.strict;
+    if (typeof o.marksOn === 'boolean') S.marksOn = o.marksOn;
+    if (Number.isInteger(o.diff) && o.diff >= 0 && o.diff < LEVELS.length) S.diff = o.diff;
+    if (o.set && typeof o.set === 'object') S.set = Object.assign(S.set, o.set);
+    J = JSON.parse(localStorage.getItem(J_KEY) || '[]'); if (!Array.isArray(J)) J = [];
+  } catch (e) { /* storage unavailable: fine */ }
+}
+function saveStore() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ progress: S.progress, tech: S.tech, mode: S.mode === 'journal' ? 'drill' : S.mode, strict: S.strict, marksOn: S.marksOn, diff: S.diff, set: S.set }));
+  } catch (e) { /* ignore */ }
+}
+
+/* ---------- async helper: run step() in short slices so the page stays responsive ---------- */
+function slice(step, ms, isLive) {
+  return new Promise(res => {
+    (function tick() {
+      if (!isLive()) return res(null);
+      const t0 = performance.now();
+      while (performance.now() - t0 < ms) { const r = step(); if (r) return res(r); }
+      setTimeout(tick, 0);
+    })();
+  });
+}
+
+/* ---------- clock: every example / game keeps its own stopwatch ---------- */
+const fmtTime = ms => {
+  const t = Math.max(0, Math.round(ms / 1000)), h = (t / 3600) | 0, m = ((t % 3600) / 60) | 0, sec = t % 60;
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
+};
+const elapsed = o => o ? (o.ms || 0) + (o.since ? Date.now() - o.since : 0) : 0;
+function shouldRun(o, mode) {
+  if (!o || o.loading || S.mode !== mode || document.hidden) return false;
+  return (mode === 'drill' ? !o.done : (!o.entry && !o.won)) && !S.paused;
+}
+function syncClock() {
+  for (const [o, m] of [[D, 'drill'], [G, 'free']]) {
+    if (!o) continue;
+    const run = shouldRun(o, m);
+    if (run && !o.since) o.since = Date.now();
+    else if (!run && o.since) { o.ms = (o.ms || 0) + Date.now() - o.since; o.since = 0; }
+  }
+}
+function tickClock() {
+  document.querySelectorAll('[data-clk]').forEach(e => { e.textContent = fmtTime(elapsed(e.dataset.clk === 'D' ? D : G)); });
+}
+
+/* ---------- journal ---------- */
+function logResult(e) {
+  J.unshift(Object.assign({ t: Date.now() }, e));
+  if (J.length > 300) J.length = 300;
+  try { localStorage.setItem(J_KEY, JSON.stringify(J)); } catch (err) { /* ignore */ }
+}
+
+/* ---------- notices (replace the status line, never shift the layout) ---------- */
+function notice(text, kind) {
+  S.notice = { text, kind: kind || 'bad' };
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { S.notice = null; render(); }, 4200);
+  render();
+}
+function reject(i, text) {
+  const o = S.mode === 'drill' ? D : G; if (o) o.errors = (o.errors || 0) + 1;
+  notice(text, 'bad');
+  const el = cellEls[i];
+  if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 400); }
+}
+
+/* ============================================================
+   PRACTICE (drill) MODE
+   ============================================================ */
+async function drillStart(tech) {
+  const token = ++tokD;
+  S.tech = tech; S.coach = null; S.sel = -1; S.multi = new Set(); S.paused = false; S.focus = 0; S.notice = null;
+  D = { loading: true, tech };
+  saveStore(); render();
+  const snap = await slice(() => {
+    const { puzzle, solution } = makePuzzle(24 + ((Math.random() * 8) | 0));
+    return analyzePuzzle(puzzle, solution).positions[tech] || null;
+  }, 12, () => token === tokD);
+  if (!snap) return;
+  const board = snap.board.slice(), cand = snap.cand.slice();
+  const hints = findHints(tech, board, cand, 200).filter(h => isSoundHint(h, snap.solution));
+  if (!hints.length) return drillStart(tech);
+  S.count[tech] = (S.count[tech] || 0) + 1;
+  D = { tech, puzzle: snap.puzzle, solution: snap.solution, board, cand, hints, hist: [], done: false, revealed: false, counted: false, no: S.count[tech], kind: hints[0].kind, ms: 0, since: 0, nh: 0, errors: 0 };
+  render();
+}
+
+const dRemaining = h => h.kind === 'place'
+  ? (D.board[h.place.cell] === h.place.value ? 0 : 1)
+  : h.removals.filter(r => D.cand[r.cell] & bit(r.digit)).length;
+function dBest() {
+  let best = D.hints[0], br = 1e9;
+  for (const h of D.hints) { const r = dRemaining(h); if (r < br) { br = r; best = h; } }
+  return { h: best, rem: br };
+}
+const dPush = () => D.hist.push({ board: D.board.slice(), cand: D.cand.slice(), done: D.done });
+
+function dCheck() {
+  const { h, rem } = dBest();
+  if (rem !== 0) return;
+  D.done = true;
+  syncClock();
+  logResult({ k: 'drill', tech: D.tech, ms: elapsed(D), hints: D.nh, errors: D.errors, assisted: D.revealed });
+  if (!D.revealed && !D.counted) { D.counted = true; S.progress[D.tech] = (S.progress[D.tech] || 0) + 1; saveStore(); }
+  S.notice = null;
+  S.coach = { h, steps: explain(h), k: 2 };
+}
+
+function drillPlace(i, d) {
+  if (!D || D.loading || D.done) return;
+  if (D.kind === 'elim') { notice('בטכניקה הזו מסירים מועמדים ולא רושמים ספרות. בחרו תא ולחצו על ספרה כדי להסיר אותה.', 'bad'); return; }
+  if (D.board[i]) return;
+  if (!D.hints.some(h => h.place.cell === i && h.place.value === d)) {
+    const he = TECH[D.tech].he;
+    if (!(D.cand[i] & bit(d))) reject(i, `${d} כבר נפסלה בתא ${rcName(i)}. חפשו תא אחר.`);
+    else if (D.solution[i] === d) reject(i, `${d} אכן הספרה של התא, אבל אפשר להגיע אליה בקלות יותר. חפשו את הצעד של ${he}.`);
+    else reject(i, `${d} לא הספרה של התא ${rcName(i)}. בדקו שוב.`);
+    return;
+  }
+  dPush(); placeValue(D.board, D.cand, i, d); dCheck(); render();
+}
+
+function drillRemove(i, d) {
+  if (!D || D.loading || D.done) return;
+  if (D.kind === 'place') { notice('בטכניקה הזו רושמים ספרה בתא. בחרו תא ולחצו על הספרה שלו.', 'bad'); return; }
+  if (D.board[i] || !(D.cand[i] & bit(d))) return;
+  if (!D.hints.some(h => h.removals.some(r => r.cell === i && r.digit === d))) { reject(i, wrongRemovalText(D.tech, i, d, D.solution)); return; }
+  dPush(); D.cand[i] &= ~bit(d); dCheck(); render();
+}
+
+function drillRemoveMany(cells, d) {
+  if (!D || D.loading || D.done) return;
+  if (D.kind === 'place') { notice('בטכניקה הזו רושמים ספרה בתא, ולא מסירים מועמדים.', 'bad'); return; }
+  const todo = [], bad = [];
+  for (const c of cells) {
+    if (D.board[c] || !(D.cand[c] & bit(d))) continue;
+    (D.hints.some(h => h.removals.some(r => r.cell === c && r.digit === d)) ? todo : bad).push(c);
+  }
+  if (todo.length) { dPush(); todo.forEach(c => { D.cand[c] &= ~bit(d); }); dCheck(); }
+  if (bad.length) {
+    D.errors++;
+    notice(`${bad.length === 1 ? 'הסרה אחת' : bad.length + ' הסרות'} לא נובעות מ${TECH[D.tech].he}${todo.length ? '. ההסרות הנכונות בוצעו' : ''}. בדקו שוב את התבנית.`, 'bad');
+  } else if (!todo.length) notice(`בתאים שנבחרו אין מועמד ${d}.`, 'info');
+  else render();
+}
+
+function drillHint() {
+  if (!D || D.loading || D.done) return;
+  D.nh++;
+  if (!S.coach) { const { h } = dBest(); S.coach = { h, steps: explain(h), k: 0 }; }
+  else if (S.coach.k < 2) S.coach.k++;
+  if (S.coach.k === 2) D.revealed = true;
+  render();
+}
+
+function drillSolve() {
+  if (!D || D.loading || D.done) return;
+  const { h } = dBest();
+  dPush();
+  if (h.kind === 'place') placeValue(D.board, D.cand, h.place.cell, h.place.value);
+  else for (const r of h.removals) D.cand[r.cell] &= ~bit(r.digit);
+  D.revealed = true;
+  dCheck(); render();
+}
+
+/* ============================================================
+   FREE PLAY
+   ============================================================ */
+const ruleAt = (b, i) => { let u = 0; for (const p of PEERS[i]) if (b[p]) u |= bit(b[p]); return ALL & ~u; };
+function conflictSet(b) {
+  const s = new Set();
+  for (let i = 0; i < 81; i++) { const v = b[i]; if (!v) continue; for (const p of PEERS[i]) if (b[p] === v) { s.add(i); break; } }
+  return s;
+}
+function newGame(puzzle, solution, level, hard) {
+  G = { given: puzzle.slice(), board: puzzle.slice(), marks: new Array(81).fill(0), solution, hist: [], entry: false, level, won: false, ms: 0, since: 0, nh: 0, errors: 0, hard: hard || '' };
+  S.sel = -1; S.coach = null; S.focus = 0; S.notice = null; S.multi = new Set(); S.paused = false;
+}
+
+async function freeNew() {
+  const token = ++tokG;
+  S.coach = null; S.notice = null;
+  if (G && G.entry) { G = prevG; prevG = null; }
+  G = Object.assign(G && !G.loading ? G : { given: [], board: new Array(81).fill(0), marks: [], hist: [] }, { loading: true });
+  render();
+  const L = LEVELS[S.diff], t0 = performance.now();
+  let best = null, bestDist = 99;
+  const r = await slice(() => {
+    const { puzzle, solution } = makePuzzle(L.clues + ((Math.random() * 3) | 0));
+    const a = analyzePuzzle(puzzle, solution);
+    let dist, lvl;
+    if (!L.r) { if (!a.solved) return { puzzle, solution, level: 99, hard: '' }; dist = 11 - a.level; lvl = a.level; }
+    else {
+      if (!a.solved) return null;
+      lvl = a.level;
+      dist = lvl < L.r[0] ? L.r[0] - lvl : lvl > L.r[1] ? lvl - L.r[1] : 0;
+      if (dist === 0) return { puzzle, solution, level: lvl, hard: TECH[TECH_ORDER[lvl]].he };
+    }
+    if (dist < bestDist) { bestDist = dist; best = { puzzle, solution, level: lvl, hard: TECH[TECH_ORDER[lvl]].he }; }
+    return performance.now() - t0 > 3500 ? best : null;
+  }, 12, () => token === tokG);
+  if (!r) return;
+  newGame(r.puzzle, r.solution, r.level, r.hard);
+  render();
+}
+
+const gPush = () => { G.hist.push({ board: G.board.slice(), marks: G.marks.slice(), won: G.won }); S.coach = null; };
+function clearPeerMarks(i, d) { for (const p of PEERS[i]) G.marks[p] &= ~bit(d); }
+function checkWin() {
+  if (!G.entry && G.board.every((v, i) => v === G.solution[i])) {
+    G.won = true; S.coach = null; S.notice = null; syncClock();
+    if (!G.logged) { G.logged = true; logResult({ k: 'free', lvl: levelIdx(G.level), ms: elapsed(G), hints: G.nh, errors: G.errors, assisted: false }); }
+  }
+}
+
+function freePlace(i, d) {
+  if (!G || G.loading) return;
+  if (G.entry) {
+    gPush(); G.board[i] = G.board[i] === d ? 0 : d; G.unsure.delete(i); G.msg = null; render(); return;
+  }
+  if (G.given[i]) return;
+  if (S.pencil) return freeMark(i, d);
+  if (G.board[i] === d) { gPush(); G.board[i] = 0; G.won = false; render(); return; }
+  if (S.strict && G.solution[i] !== d) {
+    reject(i, `${d} לא נכונה בתא ${rcName(i)}. מצב קפדני חוסם ערכים שגויים.`);
+    return;
+  }
+  gPush(); G.board[i] = d; G.marks[i] = 0; clearPeerMarks(i, d); checkWin(); render();
+}
+function freeMark(i, d) {
+  if (G.board[i]) return;
+  if (S.strict && !(ruleAt(G.board, i) & bit(d))) {
+    reject(i, `${d} כבר מופיעה בשורה, בעמודה או בקוביה של התא, ולכן היא לא יכולה להיות מועמדת.`);
+    return;
+  }
+  gPush(); G.marks[i] ^= bit(d); S.marksOn = true; saveStore(); render();
+}
+function freeErase(i) {
+  if (!G || G.loading || i < 0) return;
+  if (G.entry) { if (G.board[i]) { gPush(); G.board[i] = 0; G.unsure.delete(i); render(); } return; }
+  if (G.given[i]) return;
+  if (G.board[i]) { gPush(); G.board[i] = 0; G.won = false; render(); }
+  else if (G.marks[i]) { gPush(); G.marks[i] = 0; render(); }
+}
+function fillAll() {
+  if (!G || G.loading || G.entry) return;
+  gPush();
+  const rm = ruleMasks(G.board);
+  for (let i = 0; i < 81; i++) G.marks[i] = G.board[i] ? 0 : rm[i];
+  S.marksOn = true; saveStore(); render();
+}
+function solveAll() {
+  if (!G || G.loading || G.entry || G.won) return;
+  gPush(); G.board = G.solution.slice(); G.marks.fill(0); G.won = true; syncClock();
+  if (!G.logged) { G.logged = true; logResult({ k: 'free', lvl: levelIdx(G.level), ms: elapsed(G), hints: G.nh, errors: G.errors, assisted: true }); }
+  render();
+}
+
+/* candidates the hint engine works from: the player's marks (when sound), otherwise the rules */
+function workCand() {
+  const rm = ruleMasks(G.board), w = rm.slice();
+  for (let i = 0; i < 81; i++) {
+    if (G.board[i]) continue;
+    const m = G.marks[i] & rm[i];
+    if (m && (m & bit(G.solution[i]))) w[i] = m;
+  }
+  return w;
+}
+function freeHintList() {
+  const w = workCand(), list = [];
+  for (const t of TECH_ORDER) {
+    list.push(...findHints(t, G.board, w, 4).filter(h => isSoundHint(h, G.solution)));
+    if (list.length >= 8) break;
+  }
+  return list;
+}
+function freeHint() {
+  if (!G || G.loading || G.entry || G.won) return;
+  G.nh++;
+  if (S.coach) { if (S.coach.k < 2) S.coach.k++; render(); return; }
+  const list = freeHintList();
+  if (!list.length) { notice('לא נמצא צעד באף אחת מהטכניקות במעבדה. אפשר לנסות ניחוש מושכל, או ללחוץ על "פתור הכל".', 'info'); return; }
+  S.coach = { h: list[0], steps: explain(list[0]), k: 0, list, idx: 0 };
+  render();
+}
+function freeOther() {
+  const co = S.coach; if (!co || !co.list || co.list.length < 2) return;
+  co.idx = (co.idx + 1) % co.list.length;
+  co.h = co.list[co.idx]; co.steps = explain(co.h); co.k = 0; render();
+}
+function freeApply() {
+  const co = S.coach; if (!co) return;
+  const h = co.h, w = workCand();
+  gPush();
+  if (h.kind === 'place') {
+    const { cell, value } = h.place;
+    G.board[cell] = value; G.marks[cell] = 0; clearPeerMarks(cell, value); checkWin();
+  } else {
+    for (const r of h.removals) {
+      if (!G.marks[r.cell]) G.marks[r.cell] = w[r.cell];
+      G.marks[r.cell] &= ~bit(r.digit);
+    }
+    S.marksOn = true; saveStore();
+  }
+  S.coach = null; render();
+}
+
+/* ---------- entry (manual / paste / photo) ---------- */
+function entryStart() {
+  if (!G || !G.entry) prevG = G && !G.loading ? G : prevG;
+  tokG++;
+  G = { entry: true, given: new Array(81).fill(0), board: new Array(81).fill(0), marks: [], solution: null, hist: [], unsure: new Set(), msg: null };
+  S.sel = -1; S.coach = null; S.notice = null; S.pencil = false; S.multi = new Set();
+  render();
+}
+function entryCancel() {
+  if (prevG) { G = prevG; prevG = null; S.sel = -1; render(); }
+  else freeNew();
+}
+function entryMsg(text, kind) { G.msg = { text, kind: kind || 'info' }; render(); }
+function parsePuzzleString(str) {
+  const lines = str.split(/\r?\n/).filter(l => !/^[\s\-+=|]*$/.test(l));
+  const clean = lines.join('').replace(/[\s|,]/g, '');
+  if (clean.length !== 81) return null;
+  const out = [];
+  for (const ch of clean) {
+    if (ch >= '1' && ch <= '9') out.push(Number(ch));
+    else if ('0._-xX*?'.includes(ch)) out.push(0);
+    else return null;
+  }
+  return out;
+}
+function entryLoadText() {
+  const arr = parsePuzzleString($('#pasteBox').value);
+  if (!arr) { entryMsg('צריך בדיוק 81 תווים: ספרות 1-9, ולתא ריק 0 או נקודה.', 'bad'); return; }
+  gPush(); G.board = arr; G.unsure = new Set(); S.sel = -1;
+  entryMsg('הלוח נטען. בדקו אותו ולחצו "אשרו והתחילו".', 'info');
+}
+function entryClear() { gPush(); G.board.fill(0); G.unsure = new Set(); G.msg = null; render(); }
+function entryConfirm() {
+  const b = G.board, n = b.filter(Boolean).length;
+  if (conflictSet(b).size) { entryMsg('יש ספרות סותרות בשורה, בעמודה או בקוביה. הן מסומנות באדום.', 'bad'); return; }
+  if (n < 17) { entryMsg(`צריך לפחות 17 ספרות כדי שלפאזל יהיה פתרון יחיד. יש כרגע ${n}.`, 'bad'); return; }
+  const r = search(b, { limit: 2, budget: 400000 });
+  if (r.aborted) { entryMsg('לא הצלחתי לאמת את הפאזל בזמן סביר. בדקו שהספרות נכונות.', 'bad'); return; }
+  if (r.count === 0) { entryMsg('אין פתרון לפאזל הזה. כנראה שספרה אחת לא נקראה נכון.', 'bad'); return; }
+  if (r.count > 1) { entryMsg('לפאזל יש יותר מפתרון אחד, אז אי אפשר לבדוק מולו. חסרות ספרות.', 'bad'); return; }
+  const a = analyzePuzzle(b, r.solution);
+  prevG = null;
+  newGame(b.slice(), r.solution, a.solved ? a.level : 99, a.solved ? TECH[TECH_ORDER[a.level]].he : '');
+  notice('הפאזל מוכן. בהצלחה!', 'ok');
+}
+
+/* photo reading uses the viewer's Claude, and only when the page runs inside Claude */
+let sampleFn = null, photoCtl = null;
+const PHOTO_PROMPT =
+ 'The attached image shows a Sudoku puzzle (a photo, a screenshot or a printout). Transcribe it.\n' +
+ 'Rules:\n' +
+ '- Go row by row, top to bottom, and left to right inside each row (9 rows of 9 cells). If the picture is rotated or tilted, read the grid as if it were upright.\n' +
+ '- Write only digits that are actually printed or filled in. Use 0 for every empty cell. Do NOT solve the puzzle and do NOT guess digits.\n' +
+ '- Tiny pencil-mark candidates inside a cell do not count: treat such a cell as empty (0).\n' +
+ '- List in "unsure" every cell where you are not confident about the digit or about whether it is empty, as [row, column] pairs counted from 1.\n' +
+ 'Reply with only JSON in exactly this shape: {"grid": [[9 integers], ...9 rows], "unsure": [[row, col], ...]}\n' +
+ 'If the image contains no Sudoku grid reply {"grid": null, "unsure": []}.';
+
+async function initPhoto() {
+  try {
+    if (!(window.claude && window.claude.use)) return;
+    const s = await window.claude.use('sample');
+    if (!s) return;
+    const caps = await s.limits().catch(() => null);
+    if (!caps || !caps.images) return;
+    sampleFn = s; S.photo = true;
+    S.photoTypes = (caps.images.mediaTypes || []).join(',');
+    render();
+  } catch (e) { /* the button simply stays hidden */ }
+}
+function photoBusy(b) {
+  const pb = $('#photoBtn'), st = $('#stopPhoto');
+  if (pb) pb.disabled = b;
+  if (st) st.hidden = !b;
+}
+async function readPhoto(file) {
+  if (!sampleFn || !G || !G.entry || photoCtl) return;
+  photoCtl = new AbortController();
+  photoBusy(true);
+  entryMsg('קורא את התמונה. זה יכול לקחת עד דקה. בפעם הראשונה תתבקשו לאשר שימוש ב-Claude.', 'info');
+  try {
+    const data = await sampleFn.json(PHOTO_PROMPT, { images: [file], signal: photoCtl.signal, cache: false });
+    let grid = data && data.grid;
+    if (Array.isArray(grid)) grid = grid.map(r => Array.isArray(r) ? r.map(v => (typeof v === 'string' && /^\d$/.test(v)) ? Number(v) : v) : r);
+    const ok = Array.isArray(grid) && grid.length === 9 && grid.every(r => Array.isArray(r) && r.length === 9 && r.every(v => Number.isInteger(v) && v >= 0 && v <= 9));
+    if (!G || !G.entry) return;
+    if (!ok) { entryMsg('לא זיהיתי בתמונה לוח סודוקו תקין. נסו תמונה ישרה וחדה יותר, או הזינו ידנית.', 'bad'); return; }
+    gPush(); G.board = grid.flat(); G.unsure = new Set();
+    (Array.isArray(data.unsure) ? data.unsure : []).forEach(p => {
+      if (Array.isArray(p) && p.length === 2) { const r = Number(p[0]) - 1, c = Number(p[1]) - 1; if (r >= 0 && r < 9 && c >= 0 && c < 9) G.unsure.add(r * 9 + c); }
+    });
+    S.sel = -1;
+    const n = G.board.filter(Boolean).length;
+    entryMsg(`נקראו ${n} ספרות. בדקו כל ספרה מול התמונה${G.unsure.size ? ' (תאים לא בטוחים מסומנים בצהוב)' : ''}, תקנו לפי הצורך ואשרו.`, 'ok');
+  } catch (e) {
+    const code = e && e.code;
+    if (code === 'cancelled') { if (G && G.entry) entryMsg('הקריאה נעצרה.', 'info'); return; }
+    if (['not_granted', 'sampling_disabled', 'capability_disabled', 'capability_removed', 'images_unavailable', 'not_declared'].includes(code)) {
+      sampleFn = null; S.photo = false;
+      entryMsg('קריאה מתמונה לא זמינה כאן, כי לא אושר שימוש ב-Claude עבור הדף. אפשר להזין ידנית או להדביק מחרוזת.', 'bad'); render(); return;
+    }
+    const msgs = {
+      rate_limited: 'הגעתם למגבלת שימוש כרגע. נסו שוב מאוחר יותר.',
+      image_rejected: 'לא הצלחתי לפתוח את התמונה. נסו קובץ אחר (JPG או PNG).',
+      invalid_json: 'לא קיבלתי קריאה תקינה של הלוח. נסו לצלם קרוב וישר יותר.',
+      session_expired: 'צריך להתחבר מחדש ל-Claude ואז לנסות שוב.'
+    };
+    if (G && G.entry) entryMsg(msgs[code] || 'הקריאה מהתמונה נכשלה. נסו שוב או הזינו ידנית.', 'bad');
+  } finally {
+    photoCtl = null; photoBusy(false);
+  }
+}
+
+/* ============================================================
+   Shared actions
+   ============================================================ */
+function undo() {
+  if (S.mode === 'drill') {
+    if (!D || D.loading || !D.hist.length) return;
+    const h = D.hist.pop();
+    D.board = h.board; D.cand = h.cand;
+    if (D.done && !h.done) S.coach = null;
+    D.done = h.done; render();
+  } else {
+    if (!G || G.loading || !G.hist.length) return;
+    const h = G.hist.pop();
+    G.board = h.board; if (!G.entry) { G.marks = h.marks; G.won = h.won; }
+    S.coach = null; render();
+  }
+}
+function coachGo(n) {
+  const co = S.coach; if (!co) return;
+  co.k = Math.max(0, Math.min(2, co.k + n));
+  if (S.mode === 'drill' && D && !D.done && co.k === 2) D.revealed = true;
+  render();
+}
+function setMode(m) {
+  if (S.mode === m) return;
+  S.mode = m; S.sel = -1; S.focus = 0; S.coach = null; S.notice = null; S.multi = new Set(); S.jConfirm = false; S.paused = false; saveStore();
+  if (m === 'free' && !G) freeNew();
+  else if (m === 'drill' && !D) drillStart(S.tech);
+  else render();
+}
+function padDigit(d) {
+  if (S.paused) return;
+  const mc = multiCells();
+  if (mc.length) return multiRemove(mc, d);
+  const sel = S.sel;
+  const editable = sel >= 0 && (S.mode === 'free' ? (G && !G.loading && (G.entry || !G.given[sel])) : (D && !D.loading && !D.board[sel]));
+  if (!editable) { S.focus = S.focus === d ? 0 : d; render(); return; }
+  if (S.mode === 'drill') { D.kind === 'place' ? drillPlace(sel, d) : drillRemove(sel, d); }
+  else freePlace(sel, d);
+}
+function eraseKey() {
+  if (S.mode !== 'free') return;
+  const cs = multiCells();
+  if (cs.length && G && !G.loading && !G.entry) {
+    const t = cs.filter(c => !G.board[c] && G.marks[c]);
+    if (t.length) { gPush(); t.forEach(c => { G.marks[c] = 0; }); render(); }
+    return;
+  }
+  freeErase(S.sel);
+}
+function multiRemove(cs, d) {
+  if (S.mode === 'drill') return drillRemoveMany(cs, d);
+  if (!G || G.loading || G.entry) return;
+  /* toggle: when every empty selected cell already has the mark, remove it from all; otherwise add it to all */
+  const empty = cs.filter(c => !G.board[c]);
+  if (!empty.length) return;
+  const allHave = empty.every(c => G.marks[c] & bit(d));
+  let t = empty;
+  if (!allHave && S.strict) {
+    t = empty.filter(c => ruleAt(G.board, c) & bit(d));
+    if (!t.length) { notice(`${d} כבר מופיעה בשורה, בעמודה או בקוביה של כל התאים שנבחרו, ולכן היא לא יכולה להיות מועמדת.`, 'bad'); return; }
+  }
+  gPush();
+  t.forEach(c => { G.marks[c] = allHave ? G.marks[c] & ~bit(d) : G.marks[c] | bit(d); });
+  S.marksOn = true; saveStore(); render();
+}
+const multiCells = () => S.multi.size > 1 ? [...S.multi] : [];
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+function setHTML(el, html) { if (el._h !== html) { el.innerHTML = html; el._h = html; } }
+
+function model() {
+  if (S.mode === 'drill') {
+    if (!D || D.loading) return { board: new Array(81).fill(0), mask: () => 0, given: () => false, dim: true };
+    return { board: D.board, mask: i => D.cand[i], given: i => D.puzzle[i] !== 0, work: D.cand };
+  }
+  if (!G || G.loading) return { board: new Array(81).fill(0), mask: () => 0, given: () => false, dim: true };
+  if (G.entry) return { board: G.board, mask: () => 0, given: () => true, conflict: conflictSet(G.board), unsure: G.unsure };
+  return {
+    board: G.board, mask: i => (S.marksOn && !G.board[i]) ? G.marks[i] : 0, given: i => G.given[i] !== 0,
+    work: S.coach ? workCand() : null
+  };
+}
+
+function unitRect(u) {
+  if (u.type === 'row') return [0, u.idx, 9, 1];
+  if (u.type === 'col') return [u.idx, 0, 1, 9];
+  return [(u.idx % 3) * 3, ((u.idx / 3) | 0) * 3, 3, 3];
+}
+
+function renderBoard() {
+  const vm = model(), co = S.coach, board = vm.board;
+  let L = null; const elimMap = {}, markMap = {}, involved = new Set(); let ghost = null, rings = [];
+  if (co) {
+    L = co.steps[co.k].L;
+    rings = L.ring || [];
+    rings.forEach(c => involved.add(c));
+    for (const c in (L.marks || {})) markMap[c] = L.marks[c].reduce((m, d) => m | bit(d), 0);
+    const cur = vm.work || vm.mask;
+    for (const r of (L.elim || [])) {
+      const m = typeof cur === 'function' ? cur(r.cell) : cur[r.cell];
+      if (m & bit(r.digit)) { elimMap[r.cell] = (elimMap[r.cell] | bit(r.digit)); involved.add(r.cell); }
+    }
+    if (L.place && !board[L.place.cell]) ghost = L.place;
+  }
+  const sel = S.sel, hl = (sel >= 0 && board[sel]) ? board[sel] : S.focus;
+  for (let i = 0; i < 81; i++) {
+    let cls = 'c';
+    if (S.multi.has(i)) cls += ' msel';
+    else if (i === sel) cls += ' sel';
+    else if (sel >= 0 && PEERSET[sel].has(i)) cls += ' peer';
+    if (hl && board[i] === hl && i !== sel) cls += ' same';
+    if (vm.conflict && vm.conflict.has(i)) cls += ' bad';
+    if (vm.unsure && vm.unsure.has(i)) cls += ' unsure';
+    let inner = '', label;
+    const v = board[i];
+    if (v) { inner = `<span class="v">${v}</span>`; label = `${rcName(i)}: ${v}`; }
+    else if (ghost && ghost.cell === i) { inner = `<span class="v ghost">${ghost.value}</span>`; label = `${rcName(i)}: ${ghost.value}`; }
+    else {
+      let m = (involved.has(i) && vm.work) ? vm.work[i] : vm.mask(i);
+      label = `${rcName(i)}: ריק`;
+      if (m) {
+        inner = '<span class="cs">';
+        for (let d = 1; d <= 9; d++) {
+          const on = m & bit(d);
+          let c = 'cd';
+          if (on) {
+            c += ' on';
+            if (d === hl) c += ' same';
+            if (markMap[i] & bit(d)) c += ' hit';
+            if (elimMap[i] & bit(d)) c += ' x';
+          }
+          inner += `<i class="${c}" data-d="${d}">${on ? d : ''}</i>`;
+        }
+        inner += '</span>';
+      }
+    }
+    const sig = cls + '|' + inner;
+    const el = cellEls[i];
+    if (el._s !== sig) { el.className = cls; el.innerHTML = inner; el.setAttribute('aria-label', label); el._s = sig; }
+  }
+  $('#board').classList.toggle('dim', !!vm.dim);
+  $('#board').classList.toggle('paused', S.paused);
+  $('#frame').style.setProperty('--rot', S.rot + 'deg');
+  /* overlay layers */
+  let g = '';
+  if (L) {
+    for (const u of (L.units || [])) { const [x, y, w, h] = unitRect(u); g += `<rect class="u" x="${x}" y="${y}" width="${w}" height="${h}" rx=".08"/>`; }
+    for (const [a, b] of (L.links || [])) g += `<line class="lk" x1="${COL(a) + .5}" y1="${ROW(a) + .5}" x2="${COL(b) + .5}" y2="${ROW(b) + .5}"/>`;
+    for (const c of rings) g += `<rect class="rg" x="${COL(c) + .06}" y="${ROW(c) + .06}" width=".88" height=".88" rx=".14"/>`;
+  }
+  let sp = '';
+  if (S.multi.size > 1) {
+    const has = (r, c) => r >= 0 && r < 9 && c >= 0 && c < 9 && S.multi.has(r * 9 + c);
+    for (const i of S.multi) {
+      const r = ROW(i), c = COL(i);
+      if (!has(r - 1, c)) sp += `M${c} ${r}H${c + 1}`;
+      if (!has(r + 1, c)) sp += `M${c} ${r + 1}H${c + 1}`;
+      if (!has(r, c - 1)) sp += `M${c} ${r}V${r + 1}`;
+      if (!has(r, c + 1)) sp += `M${c + 1} ${r}V${r + 1}`;
+    }
+  }
+  const sg = $('#selg'); if (sg._h !== sp) { sg.innerHTML = sp ? `<path class="selp" d="${sp}"/>` : ''; sg._h = sp; }
+  const lay = $('#lay'); if (lay._h !== g) { lay.innerHTML = g; lay._h = g; }
+}
+
+function renderTabs() {
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === S.mode)));
+  $('.grid').hidden = S.mode === 'journal';
+}
+
+function renderRail() {
+  const el = $('#rail');
+  el.hidden = S.mode !== 'drill';
+  let h = '';
+  for (const t of TECH_ORDER) {
+    const T = TECH[t], n = S.progress[t] || 0;
+    h += `<button class="chip" data-tech="${t}" aria-pressed="${t === S.tech}" aria-label="${T.he}, רמה ${T.level}, ${n} דוגמאות הושלמו">
+      <span class="lv">${T.level}</span><span class="nm">${T.he}</span>
+      <span class="dots">${[0, 1, 2, 3, 4].map(k => `<i class="${k < n ? 'on' : ''}"></i>`).join('')}</span></button>`;
+  }
+  setHTML(el, h);
+}
+
+function statusLine() {
+  const live = S.mode === 'drill' ? D && !D.loading && !D.done : G && !G.loading && !G.entry && !G.won;
+  if (S.paused && live) return { text: 'מושהה. השעון עומד והלוח מוסתר. לחצו על ▶ כדי להמשיך.', kind: '' };
+  if (S.notice) return { text: S.notice.text, kind: S.notice.kind === 'info' ? '' : S.notice.kind };
+  if (S.mode === 'drill') {
+    if (!D || D.loading) return { text: 'מכין דוגמה שמתאימה לטכניקה…', kind: 'wait' };
+    if (D.done) return D.revealed
+      ? { text: 'הצעד הושלם בעזרת הרמז, ולכן הוא לא נספר בהתקדמות. עברו על ההסבר ונסו דוגמה נוספת.', kind: '' }
+      : { text: `נכון! הצעד הושלם ב-${fmtTime(elapsed(D))}. ההסבר מראה מה קרה.`, kind: 'ok' };
+    if (D.kind === 'place') return { text: 'בחרו תא ולחצו על הספרה שלו. כל ניסיון נבדק מיד.', kind: '' };
+    const { rem } = dBest();
+    return D.hist.length
+      ? { text: `יפה, ממשיכים. נותרו עוד ${rem} הסרות לצעד הזה.`, kind: '' }
+      : { text: 'מצאו את התבנית והסירו מועמדים: בחרו תא ולחצו על ספרה, או לחצו ישר על המועמד בלוח.', kind: '' };
+  }
+  if (!G || G.loading) return { text: 'מכין פאזל חדש…', kind: 'wait' };
+  if (G.entry) return G.msg ? { text: G.msg.text, kind: G.msg.kind === 'info' ? '' : G.msg.kind } : { text: 'הקלידו את הספרות של הפאזל בלוח, או הדביקו מחרוזת או העלו תמונה.', kind: '' };
+  if (G.won) return { text: `הפאזל נפתר ב-${fmtTime(elapsed(G))}. אפשר להתחיל פאזל חדש.`, kind: 'ok' };
+  if (S.paused) return { text: 'המשחק מושהה והשעון עומד. לחצו על "המשך" כדי לחזור.', kind: '' };
+  const empty = G.board.filter(v => !v).length;
+  return { text: `נותרו ${empty} תאים ריקים. מצב קפדני ${S.strict ? 'פעיל: ערכים שגויים נחסמים' : 'כבוי'}.`, kind: '' };
+}
+
+function clockHTML(key, o, live) {
+  return `<div class="clockbox">${live ? `<button class="x-btn pb" data-act="pause" aria-pressed="${S.paused}" aria-label="${S.paused ? 'המשך' : 'השהיה'}" title="${S.paused ? 'המשך' : 'השהיה'}">${ic(S.paused ? 'play' : 'pause')}</button>` : ''}
+    <div class="clock" data-clk="${key}" role="timer" aria-label="זמן">${fmtTime(elapsed(o))}</div></div>`;
+}
+
+function renderTask() {
+  const el = $('#task'), st = statusLine();
+  const status = `<p class="t-status ${st.kind}" role="status" aria-live="polite">${st.text}</p>`;
+  let h;
+  if (S.mode === 'drill') {
+    const T = TECH[S.tech], n = S.progress[S.tech] || 0, loading = !D || D.loading;
+    const done = !loading && D.done, k = S.coach ? S.coach.k : -1;
+    h = `<div class="t-top"><div><div class="t-name">${T.he}<span class="en">${T.en}</span></div>
+        <div class="t-meta">רמה ${T.level}${loading ? '' : ` · דוגמה ${D.no} בהפעלה הזו`} · ${n} הושלמו</div></div>
+        ${clockHTML('D', D, !loading && !D.done)}</div>
+      <p class="t-goal">${T.goal}</p>
+      <p class="t-why">הלוח נבחר במיוחד: כל מה שקל יותר כבר בוצע, והצעד הבא דורש בדיוק את הטכניקה הזו.</p>
+      ${status}
+      <div class="t-actions">
+        <button class="btn mk" data-act="hint" ${loading || done || k === 2 || S.paused ? 'disabled' : ''}>${ic('bulb')}${k < 0 ? 'רמז' : 'רמז נוסף'}</button>
+        <button class="btn" data-act="solve" ${loading || done || S.paused ? 'disabled' : ''}>${ic('spark')}פתרו בשבילי</button>
+        <button class="btn ${done ? 'pri' : ''}" data-act="next" ${loading ? 'disabled' : ''}>${ic('again')}${done ? 'דוגמה הבאה' : 'דוגמה אחרת'}</button>
+      </div>`;
+  } else if (G && G.entry) {
+    h = `<div class="t-top"><div><div class="t-name">הזנת פאזל</div><div class="t-meta">הלוח שלפניכם ריק וממתין לספרות</div></div></div>${status}`;
+  } else {
+    const loading = !G || G.loading;
+    const meta = loading || G.level === undefined ? '' : `רמה: ${levelLabel(G.level)} · ` + (G.level === 99 ? 'דורש טכניקות מעבר לאלה שבמעבדה' : `הטכניקה הקשה ביותר: ${G.hard}`);
+    h = `<div class="t-top"><div><div class="t-name">משחק חופשי</div><div class="t-meta">${meta || '&nbsp;'}</div></div>
+      ${clockHTML('G', G, !loading && !G.won)}</div>
+      <p class="t-goal">פתרו את הפאזל. רמז מציג את הצעד הקל ביותר שאפשר לעשות עכשיו.</p>
+      ${status}
+      <div class="t-actions">
+        <button class="btn mk" data-act="hint" ${loading || G.won || S.paused ? 'disabled' : ''}>${ic('bulb')}${S.coach ? 'רמז נוסף' : 'רמז'}</button>
+        <button class="btn" data-act="solveall" ${loading || G.won || S.paused ? 'disabled' : ''}>${ic('spark')}פתרו הכל</button>
+      </div>
+      <div class="t-actions">
+        <select class="btn" data-act="diff" aria-label="רמת קושי">${LEVELS.map((L, k) => `<option value="${k}" ${k === S.diff ? 'selected' : ''}>${L.n}</option>`).join('')}</select>
+        <button class="btn pri" data-act="newgame" ${loading ? '' : ''}>${ic('new')}פאזל חדש</button>
+        <button class="btn" data-act="entry">${ic('pencil')}הזנת פאזל</button>
+      </div>`;
+  }
+  if (el._h !== h) {
+    const ae = document.activeElement, keep = ae && el.contains(ae) ? (ae.dataset.act || null) : null;
+    el.innerHTML = h; el._h = h;
+    if (keep) { const n = el.querySelector(`[data-act="${keep}"]`); if (n && !n.disabled) n.focus(); }
+  }
+}
+
+function renderCoach() {
+  const el = $('#coach'), co = S.coach;
+  if (!co) { el.hidden = true; return; }
+  el.hidden = false;
+  const st = co.steps[co.k], free = S.mode === 'free', T = TECH[co.h.tech];
+  const h = `<div class="co-h"><span class="co-tag">${T.he}</span><span class="co-n">שלב ${co.k + 1} מתוך 3</span>
+      <button class="x-btn" data-act="co-close" aria-label="הסתרת הרמז">${ic('x')}</button></div>
+    <div class="pips">${[0, 1, 2].map(n => `<i class="${n <= co.k ? 'on' : ''}"></i>`).join('')}</div>
+    <h3>${st.t}</h3><p>${st.x}</p>
+    <div class="co-b">
+      <button class="btn" data-act="co-prev" ${co.k === 0 ? 'disabled' : ''}>${ic('ar')}הקודם</button>
+      <button class="btn" data-act="co-next" ${co.k === 2 || (!free && D && D.done) ? 'disabled' : ''}>הבא${ic('al')}</button>
+      ${free ? `<button class="btn" data-act="co-other" ${co.list && co.list.length > 1 ? '' : 'disabled'}>${ic('again')}רמז אחר</button>
+      <button class="btn pri" data-act="co-apply">${ic('check')}בצעו את הצעד</button>` : ''}
+    </div>`;
+  setHTML(el, h);
+}
+
+function renderEntry() {
+  const el = $('#entry'), on = S.mode === 'free' && G && G.entry;
+  el.hidden = !on;
+  if (!on) { el._h = ''; return; }
+  const key = 'entry' + S.photo;
+  if (el._h !== key) {
+    el.innerHTML = `<h3>איך מזינים?</h3>
+      <p>הקלידו ספרות ישר בלוח, הדביקו מחרוזת של 81 תווים (נקודה או 0 לתא ריק)${S.photo ? ', או העלו תמונה של הפאזל' : ''}.</p>
+      <textarea id="pasteBox" dir="ltr" placeholder="53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79" aria-label="מחרוזת פאזל"></textarea>
+      <div class="t-actions">
+        <button class="btn" data-act="e-load">טענו מהמחרוזת</button>
+        ${S.photo ? `<button class="btn" id="photoBtn" data-act="e-photo">${ic('cam')}מתמונה</button><button class="btn" id="stopPhoto" data-act="e-stop" hidden>עצרו</button>
+        <input type="file" id="photoInput" accept="${S.photoTypes || 'image/*'}" hidden>` : ''}
+        <button class="btn" data-act="e-clear">נקו לוח</button>
+        <button class="btn" data-act="e-cancel">ביטול</button>
+        <button class="btn pri" data-act="e-ok">${ic('check')}אשרו והתחילו</button>
+      </div>`;
+    el._h = key;
+  }
+}
+
+function renderLesson() {
+  const el = $('#lesson');
+  el.hidden = S.mode !== 'drill';
+  if (S.mode !== 'drill') return;
+  const T = TECH[S.tech];
+  setHTML(el, `<summary>איך עובדת הטכניקה</summary><p>${T.summary}</p>
+    <ol>${T.how.map(x => `<li>${x}</li>`).join('')}</ol><div class="tip">${T.tip}</div>`);
+}
+
+function renderPad() {
+  const el = $('#pad'), vm = model(), counts = new Array(10).fill(0);
+  vm.board.forEach(v => { if (v) counts[v]++; });
+  let top;
+  const mc = multiCells();
+  if (mc.length) {
+    top = `<div class="padmode"><span class="padcap">נבחרו ${mc.length} תאים. ${S.mode === 'drill' ? 'לחיצה על ספרה מסירה אותה מהמועמדים של כולם.' : 'לחיצה על ספרה מוסיפה אותה כמועמד לכולם, ואם היא כבר בכולם, מסירה אותה.'}</span></div>`;
+  } else if (S.mode === 'drill') {
+    const cap = !D || D.loading ? 'מכין דוגמה…' : D.kind === 'place' ? 'בחרו תא ולחצו על הספרה שלו.' : 'בחרו תא ולחצו על ספרה כדי להסיר אותה מהמועמדים שלו.';
+    top = `<div class="padmode"><span class="padcap">${cap}</span></div>`;
+  } else if (G && G.entry) {
+    top = `<div class="padmode"><span class="padcap">לחיצה על ספרה כותבת אותה בתא הנבחר.</span></div>`;
+  } else {
+    top = `<div class="padmode"><div class="seg" role="group" aria-label="סוג הקלט">
+      <button data-act="pen0" aria-pressed="${!S.pencil}">ערך</button><button data-act="pen1" aria-pressed="${S.pencil}">מועמדים</button></div>
+      <span class="padcap">${S.pencil ? 'לחיצה מוסיפה או מסירה מועמד.' : 'לחיצה רושמת ספרה בתא.'}</span></div>`;
+  }
+  let keys = '';
+  for (let d = 1; d <= 9; d++) {
+    keys += `<button class="key ${counts[d] >= 9 ? 'done' : ''} ${S.mode === 'free' && S.pencil ? 'mk' : ''}" data-d="${d}" aria-label="ספרה ${d}">${d}<span class="r">${Math.max(0, 9 - counts[d])}</span></button>`;
+  }
+  keys += `<button class="key er" data-act="erase" aria-label="מחיקה" ${S.mode === 'drill' ? 'disabled' : ''}>מחיקה</button>`;
+  setHTML(el, top + `<div class="keys">${keys}</div>`);
+}
+
+function renderTools() {
+  const el = $('#tools'), drill = S.mode === 'drill';
+  const canUndo = drill ? (D && !D.loading && D.hist.length) : (G && !G.loading && G.hist.length);
+  let h = `<button class="btn" data-act="undo" ${canUndo ? '' : 'disabled'}>${ic('undo')}בטל</button>
+    <button class="btn" data-act="rot">${ic('rot')}סובב</button>`;
+  if (!drill && G && G.entry) h += `<button class="btn" data-act="e-clear">נקו לוח</button>`;
+  else if (!drill) h += `<button class="btn" data-act="marks" aria-pressed="${S.marksOn}">${ic(S.marksOn ? 'eye' : 'eyeoff')}מועמדים</button>
+    <button class="btn" data-act="fill" ${G && !G.loading ? '' : 'disabled'}>${ic('fill')}מלאו מועמדים</button>
+    <button class="btn" data-act="strict" aria-pressed="${S.strict}">${ic('shield')}מצב קפדני</button>`;
+  setHTML(el, h);
+}
+
+function applySettings() {
+  const a = $('#app'), r = document.documentElement;
+  a.dataset.hc = S.set.hc; a.dataset.ht = S.set.ht; a.dataset.hl = S.set.hl; a.dataset.cs = S.set.cs; a.dataset.peer = S.set.peer ? 'on' : 'off';
+  if (S.set.theme === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', S.set.theme);
+}
+
+function renderSettings() {
+  const el = $('#settings');
+  el.hidden = !S.setOpen;
+  $('[data-act="settings"]').setAttribute('aria-expanded', String(S.setOpen));
+  if (!S.setOpen) return;
+  const seg = (key, label, opts) => `<div class="set-row"><span class="set-l">${label}</span><div class="seg" role="group" aria-label="${label}">` +
+    opts.map(([v, t]) => `<button data-set="${key}" data-v="${v}" aria-pressed="${String(S.set[key] === v || (key === 'peer' && (S.set.peer ? '1' : '0') === v))}">${t}</button>`).join('') + '</div></div>';
+  const sw = (key, label, opts) => `<div class="set-row"><span class="set-l">${label}</span><div class="swatches" role="group" aria-label="${label}">` +
+    opts.map(([v, t, c]) => `<button class="sw" data-set="${key}" data-v="${v}" style="--c:${c}" aria-label="${t}" title="${t}" aria-pressed="${S.set[key] === v}"></button>`).join('') + '</div></div>';
+  setHTML(el, `<h3>עיצוב</h3>` +
+    sw('hc', 'צבע הדגשת הספרה והבחירה', [['blue', 'כחול', '#2D55E6'], ['green', 'ירוק', '#12936A'], ['purple', 'סגול', '#7A4FE0'], ['orange', 'כתום', '#E0680F'], ['pink', 'ורוד', '#D62E86'], ['red', 'אדום', '#D9382E']]) +
+    sw('ht', 'צבע הרמזים וההסברים', [['amber', 'ענבר', '#E5A700'], ['green', 'ירוק', '#12A878'], ['violet', 'סגול', '#8461F0'], ['cyan', 'תכלת', '#1DA8C8']]) +
+    seg('hl', 'הדגשת הספרה הנבחרת', [[1, 'עדינה'], [2, 'בינונית'], [3, 'חזקה']]) +
+    seg('peer', 'הדגשת שורה, עמודה וקוביה', [['1', 'כן'], ['0', 'לא']]) +
+    seg('cs', 'גודל המועמדים', [[1, 'קטן'], [2, 'רגיל'], [3, 'גדול']]) +
+    seg('theme', 'ערכת צבעים', [['auto', 'לפי המכשיר'], ['light', 'בהיר'], ['dark', 'כהה']]));
+}
+
+function agg(list) {
+  const ok = list.filter(e => !e.assisted), ms = ok.map(e => e.ms);
+  return { n: ok.length, asst: list.length - ok.length, best: ms.length ? Math.min(...ms) : null, avg: ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : null,
+    hints: ok.length ? ok.reduce((a, e) => a + (e.hints || 0), 0) / ok.length : null };
+}
+function renderJournal() {
+  const el = $('#journal');
+  el.hidden = S.mode !== 'journal';
+  if (el.hidden) return;
+  const done = J.filter(e => !e.assisted), total = done.reduce((a, e) => a + e.ms, 0);
+  const clean = done.filter(e => !e.hints && !e.errors).length;
+  const row = (name, a) => `<tr><th scope="row">${name}</th><td>${a.n}${a.asst ? ` <small>(+${a.asst} בעזרה)</small>` : ''}</td><td>${a.best == null ? '—' : fmtTime(a.best)}</td><td>${a.avg == null ? '—' : fmtTime(a.avg)}</td><td>${a.hints == null ? '—' : a.hints.toFixed(1)}</td></tr>`;
+  const head = '<thead><tr><th></th><th>הושלמו</th><th>הכי מהיר</th><th>ממוצע</th><th>רמזים</th></tr></thead>';
+  const free = LEVELS.map((L, k) => row(L.n, agg(J.filter(e => e.k === 'free' && e.lvl === k)))).join('');
+  const drill = TECH_ORDER.map(t => row(TECH[t].he, agg(J.filter(e => e.k === 'drill' && e.tech === t)))).join('');
+  const recent = J.slice(0, 30).map(e => {
+    const d = new Date(e.t), when = d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    const name = e.k === 'drill' ? `תרגול: ${TECH[e.tech] ? TECH[e.tech].he : e.tech}` : `משחק ${LEVELS[e.lvl] ? LEVELS[e.lvl].n : ''}`;
+    return `<li><span class="j-when">${when}</span><span class="j-name">${name}</span><span class="j-time">${fmtTime(e.ms)}</span><span class="j-meta">${e.hints || 0} רמזים · ${e.errors || 0} טעויות${e.assisted ? ' <b class="tagx">בעזרה</b>' : ''}</span></li>`;
+  }).join('');
+  setHTML(el, `<div class="j-tiles">
+      <div class="card tile"><b>${done.length}</b><span>הושלמו ללא עזרה מלאה</span></div>
+      <div class="card tile"><b>${fmtTime(total)}</b><span>זמן משחק כולל</span></div>
+      <div class="card tile"><b>${clean}</b><span>בלי רמזים ובלי טעויות</span></div></div>
+    ${J.length ? '' : '<p class="card j-empty">עדיין אין תוצאות. סיימו דוגמת תרגול או פאזל, והן יופיעו כאן.</p>'}
+    <div class="j-cols"><div class="card"><h3>משחק חופשי לפי רמה</h3><div class="tbl"><table>${head}<tbody>${free}</tbody></table></div></div>
+    <div class="card"><h3>תרגול לפי טכניקה</h3><div class="tbl"><table>${head}<tbody>${drill}</tbody></table></div></div></div>
+    <div class="card"><h3>תוצאות אחרונות</h3><ul class="j-list">${recent || '<li class="j-empty">אין עדיין</li>'}</ul>
+      <div class="t-actions"><button class="btn" data-act="j-clear" ${J.length ? '' : 'disabled'}>${S.jConfirm ? 'לחצו שוב כדי למחוק הכל' : 'מחיקת היומן'}</button></div></div>`);
+}
+
+function render() {
+  renderTabs(); renderSettings(); renderJournal(); renderRail(); renderTask(); renderCoach(); renderEntry(); renderLesson(); renderBoard(); renderPad(); renderTools();
+  syncClock();
+}
+
+/* ============================================================
+   Events
+   ============================================================ */
+function selectCell(i) { S.multi = new Set(); S.sel = S.sel === i ? -1 : i; render(); }
+
+function onBoardClick(e) {
+  if (suppressClick) { suppressClick = false; return; }
+  if (S.paused) return;
+  const c = e.target.closest('.c'); if (!c) return;
+  const i = +c.dataset.i, cd = e.target.closest('.cd.on');
+  if (S.mode === 'drill' && D && !D.loading && D.kind === 'elim' && cd && !D.board[i]) {
+    S.sel = i; drillRemove(i, +cd.dataset.d); return;
+  }
+  selectCell(i);
+}
+
+function onClick(e) {
+  if (e.target.closest('#board')) return onBoardClick(e);
+  const t = e.target.closest('button, [data-d]'); if (!t) return;
+  if (t.dataset.mode) return setMode(t.dataset.mode);
+  if (t.dataset.set) { const k = t.dataset.set, v = t.dataset.v; S.set[k] = (k === 'hl' || k === 'cs') ? +v : k === 'peer' ? v === '1' : v; applySettings(); saveStore(); return render(); }
+  if (t.dataset.tech) { if (t.dataset.tech !== S.tech || !D) drillStart(t.dataset.tech); return; }
+  if (t.classList.contains('key') && t.dataset.d) return padDigit(+t.dataset.d);
+  switch (t.dataset.act) {
+    case 'hint': return S.mode === 'drill' ? drillHint() : freeHint();
+    case 'solve': return drillSolve();
+    case 'next': return drillStart(S.tech);
+    case 'solveall': return solveAll();
+    case 'newgame': return freeNew();
+    case 'entry': return entryStart();
+    case 'undo': return undo();
+    case 'rot': S.rot += 90; return render();
+    case 'marks': S.marksOn = !S.marksOn; saveStore(); return render();
+    case 'fill': return fillAll();
+    case 'strict': S.strict = !S.strict; saveStore(); return render();
+    case 'pen0': S.pencil = false; return render();
+    case 'pen1': S.pencil = true; return render();
+    case 'erase': return eraseKey();
+    case 'pause': S.paused = !S.paused; return render();
+    case 'settings': S.setOpen = !S.setOpen; return render();
+    case 'j-clear':
+      if (!S.jConfirm) { S.jConfirm = true; return render(); }
+      J = []; S.jConfirm = false; try { localStorage.setItem(J_KEY, '[]'); } catch (err) { /* ignore */ }
+      return render();
+    case 'co-close': S.coach = null; return render();
+    case 'co-prev': return coachGo(-1);
+    case 'co-next': return coachGo(1);
+    case 'co-other': return freeOther();
+    case 'co-apply': return freeApply();
+    case 'e-load': return entryLoadText();
+    case 'e-clear': return entryClear();
+    case 'e-cancel': return entryCancel();
+    case 'e-ok': return entryConfirm();
+    case 'e-photo': return $('#photoInput').click();
+    case 'e-stop': if (photoCtl) photoCtl.abort(); return;
+  }
+}
+
+function onChange(e) {
+  const t = e.target;
+  if (t.dataset && t.dataset.act === 'diff') { S.diff = +t.value; saveStore(); }
+  if (t.id === 'photoInput' && t.files && t.files[0]) { const f = t.files[0]; t.value = ''; readPhoto(f); }
+}
+
+function onKey(e) {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'textarea' || tag === 'input' || tag === 'select') return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); return undo(); }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (S.mode === 'journal') return;
+  if (/^[1-9]$/.test(e.key)) { padDigit(+e.key); return; }
+  if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') { eraseKey(); return; }
+  if (e.key === 'Escape') { if (S.coach) S.coach = null; else if (S.multi.size) S.multi = new Set(); else S.sel = -1; render(); return; }
+  if (e.key === 'p' || e.key === 'P') { if (S.mode === 'free' && !(G && G.entry)) { S.pencil = !S.pencil; render(); } return; }
+  const dirs = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };
+  if (dirs[e.key]) {
+    e.preventDefault();
+    let [dx, dy] = dirs[e.key];
+    const k = (((S.rot / 90) % 4) + 4) % 4;
+    for (let n = 0; n < k; n++) { const nx = dy, ny = -dx; dx = nx; dy = ny; }   /* screen direction -> board direction */
+    if (S.sel < 0) S.sel = 40;
+    else { const r = Math.max(0, Math.min(8, ROW(S.sel) + dy)), c = Math.max(0, Math.min(8, COL(S.sel) + dx)); S.sel = r * 9 + c; }
+    render();
+  }
+}
+
+function init() {
+  const board = $('#board');
+  for (let i = 0; i < 81; i++) {
+    const d = document.createElement('div');
+    d.dataset.i = i; d.setAttribute('role', 'gridcell'); d.tabIndex = -1;
+    board.appendChild(d); cellEls.push(d);
+  }
+  loadStore();
+  applySettings();
+  const cellAt = (x, y) => { const el = document.elementFromPoint(x, y), c = el && el.closest && el.closest('#board .c'); return c ? +c.dataset.i : -1; };
+  board.addEventListener('pointerdown', e => {
+    if (e.button > 0 || (S.paused)) return;
+    const i = cellAt(e.clientX, e.clientY);
+    drag = i < 0 ? null : { id: e.pointerId, cells: new Set([i]), moved: false };
+  });
+  board.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const i = cellAt(e.clientX, e.clientY);
+    if (i < 0 || drag.cells.has(i)) return;
+    drag.cells.add(i); drag.moved = true;
+    S.multi = new Set(drag.cells); S.sel = -1; render();
+  });
+  const endDrag = () => { if (drag && drag.moved) { suppressClick = true; setTimeout(() => { suppressClick = false; }, 50); } drag = null; };
+  board.addEventListener('pointerup', endDrag);
+  board.addEventListener('pointercancel', endDrag);
+  document.addEventListener('visibilitychange', () => { syncClock(); });
+  setInterval(tickClock, 1000);
+  document.addEventListener('click', onClick);
+  document.addEventListener('change', onChange);
+  document.addEventListener('keydown', onKey);
+  render();
+  if (S.mode === 'drill') drillStart(S.tech); else freeNew();
+  initPhoto();
+}
+
+
+window.__lab={S,get D(){return D},get G(){return G},drillStart,freeNew,drillPlace,drillRemove,freePlace,padDigit,model,render};
+init();
+
+})();
+</script>
+
+<!-- סנכרון בין מכשירים (משותף לכל הפרויקטים) -->
+<script src="../firebase-config.js"></script>
+<script src="../ls-sync.js" data-app="sudoku" data-prefix="sudoku-lab"></script>
+<script type="module" src="../sync.js"></script>
+</body></html>
