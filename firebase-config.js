@@ -8,8 +8,3 @@ window.FIREBASE_CONFIG = {
   appId: "1:115708322967:web:f99079f740c4515bddf5d2"
 };
 
-// Google image search inside the ABC cards (key is restricted to this site + Custom Search API only)
-window.IMAGE_SEARCH = {
-  key: "AIzaSyD2WxhxdjmcU-Go5_DCt_FGhwYYScccKbI",
-  cx: "17117da2802a946e2"
-};

@@ -79,7 +79,7 @@
 <div class="controls-bar">
   <div>
     <h1>קלפי ABC נינג'גו 🔊</h1>
-    <small>הכול נשמר אוטומטית. חפש תמונה מתחת לכל קלף ולחץ עליה – או הדבק/גרור. (+) להוספת דמויות לאות.</small>
+    <small>הכול נשמר אוטומטית. חפש תמונה בוויקי של נינג'גו מתחת לכל קלף ולחץ עליה – או הדבק/גרור. (+) להוספת דמויות לאות.</small>
   </div>
   <div class="btn-group">
     <span id="status" role="status"></span>
@@ -199,7 +199,7 @@ function paneHTML(key){
       </div>
     </div>
     <div class="search-row">
-      <input type="search" id="q_${key}" data-q-of="${key}" placeholder="חפש תמונה..." autocomplete="off" enterkeyhint="search">
+      <input type="search" id="q_${key}" data-q-of="${key}" placeholder="חפש בוויקי של נינג'גו..." autocomplete="off" enterkeyhint="search">
       <button type="button" data-search-btn="${key}">🔍 חפש</button>
     </div>
     <div class="results" id="res_${key}"></div>
@@ -237,45 +237,58 @@ function updateSearch(key){
   const q = word ? 'lego ninjago ' + word : 'lego ninjago';
   $('search_' + key).href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
   const box = $('q_' + key);
-  if (box && !box.dataset.touched) box.value = q;
+  if (box && !box.dataset.touched) box.value = word;
 }
 
-/* ---------- image search inside the card (Google Custom Search) ---------- */
-const searchState = {}; // key -> { q, start }
+/* ---------- image search inside the card (Ninjago wiki on Fandom – free, no key) ----------
+   1st request: pages matching the words → the main picture of each page.
+   "more": every picture on the best-matching page. */
+const WIKI = 'https://ninjago.fandom.com/api.php?format=json&origin=*&';
+const searchState = {}; // key -> { q, pages:[titles], pageIdx }
+function wikiFetch(params){ return fetch(WIKI + params).then(r => r.json()); }
+function addResult(res, key, full, thumb, title){
+  if (res.querySelector(`img[data-full="${CSS.escape(full)}"]`)) return false;
+  const im = document.createElement('img');
+  im.src = thumb || full; im.alt = ''; im.title = title || '';
+  im.dataset.full = full; im.dataset.thumb = thumb || full; im.dataset.pick = key; im.loading = 'lazy';
+  res.appendChild(im); return true;
+}
+function moreButton(res, key){
+  const w = document.createElement('div'); w.className = 'more';
+  w.innerHTML = '<button type="button" data-more="' + key + '">⬇️ עוד תמונות</button>'; res.appendChild(w);
+}
 async function runSearch(key, more){
-  const cfg = window.IMAGE_SEARCH, box = $('q_' + key), res = $('res_' + key), msg = $('msg_' + key);
-  const q = (box.value || '').trim();
-  if (!cfg || !cfg.key) { msg.textContent = 'החיפוש המובנה לא מוגדר.'; return; }
+  const box = $('q_' + key), res = $('res_' + key), msg = $('msg_' + key);
+  const q = (box.value || '').replace(/^lego\s+ninjago\s+/i, '').trim();
   if (!q) { msg.textContent = 'כתוב מה לחפש.'; box.focus(); return; }
-  const st = searchState[key] || {};
-  const start = (more && st.q === q) ? st.start : 1;
-  if (!more) res.innerHTML = '';
   res.querySelectorAll('.more').forEach(n => n.remove());
   msg.textContent = 'מחפש…';
   try {
-    const url = 'https://www.googleapis.com/customsearch/v1?key=' + encodeURIComponent(cfg.key) + '&cx=' + encodeURIComponent(cfg.cx)
-      + '&searchType=image&safe=active&num=10&start=' + start + '&q=' + encodeURIComponent(q);
-    const r = await fetch(url); const d = await r.json();
-    if (d.error) throw new Error(d.error.message || 'error');
-    const items = d.items || [];
-    items.forEach(it => {
-      const im = document.createElement('img');
-      im.src = (it.image && it.image.thumbnailLink) || it.link; im.alt = ''; im.title = it.title || '';
-      im.dataset.full = it.link; im.dataset.thumb = im.src; im.dataset.pick = key; im.loading = 'lazy';
-      res.appendChild(im);
-    });
-    searchState[key] = { q, start: start + items.length };
-    const total = d.searchInformation ? +d.searchInformation.totalResults : 0;
-    if (!items.length) msg.textContent = start === 1 ? 'לא נמצאו תמונות. נסה מילים אחרות.' : 'אין עוד תוצאות.';
-    else {
-      msg.textContent = '';
-      if (items.length === 10 && start + 10 <= Math.min(total, 100)) {
-        const w = document.createElement('div'); w.className = 'more';
-        w.innerHTML = '<button type="button" data-more="' + key + '">⬇️ עוד תוצאות</button>'; res.appendChild(w);
-      }
+    if (!more || !searchState[key] || searchState[key].q !== q) {
+      res.innerHTML = '';
+      const d = await wikiFetch('action=query&generator=search&gsrsearch=' + encodeURIComponent(q) + '&gsrlimit=12&gsrnamespace=0&prop=pageimages&piprop=original|thumbnail&pithumbsize=300');
+      const pages = Object.values((d.query || {}).pages || {}).sort((x, y) => x.index - y.index);
+      let n = 0;
+      pages.forEach(pg => { if (pg.original && addResult(res, key, pg.original.source, pg.thumbnail && pg.thumbnail.source, pg.title)) n++; });
+      searchState[key] = { q, pages: pages.map(pg => pg.title), pageIdx: 0 };
+      if (!pages.length) { msg.textContent = 'לא נמצא בוויקי של נינג\'גו. נסה שם אחר, או "חפש בגוגל".'; return; }
+      msg.textContent = n ? '' : 'לדפים שנמצאו אין תמונה ראשית – לחץ "עוד תמונות".';
+      moreButton(res, key); return;
     }
+    const st = searchState[key];
+    if (st.pageIdx >= st.pages.length) { msg.textContent = 'אין עוד תמונות.'; return; }
+    const title = st.pages[st.pageIdx++];
+    const d = await wikiFetch('action=query&generator=images&titles=' + encodeURIComponent(title) + '&gimlimit=40&prop=imageinfo&iiprop=url|size&iiurlwidth=300');
+    let n = 0;
+    Object.values((d.query || {}).pages || {}).forEach(f => {
+      const ii = f.imageinfo && f.imageinfo[0]; if (!ii || !/\.(png|jpe?g|webp)$/i.test(f.title)) return;
+      if (ii.width && ii.width < 120) return;
+      if (addResult(res, key, ii.url, ii.thumburl, f.title.replace(/^File:/, ''))) n++;
+    });
+    msg.textContent = n ? '' : 'אין תמונות נוספות בדף ' + title + '.';
+    if (st.pageIdx < st.pages.length) moreButton(res, key);
   } catch(e) {
-    msg.textContent = /quota|limit/i.test(e.message) ? 'נגמרה מכסת החיפושים להיום (100). נסה מחר.' : 'החיפוש נכשל: ' + e.message;
+    msg.textContent = 'החיפוש נכשל: ' + (e.message || e);
   }
 }
 /* chosen picture: fetch it, shrink it and store it like a pasted one; if the site blocks us, keep the thumbnail */
