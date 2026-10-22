@@ -33,6 +33,7 @@
   .action-icon-btn:hover { background:#e0e0e0; }
   .image-container { width:100%; height:205px; border:2px dashed #bbb; border-radius:8px; margin:12px 0; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; background:#fafafa; overflow:hidden; outline:none; cursor:pointer; }
   .image-container:focus, .image-container.dragover { border-color:var(--primary); background:#fff8e1; }
+  .image-container.pasting { border:3px solid var(--primary); background:#fff8e1; caret-color:transparent; -webkit-user-select:text; user-select:text; }
   .image-container img { width:100%; height:100%; object-fit:contain; background:#fff; }
   .delete-img-btn { position:absolute; top:8px; left:8px; background:rgba(211,47,47,.9); color:#fff; border:none; border-radius:50%; width:28px; height:28px; padding:0; font-size:13px; display:flex; align-items:center; justify-content:center; z-index:5; }
   .image-placeholder-text { font-size:13px; color:#777; text-align:center; line-height:1.5; padding:10px; pointer-events:none; }
@@ -264,11 +265,14 @@ grid.addEventListener('change', e => {
 });
 grid.addEventListener('paste', e => {
   const wrap = e.target.closest('[data-img-of]'); if (!wrap) return;
-  const key = wrap.dataset.imgOf, items = (e.clipboardData || {}).items || [];
-  for (const it of items) if (it.type.indexOf('image') !== -1) { readFile(key, it.getAsFile()); e.preventDefault(); return; }
-  const text = e.clipboardData.getData('text');
-  if (text && /^https?:\/\//.test(text)) { setImg(key, text); changed(key); e.preventDefault(); }
+  const key = wrap.dataset.imgOf, cd = e.clipboardData || {}, items = cd.items || [], files = cd.files || [];
+  e.preventDefault(); endPasteFallback(wrap);
+  for (const f of files) if (f.type.startsWith('image/')) return readFile(key, f);
+  for (const it of items) if (it.type.indexOf('image') !== -1) return readFile(key, it.getAsFile());
+  const url = imageUrlFromText(cd.getData('text/uri-list')) || imageUrlFromText(cd.getData('text/plain')) || imageUrlFromText(cd.getData('text/html'));
+  if (url) { setImg(key, url); changed(key); } else status('אין תמונה בלוח.');
 });
+grid.addEventListener('focusout', e => { const w = e.target.closest && e.target.closest('[data-img-of].pasting'); if (w) setTimeout(() => endPasteFallback(w), 300); });
 grid.addEventListener('dragover', e => { const w = e.target.closest('[data-img-of]'); if (w) { e.preventDefault(); w.classList.add('dragover'); } });
 grid.addEventListener('dragleave', e => { const w = e.target.closest('[data-img-of]'); if (w) w.classList.remove('dragover'); });
 grid.addEventListener('drop', e => {
@@ -280,24 +284,42 @@ grid.addEventListener('drop', e => {
 });
 
 /* paste button: read the clipboard directly (works on iPad, where there is no Ctrl+V) */
+function imageUrlFromText(text){
+  text = (text || '').trim();
+  if (/^(https?:\/\/|data:image\/)/.test(text)) return text;
+  const m = text.match(/<img[^>]+src=["']([^"']+)["']/i); return m ? m[1] : '';
+}
 async function pasteFromClipboard(key){
-  if (!navigator.clipboard || !navigator.clipboard.read) {
-    $('img_wrap_' + key).focus(); return status('לחץ על אזור התמונה ואז הדבק (Ctrl+V).');
-  }
+  if (!navigator.clipboard || !navigator.clipboard.read) return pasteFallback(key, 'הדפדפן לא מאפשר קריאה מהלוח');
   try {
     const items = await navigator.clipboard.read();
+    const types = [];
     for (const it of items) {
-      const type = it.types.find(t => t.startsWith('image/'));
-      if (type) { readFile(key, await it.getType(type)); return; }
+      it.types.forEach(t => types.push(t));
+      const imgType = it.types.find(t => t.startsWith('image/'));
+      if (imgType) { readFile(key, await it.getType(imgType)); return; }
     }
-    for (const it of items) if (it.types.includes('text/plain')) {
-      const text = (await (await it.getType('text/plain')).text()).trim();
-      if (/^https?:\/\//.test(text)) { setImg(key, text); changed(key); return; }
+    for (const it of items) for (const t of ['text/uri-list', 'text/plain', 'text/html']) {
+      if (!it.types.includes(t)) continue;
+      const url = imageUrlFromText(await (await it.getType(t)).text());
+      if (url) { setImg(key, url); changed(key); return; }
     }
-    status('אין תמונה בלוח. העתק תמונה ונסה שוב.');
+    pasteFallback(key, 'אין תמונה בלוח' + (types.length ? ' (' + types.join(', ') + ')' : ''));
   } catch(e) {
-    status(e && e.name === 'NotAllowedError' ? 'ההדבקה לא אושרה. נסה שוב ואשר "הדבק".' : 'לא הצלחתי לקרוא מהלוח.');
+    pasteFallback(key, e && e.name === 'NotAllowedError' ? 'ההדבקה לא אושרה' : 'שגיאה: ' + (e && e.message || e));
   }
+}
+/* second way: an editable spot inside the picture area, so a long press shows the system "Paste" menu */
+function pasteFallback(key, why){
+  const wrap = $('img_wrap_' + key);
+  wrap.classList.add('pasting');
+  wrap.setAttribute('contenteditable', 'true'); wrap.setAttribute('inputmode', 'none');
+  wrap.focus();
+  status(why + '. לחץ לחיצה ארוכה על אזור התמונה ובחר "הדבק".');
+}
+function endPasteFallback(wrap){
+  wrap.classList.remove('pasting'); wrap.removeAttribute('contenteditable'); wrap.removeAttribute('inputmode');
+  wrap.querySelectorAll('br, div:not([class]), span:not([class])').forEach(n => n.remove());
 }
 
 /* ---------- autosave ---------- */
