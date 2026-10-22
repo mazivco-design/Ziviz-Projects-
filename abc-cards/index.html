@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
 <title>קלפי ABC נינג'גו</title>
 <style>
   :root { --primary:#d32f2f; --dark:#212121; --gold:#ffb300; --bg:#f5f5f5; }
@@ -250,7 +251,7 @@ function addResult(res, key, full, thumb, title){
   if (res.querySelector(`img[data-full="${CSS.escape(full)}"]`)) return false;
   const im = document.createElement('img');
   im.src = thumb || full; im.alt = ''; im.title = title || '';
-  im.dataset.full = full; im.dataset.thumb = thumb || full; im.dataset.pick = key; im.loading = 'lazy';
+  im.dataset.full = full; im.dataset.thumb = thumb || full; im.dataset.pick = key; im.loading = 'lazy'; im.referrerPolicy = 'no-referrer';
   res.appendChild(im); return true;
 }
 function moreButton(res, key){
@@ -295,7 +296,7 @@ async function runSearch(key, more){
 async function pickResult(key, full, thumb){
   const msg = $('msg_' + key); msg.textContent = 'טוען תמונה…';
   const toDataUrl = src => new Promise((ok, bad) => {
-    const im = new Image(); im.crossOrigin = 'anonymous';
+    const im = new Image(); im.crossOrigin = 'anonymous'; im.referrerPolicy = 'no-referrer';
     im.onload = () => { try { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); ok(c.toDataURL('image/png')); } catch(e) { bad(e); } };
     im.onerror = () => bad(new Error('load')); im.src = src;
   });
@@ -429,7 +430,7 @@ function flush(){
 /* pictures: shrink before saving so they fit on the device and in the account */
 function shrink(src){
   return new Promise(res => {
-    const im = new Image();
+    const im = new Image(); im.referrerPolicy = 'no-referrer';
     im.onload = () => {
       const s = Math.min(1, 700 / Math.max(im.width, im.height));
       const c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
