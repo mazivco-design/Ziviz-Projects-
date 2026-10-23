@@ -369,6 +369,24 @@
    ],
    "image": "images/artifact.svg",
    "url": "https://claude.ai/artifact/Uqb5wLTLtXyEzkuZaWMou7"
+  },
+  {
+   "id": "psycho",
+   "group": "tools",
+   "name": "מסלול פסיכומטרי",
+   "desc": "ספורט למוח: לימוד הדרגתי של חשיבה כמותית, מילולית ואנגלית לפי הקורס \"הפסיכומטרי של המדינה\", עם כ־500 שאלות. ההתקדמות מסתנכרנת בין המכשירים. (הסברים נוספים ואתגרים מ־Claude עובדים רק בגרסה ב־Claude.)",
+   "tags": [
+    "חשיבה",
+    "פסיכומטרי"
+   ],
+   "image": "images/psycho.svg",
+   "url": "psycho/",
+   "links": [
+    {
+     "label": "גרסה ב-Claude",
+     "url": "https://claude.ai/artifact/2ZiD1FjdmoNJKpqF1Bz3tp"
+    }
+   ]
   }
  ]
 }
