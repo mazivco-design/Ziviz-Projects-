@@ -73,20 +73,31 @@
     if (!ready || !Z || !Z.user) return;
     if (pushing) { again = true; return; }
     pushing = true;
+    // base = "מה שהענן כבר יודע". מעדכנים אותו רק אחרי שהענן אישר את השמירה.
+    // אם השליחה לא הושלמה (שינה, ניתוק, סגירת הדפדפן), base נשאר ישן – ובפעם הבאה הערך נשלח שוב,
+    // במקום שהערך הישן מהענן ייחשב בטעות כ"עדכון ממכשיר אחר" וידרוס את ההתקדמות במכשיר.
+    let failed = false;
     try {
       const L = readLocal(), jobs = [];
+      const track = (p, done) => jobs.push(p.then(done, e => { failed = true; console.error(e); }));
       Object.keys(L).forEach(id => {
         const h = hash(L[id]);
         if (h === base[id]) return;
         if (L[id].length > MAX_ITEM) { console.warn('ls-sync: ערך גדול מדי לסנכרון', dec(id)); return; }
-        if (remote[id] === undefined || hash(remote[id]) !== h) jobs.push(Z.saveItem(cfg.app, id, L[id]));
-        base[id] = h;
+        if (remote[id] !== undefined && hash(remote[id]) === h) { base[id] = h; return; }   // הענן כבר מחזיק את הערך הזה
+        track(Z.saveItem(cfg.app, id, L[id]), () => { base[id] = h; saveBase(); });
       });
-      Object.keys(base).forEach(id => { if (L[id] === undefined) { jobs.push(Z.deleteItem(cfg.app, id)); delete base[id]; } });
+      Object.keys(base).forEach(id => {
+        if (L[id] === undefined) track(Z.deleteItem(cfg.app, id), () => { if (readLocal()[id] === undefined) { delete base[id]; saveBase(); } });
+      });
       saveBase();
       await Promise.all(jobs);
-    } catch (e) { console.error(e); showBar('הסנכרון נכשל. השינויים שמורים במכשיר ויישלחו שוב.', false); }
-    finally { pushing = false; if (again) { again = false; schedulePush(); } }
+    } catch (e) { failed = true; console.error(e); }
+    finally {
+      pushing = false;
+      if (failed) { showBar('הסנכרון נכשל. השינויים שמורים במכשיר ויישלחו שוב.', false); clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 15000); }
+      else if (again) { again = false; schedulePush(); }
+    }
   }
   function schedulePush() { clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 1200); }
 
