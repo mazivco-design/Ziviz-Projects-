@@ -146,6 +146,15 @@ button:focus-visible,.opt:focus-visible{outline:3px solid var(--dropout);outline
 .ltrfix{unicode-bidi:isolate}
 .labtag{font-size:.7rem;font-weight:800;color:var(--dropout);border:1.5px solid var(--dropout);border-radius:999px;padding:0 7px;vertical-align:middle;margin-inline-start:6px}
 .labhost{margin-bottom:8px}
+.labhost .lab-head h2{display:none}
+.vizcard{background:var(--sheet);border:2px solid var(--ink);margin-bottom:12px}
+.vizcard h3{font-size:1.5rem}
+.vizgroups{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media (max-width:520px){.vizgroups{grid-template-columns:repeat(2,1fr)}}
+.vizsec{margin-bottom:20px}.vizsec h3{font-size:1.25rem;margin-bottom:8px}
+.viztiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.viztile{font:inherit;text-align:start;background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:2px;color:var(--ink)}
+.viztile:hover{border-color:var(--ink)}.viztile span{font-size:.8rem;color:var(--muted)}
 .traps{background:var(--bad-soft);border-radius:8px;padding:10px 14px}
 .traps ul{margin:4px 0 0;padding-inline-start:18px;display:flex;flex-direction:column;gap:4px}
 .tbl{overflow-x:auto;margin-bottom:12px}
@@ -282,7 +291,10 @@ function home(){app.classList.remove("labwide");
      ${Object.keys(stats).length?`<span class="confirm" id="resetBox"></span>`:""}</div>
    <div class="hero"><h1>תרגול לפסיכומטרי, שאלה אחר שאלה</h1>
      <p>בחר פרק לתרגול חופשי עם הסבר אחרי כל תשובה, או היכנס למיני־סימולציה עם שעון כמו ביום המבחן.</p></div>
-   <div class="card feature"><h3>מצב לימוד: צעד אחר צעד</h3><p>בכמותית כל נושא מתחיל ב<b>מעבדה</b>: גוררים, מחלקים ומזיזים על המסך, ומורה מוביל צעד אחר צעד. אחר כך הסבר כתוב, דוגמה פתורה ותרגול.</p>
+   <div class="card vizcard"><h3>המחשות</h3><p>לומדים כמותית בידיים: גוררים, מחלקים ומזיזים על המסך, ומורה מוביל אותך. בוחרים נושא, ובתוכו קופצים לכל פרק שרוצים.</p>
+     <div class="vizgroups">${VIZ_GROUPS.map(([k,n])=>`<button class="btn alt" data-viz="${k}">${n}</button>`).join("")}</div>
+     <button class="btn" data-viz="">כל ההמחשות (${LAB_IDS.length})</button></div>
+   <div class="card feature"><h3>מצב לימוד: צעד אחר צעד</h3><p>הסבר של השיטה, דוגמה פתורה, תרגיל עם עזרה ותרגיל לבד. בכמותית כל נושא מתחיל בהמחשה.</p>
      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${["v","q","e"].map(s=>`<button class="btn" data-learn="${s}">${{v:"מילולית",q:"כמותית",e:"אנגלית"}[s]}<br><small style="font-weight:400;opacity:.8">${learnDone(s)} / ${LEARN[s].length} נושאים</small></button>`).join("")}</div></div>
    <div class="sections">${secHtml}</div>
    <div class="wide">
@@ -295,6 +307,7 @@ function home(){app.classList.remove("labwide");
   app.querySelectorAll("[data-practice]").forEach(b=>b.onclick=()=>start("practice",shuffle(BY[b.dataset.practice]).slice(0,15),SECTIONS[b.dataset.practice].name));
   document.getElementById("sim").onclick=startSim;
   app.querySelectorAll("[data-learn]").forEach(b=>b.onclick=()=>learnHome(b.dataset.learn));
+  app.querySelectorAll("[data-viz]").forEach(b=>b.onclick=()=>vizHome(b.dataset.viz));
   document.getElementById("review").onclick=()=>start("practice",shuffle(wrong),"חזרה על טעויות");
   renderReset();
 }
@@ -540,7 +553,7 @@ const loadScript=src=>_scripts[src]||(_scripts[src]=new Promise((res,rej)=>{cons
 async function mountLab(l){
   const host=document.getElementById("labhost");if(!host)return;
   try{await loadScript("labs/lab-core.js");await loadScript("labs/"+l.id+".js");}
-  catch(e){host.innerHTML='<div class="explain bad"><b>המעבדה לא נטענה</b>בדוק את החיבור לאינטרנט ונסה לפתוח את הנושא שוב.</div>';return}
+  catch(e){host.innerHTML='<div class="explain bad"><b>ההמחשה לא נטענה</b>בדוק את החיבור לאינטרנט ונסה לפתוח את הנושא שוב.</div>';return}
   if(!document.getElementById("labhost")||LS.stage!==-1)return;
   Lab.mount(host,Lab.get(l.id),{onDone:()=>{const p=lp();p[l.id+"#lab"]=1;save();setStage(0)}});
 }
@@ -555,13 +568,25 @@ function learnHome(sec){
   app.innerHTML=`
    <div class="top"><button class="ghost" id="quit">→ למסך הראשי</button><span class="count">מצב לימוד · ${SECTIONS[LSEC].name}</span></div>
    <div class="hero"><h1>לומדים ${SECTIONS[LSEC].name} מההתחלה</h1>
-     <p>${LSEC==="q"?"כל נושא מתחיל במעבדה אינטראקטיבית, ואחריה ":"כל נושא בנוי מארבעה שלבים: "}הסבר של השיטה, דוגמה פתורה צעד אחר צעד, תרגיל עם רמזים, ובסוף שני תרגילים לבד. האחרון הוא ברמת מבחן. כדאי ללכת לפי הסדר. אחרי שמסיימים נושא נפתח בו שלב של אתגרים: Claude כותב לך תרגילים חדשים, ואתה בוחר אם לעלות רמה.</p></div>
+     <p>${LSEC==="q"?"כל נושא מתחיל בהמחשה אינטראקטיבית, ואחריה ":"כל נושא בנוי מארבעה שלבים: "}הסבר של השיטה, דוגמה פתורה צעד אחר צעד, תרגיל עם רמזים, ובסוף שני תרגילים לבד. האחרון הוא ברמת מבחן. כדאי ללכת לפי הסדר. אחרי שמסיימים נושא נפתח בו שלב של אתגרים: Claude כותב לך תרגילים חדשים, ואתה בוחר אם לעלות רמה.</p></div>
    <div class="topics">${LESSONS.map((l,k)=>{const st=p[l.id]||0;
-     return `<button class="topic" data-l="${k}"><span class="num">${k+1}</span><span class="tt"><b>${l.title}${hasLab(l)?` <span class="labtag">מעבדה</span>`:""}</b><span>${st>=4?"הושלם":st>0?"בתהליך":"עוד לא התחלת"} · ${l.tag}</span></span><span class="dots" aria-label="${st} מתוך 4 שלבים">${[0,1,2,3].map(s=>`<i class="${s<st?"on":""}"></i>`).join("")}</span></button>`}).join("")}</div>`;
+     return `<button class="topic" data-l="${k}"><span class="num">${k+1}</span><span class="tt"><b>${l.title}${hasLab(l)?` <span class="labtag">המחשה</span>`:""}</b><span>${st>=4?"הושלם":st>0?"בתהליך":"עוד לא התחלת"} · ${l.tag}</span></span><span class="dots" aria-label="${st} מתוך 4 שלבים">${[0,1,2,3].map(s=>`<i class="${s<st?"on":""}"></i>`).join("")}</span></button>`}).join("")}</div>`;
   document.getElementById("quit").onclick=home;
   app.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>openLesson(+b.dataset.l));
   window.scrollTo(0,0);
 }
+const VIZ_GROUPS=[["alg","אלגברה"],["prb","בעיות"],["geo","גיאומטריה"],["cht","תרשימים"]];
+function vizHome(focus){
+  clearInterval(timerId);S=null;LS=null;LSEC="q";LESSONS=LEARN.q;app.classList.remove("labwide");
+  const groups=VIZ_GROUPS.map(([k,n])=>{const items=LESSONS.map((l,i)=>[l,i]).filter(([l])=>hasLab(l)&&l.id.startsWith(k+"-"));
+    return `<section class="vizsec" id="viz-${k}"><h3>${n}</h3><div class="viztiles">${items.map(([l,i])=>`<button class="viztile" data-open="${i}"><b>${l.title}</b><span>${labDone(l)?"✓ עברת עליה":"עוד לא נפתחה"}</span></button>`).join("")}</div></section>`}).join("");
+  app.innerHTML=`<div class="top"><button class="ghost" id="quit">→ למסך הראשי</button><span class="count">המחשות · כמותית</span></div>
+   <div class="hero"><h1>המחשות</h1><p>כל המחשה בנויה מכמה פרקים. אפשר להתחיל מכל פרק, לחזור אחורה ולדלג קדימה, בכל סדר שנוח לך.</p></div>${groups}`;
+  document.getElementById("quit").onclick=home;
+  app.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openViz(+b.dataset.open));
+  const f=focus&&document.getElementById("viz-"+focus);if(f)f.scrollIntoView();else window.scrollTo(0,0);
+}
+function openViz(k){LSEC="q";LESSONS=LEARN.q;LS={k,stage:-1,from:"viz"};resetStage();lesson();window.scrollTo(0,0)}
 function openLesson(k){const l=LESSONS[k],st=lp()[l.id]||0;LS={k,stage:hasLab(l)&&!labDone(l)?-1:st>=4?0:st};resetStage();lesson();window.scrollTo(0,0)}
 function resetStage(){Object.assign(LS,{hint:{},step:1,g:0,qi:0,ans:{},checked:{},right:0,done:false})}
 function setStage(n){LS.stage=n;resetStage();lesson();window.scrollTo(0,0)}
@@ -575,7 +600,7 @@ function lesson(){
   const d=l.en?' dir="ltr" lang="en"':'';
   const ps=q=>{const t=q.p?PASSAGES[q.p]:q.pt;return (t?`<details class="passage" open><summary>${l.en?"קטע קריאה (Passage)":"קטע קריאה"}</summary><p${d}>${esc(t)}</p></details>`:"")+tableHtml(q.table)+figHtml(q.fig)};
   const lab=hasLab(l);
-  const stepper=(lab?`<button data-st="-1" class="${!LS.done&&st===-1?"cur":labDone(l)?"done":""}">מעבדה</button>`:"")+STAGES.map((s,n)=>`<button data-st="${n}" class="${!LS.done&&n===st?"cur":(n<reached||LS.done)?"done":""}" ${n>Math.max(reached,st)?"disabled":""}>${n+1}. ${s}</button>`).join("");
+  const stepper=(lab?`<button data-st="-1" class="${!LS.done&&st===-1?"cur":labDone(l)?"done":""}">המחשה</button>`:"")+STAGES.map((s,n)=>`<button data-st="${n}" class="${!LS.done&&n===st?"cur":(n<reached||LS.done)?"done":""}" ${n>Math.max(reached,st)?"disabled":""}>${n+1}. ${s}</button>`).join("");
   let body="",nav="";
   if(st===-1&&!LS.done){
     body=`<div id="labhost" class="labhost"><p class="lvl">טוען את המעבדה...</p></div>`;
@@ -624,14 +649,15 @@ function lesson(){
     nav=`<span></span>`+(!ck?`<button class="btn" id="check" ${LS.ans[key]===undefined?"disabled":""}>בדוק תשובה</button>`:LS.qi===0?`<button class="btn" id="next2">לתרגיל הבא</button>`:`<button class="btn" id="finish">סיים את הנושא</button>`);
   }
   app.innerHTML=`
-   <div class="top"><button class="ghost" id="list0">→ כל הנושאים</button><span class="count">נושא ${LS.k+1} מתוך ${LESSONS.length}</span></div>
+   <div class="top"><button class="ghost" id="list0">${LS.from==="viz"?"→ כל ההמחשות":"→ כל הנושאים"}</button><span class="count">נושא ${LS.k+1} מתוך ${LESSONS.length}</span></div>
    <span class="tag">${l.tag}</span>
    <h2 style="font-size:1.7rem;margin-top:8px">${l.title}</h2>
    <div class="stepper">${stepper}</div>
    ${body}
    <div class="nav">${nav}</div>`;
   const on=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f};
-  on("list0",learnHome);on("list",learnHome);
+  const back=()=>LS&&LS.from==="viz"?vizHome(l.id.split("-")[0]):learnHome();
+  on("list0",back);on("list",back);
   on("skipLab",()=>setStage(0));
   app.classList.toggle("labwide",st===-1&&!LS.done);
   if(st===-1&&!LS.done)mountLab(l);

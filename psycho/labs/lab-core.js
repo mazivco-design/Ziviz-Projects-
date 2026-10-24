@@ -16,15 +16,18 @@
 .lab .lab-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .lab .lab-head h2{font-family:"Frank Ruhl Libre","Times New Roman",serif;font-weight:900;font-size:1.6rem;margin:0}
 .lab .chapters{display:flex;gap:6px;flex-wrap:wrap}
-.lab .chapters span{font-size:.8rem;padding:3px 10px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted)}
-.lab .chapters span.on{border-color:var(--ink);color:var(--ink);font-weight:700}
-.lab .chapters span.done{border-color:var(--a);color:var(--a)}
+.lab .chapters button{font:inherit;font-size:.85rem;padding:4px 11px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted);background:var(--sheet);cursor:pointer}
+.lab .chapters button:hover{border-color:var(--ink)}
+.lab .chapters button.on{border-color:var(--ink);color:var(--ink);font-weight:700}
+.lab .chapters button.done{border-color:var(--a);color:var(--a)}
 .lab .bench{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
 @media (max-width:900px){.lab .bench{grid-template-columns:1fr}}
 .lab .stage{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:10px;min-width:0}
 .lab .stage svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none;direction:ltr}
 .lab .tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;min-height:40px}
 .lab .tool{font:inherit;font-weight:700;font-size:.95rem;border:1.5px solid var(--a);color:var(--a);background:var(--sheet);border-radius:10px;padding:7px 14px;cursor:pointer}
+.lab .navtools{display:flex;gap:6px;margin-inline-start:auto}
+.lab .tool.quiet{border-color:var(--line);color:var(--muted);font-weight:600;font-size:.85rem}
 .lab .tool.pulse{animation:labpulse 1.4s ease-in-out infinite}
 @keyframes labpulse{50%{box-shadow:0 0 0 6px var(--a-soft)}}
 .lab .tutor{display:flex;flex-direction:column;gap:10px;max-height:78vh;overflow:auto;padding:2px}
@@ -130,9 +133,23 @@ function fixMath(root){
     L.render = () => { sceneG.innerHTML = def.draw(L); };
     L.say = (html, cls = "") => { const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html; fixMath(d); tutor.querySelectorAll(".msg.now").forEach(m => m.classList.remove("now")); tutor.appendChild(d); try { d.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) { } return d; };
     L.me = text => L.say(`<p>${text}</p>`, "me");
-    L.setTools = list => { tools.innerHTML = ""; for (const [label, fn, pulse] of (list || [])) { const b = document.createElement("button"); b.className = "tool" + (pulse ? " pulse" : ""); b.textContent = label; b.onclick = () => { fn(L); L.render(); }; tools.appendChild(b); } };
+    L.setTools = list => { tools.innerHTML = ""; for (const [label, fn, pulse] of (list || [])) { const b = document.createElement("button"); b.className = "tool" + (pulse ? " pulse" : ""); b.textContent = label; b.onclick = () => { fn(L); L.render(); }; tools.appendChild(b); }
+      const nav = document.createElement("span"); nav.className = "navtools";
+      const again = document.createElement("button"); again.className = "tool quiet"; again.textContent = "↺ הפרק מההתחלה"; again.onclick = () => L.jump(L.cur.ch);
+      const skip = document.createElement("button"); skip.className = "tool quiet"; skip.textContent = L.i < def.steps.length - 1 ? "דלג לצעד הבא ←" : "סיום ←"; skip.onclick = () => { if (!L.solved && L.cur.demo) { try { L.cur.demo(L); L.render(); } catch (e) { } } L.go(L.i + 1); };
+      nav.append(again, skip); tools.appendChild(nav); };
     const val = (v) => typeof v === "function" ? v(L) : v;
-    function chapters() { chap.innerHTML = (def.chapters || []).map((c, i) => `<span class="${i === L.cur.ch ? "on" : i < L.cur.ch ? "done" : ""}">${i + 1}. ${esc(c)}</span>`).join(""); }
+    L.seen = new Set();
+    function chapters() { L.seen.add(L.cur.ch); chap.innerHTML = (def.chapters || []).map((c, i) => `<button type="button" data-ch="${i}" class="${i === L.cur.ch ? "on" : L.seen.has(i) ? "done" : ""}">${i + 1}. ${esc(c)}</button>`).join(""); }
+    chap.addEventListener("click", ev => { const b = ev.target.closest("[data-ch]"); if (b) L.jump(+b.dataset.ch); });
+    // jump to any chapter: silently replay earlier steps (setup + demo) so the model is in the state that chapter expects
+    L.jump = ch => {
+      const k = def.steps.findIndex(s => s.ch === ch); if (k < 0) return;
+      L.state = {}; L.memo = {}; L.silent = true;
+      if (def.init) { try { def.init(L); } catch (e) { } }
+      for (let j = 0; j < k; j++) { const st = def.steps[j]; L.i = j; L.cur = st; try { if (st.setup) st.setup(L); if (st.demo) st.demo(L); } catch (e) { } }
+      L.silent = false; tutor.innerHTML = ""; L.go(k);
+    };
     L.go = function (i) {
       if (i >= def.steps.length) { if (opts.onDone) opts.onDone(L); return; }
       L.i = i; L.cur = def.steps[i]; L.solved = false; chapters();
@@ -148,13 +165,13 @@ function fixMath(root){
       if (L.cur.next) { const b = document.createElement("button"); b.className = "next"; b.textContent = val(L.cur.next); b.onclick = () => { b.remove(); L.go(i + 1); }; d.appendChild(b); }
     };
     L.act = function (e) {
-      if (!L.cur || L.solved || !L.cur.check) return;
+      if (L.silent || !L.cur || L.solved || !L.cur.check) return;
       const r = L.cur.check(L, e);
       if (r === true) {
         L.solved = true;
         const d = L.say(`<div class="who">מורה</div><p>${val(L.cur.ok) || "נכון."}</p>`, "good");
         const last = L.i === def.steps.length - 1;
-        const b = document.createElement("button"); b.className = "next"; b.textContent = last ? "סיום המעבדה" : "המשך"; b.onclick = () => { b.remove(); L.go(L.i + 1); }; d.appendChild(b);
+        const b = document.createElement("button"); b.className = "next"; b.textContent = last ? "סיום ההמחשה" : "המשך"; b.onclick = () => { b.remove(); L.go(L.i + 1); }; d.appendChild(b);
       } else if (typeof r === "string") {
         const lastMsg = tutor.lastElementChild; if (lastMsg && lastMsg.classList.contains("hint") && lastMsg.dataset.h === r) return;
         const d = L.say(`<p>${r}</p>`, "hint"); d.dataset.h = r;
