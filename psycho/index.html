@@ -24,6 +24,7 @@
 *{box-sizing:border-box}
 html,body{overflow-anchor:none}
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.55}
+.wrap.labwide{max-width:1180px}
 .wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
 h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -142,6 +143,9 @@ button:focus-visible,.opt:focus-visible{outline:3px solid var(--dropout);outline
 .steps.guide li .n{background:var(--dropout);color:var(--sheet)}
 .steps.guide{margin-bottom:10px}
 .lvl{font-size:.8rem;color:var(--muted);font-weight:600}
+.ltrfix{unicode-bidi:isolate}
+.labtag{font-size:.7rem;font-weight:800;color:var(--dropout);border:1.5px solid var(--dropout);border-radius:999px;padding:0 7px;vertical-align:middle;margin-inline-start:6px}
+.labhost{margin-bottom:8px}
 .traps{background:var(--bad-soft);border-radius:8px;padding:10px 14px}
 .traps ul{margin:4px 0 0;padding-inline-start:18px;display:flex;flex-direction:column;gap:4px}
 .tbl{overflow-x:auto;margin-bottom:12px}
@@ -261,7 +265,7 @@ const isEn=q=>q.s==="e";
 let S=null, timerId=null, confirmReset=false;
 
 // ---- home
-function home(){
+function home(){app.classList.remove("labwide");
   clearInterval(timerId);S=null;
   const secHtml=Object.keys(SECTIONS).map(k=>{
     const list=BY[k];const seen=list.filter(q=>stats[q.id]).length;
@@ -278,7 +282,7 @@ function home(){
      ${Object.keys(stats).length?`<span class="confirm" id="resetBox"></span>`:""}</div>
    <div class="hero"><h1>תרגול לפסיכומטרי, שאלה אחר שאלה</h1>
      <p>בחר פרק לתרגול חופשי עם הסבר אחרי כל תשובה, או היכנס למיני־סימולציה עם שעון כמו ביום המבחן.</p></div>
-   <div class="card feature"><h3>מצב לימוד: צעד אחר צעד</h3><p>לא זוכר איך פותרים? לכל סוג שאלה יש הסבר של השיטה, דוגמה פתורה, תרגיל עם עזרה ותרגיל לבד.</p>
+   <div class="card feature"><h3>מצב לימוד: צעד אחר צעד</h3><p>בכמותית כל נושא מתחיל ב<b>מעבדה</b>: גוררים, מחלקים ומזיזים על המסך, ומורה מוביל צעד אחר צעד. אחר כך הסבר כתוב, דוגמה פתורה ותרגול.</p>
      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">${["v","q","e"].map(s=>`<button class="btn" data-learn="${s}">${{v:"מילולית",q:"כמותית",e:"אנגלית"}[s]}<br><small style="font-weight:400;opacity:.8">${learnDone(s)} / ${LEARN[s].length} נושאים</small></button>`).join("")}</div></div>
    <div class="sections">${secHtml}</div>
    <div class="wide">
@@ -314,7 +318,7 @@ function startSim(){
 }
 const fmt=s=>`${Math.floor(Math.max(s,0)/60)}:${String(Math.max(s,0)%60).padStart(2,"0")}`;
 
-function quiz(){
+function quiz(){app.classList.remove("labwide");
   const q=S.list[S.i], en=isEn(q), d=en?' dir="ltr" lang="en"':'';
   const chosen=S.ans[q.id], checked=S.mode==="practice"&&S.checked[q.id];
   const opts=q.o.map((o,j)=>{
@@ -354,7 +358,7 @@ function quiz(){
   app.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{S.i=+b.dataset.go;quiz()});
 }
 
-function results(){
+function results(){app.classList.remove("labwide");
   clearInterval(timerId);
   if(S.mode==="sim")S.list.forEach(q=>{if(S.ans[q.id]!==undefined)record(q,S.ans[q.id])});
   const right=S.list.filter(q=>S.ans[q.id]===q.a).length, total=S.list.length;
@@ -528,24 +532,37 @@ for(const [id,[s,old]] of Object.entries(SVGMAP)){const n=COURSE_LESSONS[s].find
 const LEARN={q:COURSE_LESSONS.q.length?COURSE_LESSONS.q:LESSONS_Q,v:COURSE_LESSONS.v.length?COURSE_LESSONS.v:LESSONS_V,e:COURSE_LESSONS.e.length?COURSE_LESSONS.e:LESSONS_E};
 let LESSONS=LEARN.q,LSEC="q";
 const STAGES=["השיטה","דוגמה פתורה","תרגיל עם עזרה","תרגיל לבד","אתגרים"];
+const LAB_IDS=/*LABS*/["alg-equations", "alg-expressions", "alg-fractions", "alg-inequalities-abs", "alg-integers", "alg-letters-operations", "alg-number-line", "alg-powers", "alg-primes-remainders", "cht-change", "cht-cumulative", "cht-necessarily", "cht-ratios", "cht-reading", "geo-circles", "geo-coordinates", "geo-insight", "geo-lines-angles", "geo-polygons", "geo-quadrilaterals", "geo-similarity", "geo-solids", "geo-triangles", "prb-avg", "prb-comb", "prb-general", "prb-motion", "prb-overlap", "prb-percent", "prb-prob", "prb-trial", "prb-work"];
+const hasLab=l=>LAB_IDS.includes(l.id);
+const labDone=l=>!!lp()[l.id+"#lab"];
+const _scripts={};
+const loadScript=src=>_scripts[src]||(_scripts[src]=new Promise((res,rej)=>{const e=document.createElement("script");e.src=src;e.onload=res;e.onerror=()=>{delete _scripts[src];rej()};document.head.appendChild(e)}));
+async function mountLab(l){
+  const host=document.getElementById("labhost");if(!host)return;
+  try{await loadScript("labs/lab-core.js");await loadScript("labs/"+l.id+".js");}
+  catch(e){host.innerHTML='<div class="explain bad"><b>המעבדה לא נטענה</b>בדוק את החיבור לאינטרנט ונסה לפתוח את הנושא שוב.</div>';return}
+  if(!document.getElementById("labhost")||LS.stage!==-1)return;
+  Lab.mount(host,Lab.get(l.id),{onDone:()=>{const p=lp();p[l.id+"#lab"]=1;save();setStage(0)}});
+}
 let LS=null;
 function lp(){if(!stats.__learn)stats.__learn={};return stats.__learn}
 function learnDone(sec){const p=stats.__learn||{};return LEARN[sec].filter(l=>(p[l.id]||0)>=4).length}
 function learnHome(sec){
   if(typeof sec==="string"){LSEC=sec;LESSONS=LEARN[sec]}
+  app.classList.remove("labwide");
   clearInterval(timerId);S=null;LS=null;
   const p=lp();
   app.innerHTML=`
    <div class="top"><button class="ghost" id="quit">→ למסך הראשי</button><span class="count">מצב לימוד · ${SECTIONS[LSEC].name}</span></div>
    <div class="hero"><h1>לומדים ${SECTIONS[LSEC].name} מההתחלה</h1>
-     <p>כל נושא בנוי מארבעה שלבים: הסבר של השיטה, דוגמה פתורה צעד אחר צעד, תרגיל עם רמזים, ובסוף שני תרגילים לבד. האחרון הוא ברמת מבחן. כדאי ללכת לפי הסדר. אחרי שמסיימים נושא נפתח בו שלב של אתגרים: Claude כותב לך תרגילים חדשים, ואתה בוחר אם לעלות רמה.</p></div>
+     <p>${LSEC==="q"?"כל נושא מתחיל במעבדה אינטראקטיבית, ואחריה ":"כל נושא בנוי מארבעה שלבים: "}הסבר של השיטה, דוגמה פתורה צעד אחר צעד, תרגיל עם רמזים, ובסוף שני תרגילים לבד. האחרון הוא ברמת מבחן. כדאי ללכת לפי הסדר. אחרי שמסיימים נושא נפתח בו שלב של אתגרים: Claude כותב לך תרגילים חדשים, ואתה בוחר אם לעלות רמה.</p></div>
    <div class="topics">${LESSONS.map((l,k)=>{const st=p[l.id]||0;
-     return `<button class="topic" data-l="${k}"><span class="num">${k+1}</span><span class="tt"><b>${l.title}</b><span>${st>=4?"הושלם":st>0?"בתהליך":"עוד לא התחלת"} · ${l.tag}</span></span><span class="dots" aria-label="${st} מתוך 4 שלבים">${[0,1,2,3].map(s=>`<i class="${s<st?"on":""}"></i>`).join("")}</span></button>`}).join("")}</div>`;
+     return `<button class="topic" data-l="${k}"><span class="num">${k+1}</span><span class="tt"><b>${l.title}${hasLab(l)?` <span class="labtag">מעבדה</span>`:""}</b><span>${st>=4?"הושלם":st>0?"בתהליך":"עוד לא התחלת"} · ${l.tag}</span></span><span class="dots" aria-label="${st} מתוך 4 שלבים">${[0,1,2,3].map(s=>`<i class="${s<st?"on":""}"></i>`).join("")}</span></button>`}).join("")}</div>`;
   document.getElementById("quit").onclick=home;
   app.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>openLesson(+b.dataset.l));
   window.scrollTo(0,0);
 }
-function openLesson(k){const st=lp()[LESSONS[k].id]||0;LS={k,stage:st>=4?0:st};resetStage();lesson();window.scrollTo(0,0)}
+function openLesson(k){const l=LESSONS[k],st=lp()[l.id]||0;LS={k,stage:hasLab(l)&&!labDone(l)?-1:st>=4?0:st};resetStage();lesson();window.scrollTo(0,0)}
 function resetStage(){Object.assign(LS,{hint:{},step:1,g:0,qi:0,ans:{},checked:{},right:0,done:false})}
 function setStage(n){LS.stage=n;resetStage();lesson();window.scrollTo(0,0)}
 function advance(n){const p=lp(),id=LESSONS[LS.k].id;p[id]=Math.max(p[id]||0,n);save()}
@@ -557,9 +574,13 @@ function lesson(){
   const l=LESSONS[LS.k],reached=lp()[l.id]||0,st=LS.stage;
   const d=l.en?' dir="ltr" lang="en"':'';
   const ps=q=>{const t=q.p?PASSAGES[q.p]:q.pt;return (t?`<details class="passage" open><summary>${l.en?"קטע קריאה (Passage)":"קטע קריאה"}</summary><p${d}>${esc(t)}</p></details>`:"")+tableHtml(q.table)+figHtml(q.fig)};
-  const stepper=STAGES.map((s,n)=>`<button data-st="${n}" class="${!LS.done&&n===st?"cur":(n<reached||LS.done)?"done":""}" ${n>Math.max(reached,st)?"disabled":""}>${n+1}. ${s}</button>`).join("");
+  const lab=hasLab(l);
+  const stepper=(lab?`<button data-st="-1" class="${!LS.done&&st===-1?"cur":labDone(l)?"done":""}">מעבדה</button>`:"")+STAGES.map((s,n)=>`<button data-st="${n}" class="${!LS.done&&n===st?"cur":(n<reached||LS.done)?"done":""}" ${n>Math.max(reached,st)?"disabled":""}>${n+1}. ${s}</button>`).join("");
   let body="",nav="";
-  if(LS.done){
+  if(st===-1&&!LS.done){
+    body=`<div id="labhost" class="labhost"><p class="lvl">טוען את המעבדה...</p></div>`;
+    nav=`<span></span><button class="btn alt" id="skipLab">${labDone(l)?"להסבר הכתוב":"דלג להסבר הכתוב"}</button>`;
+  } else if(LS.done){
     const nx=LESSONS[LS.k+1];
     body=`<div class="explain ok"><b>סיימת את הנושא הזה</b>ענית נכון על ${LS.right} מתוך 2 התרגילים שפתרת לבד. ${LS.right<2?"כדאי לעבור שוב על הדוגמה הפתורה לפני שממשיכים.":"אפשר להמשיך לנושא הבא."} רוצה להמשיך להתאמן על הנושא הזה? בשלב האתגרים Claude כותב לך תרגילים חדשים, כל פעם קצת יותר קשים.</div>`;
     nav=`<button class="btn alt" id="list">לרשימת הנושאים</button>${l.bankIds?`<button class="btn alt" id="toBank">תרגול מהמאגר (${l.bankIds.length})</button>`:""}<button class="btn alt" id="toGen">לאתגרים</button>${nx?`<button class="btn" id="nextL">לנושא הבא: ${nx.title}</button>`:""}`;
@@ -611,6 +632,9 @@ function lesson(){
    <div class="nav">${nav}</div>`;
   const on=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f};
   on("list0",learnHome);on("list",learnHome);
+  on("skipLab",()=>setStage(0));
+  app.classList.toggle("labwide",st===-1&&!LS.done);
+  if(st===-1&&!LS.done)mountLab(l);
   on("nextL",()=>openLesson(LS.k+1));
   on("go",()=>{advance(st+1);setStage(st+1)});
   on("back",()=>setStage(0));
@@ -699,6 +723,20 @@ a הוא המיקום של התשובה הנכונה במערך o, מ־0 עד 3.
   G.busy=false;genCtl=null;
   if(LS&&LS.stage===4&&LS.gen===G)lesson();
 }
+// ---- keep formulas left-to-right inside Hebrew text
+// wrap math runs (numbers/latin + operators) inside RTL text in LTR spans so they don't display reversed
+function fixMath(root){
+  if(!root)return;
+  const RX=/[0-9A-Za-z√(\[|−-][0-9A-Za-z.,²³√()\[\]+\-−×÷=:\/·%≈<>≤≥|'^ ]*[0-9A-Za-z)\]²³%|]/g, OP=/[×÷=+−\-:\/<>≤≥·√|^]/;
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;if(!p||p.closest('[dir="ltr"],svg,script,style,textarea,input,.ltrfix'))return NodeFilter.FILTER_REJECT;return /[֐-׿]/.test(n.data)&&OP.test(n.data)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT}});
+  const nodes=[];while(w.nextNode())nodes.push(w.currentNode);
+  for(const n of nodes){const s=n.data;let last=0,m,frag=document.createDocumentFragment(),hit=false;RX.lastIndex=0;
+    while((m=RX.exec(s))){const t=m[0].trim();if(!OP.test(t)||!/[0-9A-Za-z]/.test(t)||!/\s|[×÷=+<>≤≥·:\/−-]/.test(t)){continue}
+      const st=m.index+m[0].indexOf(t);frag.append(s.slice(last,st));const sp=document.createElement("span");sp.dir="ltr";sp.className="ltrfix";sp.textContent=t;frag.append(sp);last=st+t.length;hit=true}
+    if(hit){frag.append(s.slice(last));n.replaceWith(frag)}}
+}
+new MutationObserver(()=>fixMath(app)).observe(app,{childList:true,subtree:true,characterData:true});
+
 home();
 </script>
 
