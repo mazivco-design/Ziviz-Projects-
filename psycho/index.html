@@ -555,7 +555,9 @@ async function mountLab(l){
   try{await loadScript("labs/lab-core.js");await loadScript("labs/"+l.id+".js");}
   catch(e){host.innerHTML='<div class="explain bad"><b>ההמחשה לא נטענה</b>בדוק את החיבור לאינטרנט ונסה לפתוח את הנושא שוב.</div>';return}
   if(!document.getElementById("labhost")||LS.stage!==-1)return;
-  Lab.mount(host,Lab.get(l.id),{onDone:()=>{const p=lp();p[l.id+"#lab"]=1;save();setStage(0)}});
+  Lab.mount(host,Lab.get(l.id),{resume:lp()[l.id+"#labstep"]||0,
+    onStep:i=>{const p=lp();if(p[l.id+"#labstep"]!==i){p[l.id+"#labstep"]=i;save()}},
+    onDone:()=>{const p=lp();p[l.id+"#lab"]=1;delete p[l.id+"#labstep"];save();setStage(0)}});
 }
 let LS=null;
 function lp(){if(!stats.__learn)stats.__learn={};return stats.__learn}
@@ -579,7 +581,7 @@ const VIZ_GROUPS=[["alg","אלגברה"],["prb","בעיות"],["geo","גיאומ
 function vizHome(focus){
   clearInterval(timerId);S=null;LS=null;LSEC="q";LESSONS=LEARN.q;app.classList.remove("labwide");
   const groups=VIZ_GROUPS.map(([k,n])=>{const items=LESSONS.map((l,i)=>[l,i]).filter(([l])=>hasLab(l)&&l.id.startsWith(k+"-"));
-    return `<section class="vizsec" id="viz-${k}"><h3>${n}</h3><div class="viztiles">${items.map(([l,i])=>`<button class="viztile" data-open="${i}"><b>${l.title}</b><span>${labDone(l)?"✓ עברת עליה":"עוד לא נפתחה"}</span></button>`).join("")}</div></section>`}).join("");
+    return `<section class="vizsec" id="viz-${k}"><h3>${n}</h3><div class="viztiles">${items.map(([l,i])=>`<button class="viztile" data-open="${i}"><b>${l.title}</b><span>${lp()[l.id+"#labstep"]?"באמצע: ממשיך מאיפה שעצרת":labDone(l)?"✓ עברת עליה":"עוד לא נפתחה"}</span></button>`).join("")}</div></section>`}).join("");
   app.innerHTML=`<div class="top"><button class="ghost" id="quit">→ למסך הראשי</button><span class="count">המחשות · כמותית</span></div>
    <div class="hero"><h1>המחשות</h1><p>כל המחשה בנויה מכמה פרקים. אפשר להתחיל מכל פרק, לחזור אחורה ולדלג קדימה, בכל סדר שנוח לך.</p></div>${groups}`;
   document.getElementById("quit").onclick=home;

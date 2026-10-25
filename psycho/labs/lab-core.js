@@ -31,7 +31,11 @@
 .lab .tool.pulse{animation:labpulse 1.4s ease-in-out infinite}
 @keyframes labpulse{50%{box-shadow:0 0 0 6px var(--a-soft)}}
 .lab .tutor{display:flex;flex-direction:column;gap:10px;max-height:78vh;overflow:auto;padding:2px}
-@media (max-width:900px){.lab .tutor{max-height:none}.lab .tutor .msg:not(:nth-last-child(-n+3)){display:none}}
+.lab .tutor .msg.old{display:none}.lab .tutor.showold .msg.old{display:block}
+.lab .oldtoggle{font:inherit;font-size:.82rem;color:var(--muted);background:none;border:0;padding:2px 4px;margin-bottom:6px;cursor:pointer;text-decoration:underline}
+.lab .bench>.tutorcol{position:sticky;top:12px}
+.lab .tool:disabled{opacity:.4;cursor:default}
+@media (max-width:900px){.lab .tutor{max-height:none}.lab .bench>.tutorcol{position:static}}
 .lab .msg{background:var(--sheet);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:12px 14px;opacity:.55;font-size:1.02rem;line-height:1.5}
 .lab .msg.now{opacity:1;border-color:var(--ink)}
 .lab .msg.me{align-self:flex-start;background:var(--a-soft);border-color:transparent;border-radius:14px 14px 4px 14px;opacity:.9;font-size:.95rem}
@@ -126,7 +130,7 @@ function fixMath(root){
       <div class="lab-head"><h2>${esc(def.title)}</h2><div class="chapters"></div></div>
       <div class="bench"><div><div class="stage"><svg viewBox="${def.viewBox || "0 0 620 360"}" role="img" aria-label="${esc(def.title)}"><defs>
         <pattern id="lab-half" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="var(--sheet)"/><rect width="4" height="8" fill="var(--a)"/></pattern></defs><g class="scene"></g></svg></div>
-        <div class="tools"></div></div><div class="tutor" aria-live="polite"></div></div></div>`;
+        <div class="tools"></div></div><div class="tutorcol"><div class="tutor" aria-live="polite"></div></div></div></div>`;
     const root = container.firstElementChild, svg = root.querySelector("svg"), sceneG = root.querySelector(".scene"),
       tutor = root.querySelector(".tutor"), tools = root.querySelector(".tools"), chap = root.querySelector(".chapters");
     const L = { state: {}, memo: {}, svg, def, G, i: 0, cur: null, solved: false, dragging: null };
@@ -135,16 +139,23 @@ function fixMath(root){
     L.me = text => L.say(`<p>${text}</p>`, "me");
     L.setTools = list => { tools.innerHTML = ""; for (const [label, fn, pulse] of (list || [])) { const b = document.createElement("button"); b.className = "tool" + (pulse ? " pulse" : ""); b.textContent = label; b.onclick = () => { fn(L); L.render(); }; tools.appendChild(b); }
       const nav = document.createElement("span"); nav.className = "navtools";
+      const back = document.createElement("button"); back.className = "tool quiet"; back.textContent = "→ צעד אחורה"; back.disabled = L.i === 0; back.onclick = () => L.goto(L.i - 1);
       const again = document.createElement("button"); again.className = "tool quiet"; again.textContent = "↺ הפרק מההתחלה"; again.onclick = () => L.jump(L.cur.ch);
       const skip = document.createElement("button"); skip.className = "tool quiet"; skip.textContent = L.i < def.steps.length - 1 ? "דלג לצעד הבא ←" : "סיום ←"; skip.onclick = () => { if (!L.solved && L.cur.demo) { try { L.cur.demo(L); L.render(); } catch (e) { } } L.go(L.i + 1); };
-      nav.append(again, skip); tools.appendChild(nav); };
+      nav.append(back, again, skip); tools.appendChild(nav); };
     const val = (v) => typeof v === "function" ? v(L) : v;
     L.seen = new Set();
+    function oldToggle() {
+      let t = root.querySelector(".oldtoggle"); const n = tutor.querySelectorAll(".msg.old").length;
+      if (!t) { t = document.createElement("button"); t.className = "oldtoggle"; t.onclick = () => { tutor.classList.toggle("showold"); oldToggle(); }; tutor.before(t); }
+      t.hidden = !n; t.textContent = tutor.classList.contains("showold") ? "הסתר הודעות קודמות" : `הצג הודעות קודמות (${n})`;
+    }
     function chapters() { L.seen.add(L.cur.ch); chap.innerHTML = (def.chapters || []).map((c, i) => `<button type="button" data-ch="${i}" class="${i === L.cur.ch ? "on" : L.seen.has(i) ? "done" : ""}">${i + 1}. ${esc(c)}</button>`).join(""); }
     chap.addEventListener("click", ev => { const b = ev.target.closest("[data-ch]"); if (b) L.jump(+b.dataset.ch); });
     // jump to any chapter: silently replay earlier steps (setup + demo) so the model is in the state that chapter expects
-    L.jump = ch => {
-      const k = def.steps.findIndex(s => s.ch === ch); if (k < 0) return;
+    L.jump = ch => { const k = def.steps.findIndex(s => s.ch === ch); if (k >= 0) L.goto(k); };
+    L.goto = k => {
+      k = Math.max(0, Math.min(def.steps.length - 1, k));
       L.state = {}; L.memo = {}; L.silent = true;
       if (def.init) { try { def.init(L); } catch (e) { } }
       for (let j = 0; j < k; j++) { const st = def.steps[j]; L.i = j; L.cur = st; try { if (st.setup) st.setup(L); if (st.demo) st.demo(L); } catch (e) { } }
@@ -153,6 +164,8 @@ function fixMath(root){
     L.go = function (i) {
       if (i >= def.steps.length) { if (opts.onDone) opts.onDone(L); return; }
       L.i = i; L.cur = def.steps[i]; L.solved = false; chapters();
+      tutor.querySelectorAll(".msg").forEach(m => m.classList.add("old")); oldToggle();
+      if (opts.onStep) { try { opts.onStep(i); } catch (e) { } }
       if (L.cur.setup) L.cur.setup(L);
       L.render(); L.setTools(L.cur.tools ? L.cur.tools(L) : []);
       const task = val(L.cur.task);
@@ -194,7 +207,10 @@ function fixMath(root){
     svg.addEventListener("pointerup", end); svg.addEventListener("pointercancel", () => { L.dragging = null; });
     if (def.init) def.init(L);
     window.__lab = L;           // for automated tests
-    L.go(0);
+    if (opts.resume > 0 && opts.resume < def.steps.length) {
+      L.goto(opts.resume);
+      const note = L.say(`<p>חזרת בדיוק לנקודה שבה עצרת.</p>`, "me"); const b = document.createElement("button"); b.className = "tool quiet"; b.style.marginTop = "6px"; b.textContent = "להתחיל מההתחלה"; b.onclick = () => L.goto(0); note.appendChild(b);
+    } else L.go(0);
     return L;
   }
   window.Lab = { register: d => { LABS[d.id] = d; }, get: id => LABS[id], all: () => LABS, mount, G, fixMath };
