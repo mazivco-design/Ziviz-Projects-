@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>מרווח בקול</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column, tabs on top, the practice view is a "music stand" — big interval name, pitch trail chart, verdict */
+:root{
+  --bg:#EDF0F4; --surface:#FFFFFF; --fg:#1A2230; --muted:#5D6878; --line:#D3D9E2;
+  --accent:#B7791F; --accent-soft:#F3E3C6; --good:#2C9466; --good-soft:#D5EEE2; --bad:#C9483F; --bad-soft:#F6DAD7;
+  --f-display:"Secular One","Assistant",system-ui,sans-serif;
+  --f-body:"Assistant",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161E; --surface:#1A212C; --fg:#E5E9EF; --muted:#9AA5B5; --line:#2C3644;
+  --accent:#E2A548; --accent-soft:#3A2E1A; --good:#4CC28A; --good-soft:#173A2B; --bad:#EE6F65; --bad-soft:#40201E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161E; --surface:#1A212C; --fg:#E5E9EF; --muted:#9AA5B5; --line:#2C3644;
+  --accent:#E2A548; --accent-soft:#3A2E1A; --good:#4CC28A; --good-soft:#173A2B; --bad:#EE6F65; --bad-soft:#40201E; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-tap-highlight-color:transparent}
+.wrap{max-width:720px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-weight:400;font-size:1.7rem;margin:0;letter-spacing:.01em}
+h1 span{color:var(--accent)}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{flex:1;border:0;background:none;color:var(--muted);font:600 .95rem var(--f-body);padding:8px 10px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+section[hidden]{display:none!important}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.muted{color:var(--muted)}
+.btn{border:0;border-radius:14px;font:700 1.05rem var(--f-body);padding:14px 20px;cursor:pointer;background:var(--accent);color:#fff}
+.btn.big{width:100%;font-size:1.3rem;padding:20px}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+.btn:focus-visible,.tabs button:focus-visible,.chip:focus-visible,.seg button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row > .btn{flex:1}
+/* practice */
+.stand{display:flex;flex-direction:column;gap:12px}
+.topline{display:flex;justify-content:space-between;align-items:center;font-size:.95rem;color:var(--muted)}
+.progress{display:flex;gap:4px}
+.progress i{width:14px;height:6px;border-radius:3px;background:var(--line)}
+.progress i.ok{background:var(--good)} .progress i.no{background:var(--bad)} .progress i.now{background:var(--accent)}
+.iname{font-family:var(--f-display);font-size:clamp(2rem,8vw,3rem);line-height:1.1;text-align:center;text-wrap:balance}
+.iname small{display:block;font-family:var(--f-body);font-size:1rem;color:var(--muted);font-weight:600}
+.dir{color:var(--accent)}
+.status{text-align:center;font-weight:700;font-size:1.1rem;min-height:1.6em}
+.status.listen{color:var(--accent)}
+canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(--bg)}
+.readout{display:flex;justify-content:space-around;font-family:var(--f-mono);font-size:.95rem;font-variant-numeric:tabular-nums;color:var(--muted);direction:ltr}
+.readout b{color:var(--fg);font-weight:500}
+.verdict{text-align:center;border-radius:12px;padding:12px;font-weight:700;font-size:1.15rem;min-height:3.2em;display:flex;flex-direction:column;justify-content:center}
+.verdict.ok{background:var(--good-soft);color:var(--good)} .verdict.no{background:var(--bad-soft);color:var(--bad)}
+.verdict small{font-weight:600;font-size:.9rem;opacity:.9}
+.howto{margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:4px}
+.summary-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.summary-list div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding-block:6px}
+.summary-list .mono{font-family:var(--f-mono);font-size:.9rem;direction:ltr}
+/* learn */
+.ivl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
+.ivl h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:1.3rem}
+.ivl .meta{font-size:.9rem;color:var(--muted)}
+.ivl .songs{grid-column:1/-1;font-size:.92rem;display:flex;flex-direction:column;gap:2px}
+.ivl .play{display:flex;gap:6px}
+.ivl .play button{border:1.5px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:8px 12px;font:700 1rem var(--f-body);cursor:pointer}
+.acc{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
+.learn-list{display:flex;flex-direction:column;gap:10px}
+/* tuner */
+.tuner{display:flex;flex-direction:column;align-items:center;gap:10px;padding-block:20px}
+.tnote{font-family:var(--f-display);font-size:4rem;line-height:1}
+.tbar{position:relative;width:100%;max-width:420px;height:44px;border-radius:10px;background:var(--bg);border:1px solid var(--line);overflow:hidden;direction:ltr}
+.tbar::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--good);transform:translateX(-1px)}
+.tbar i{position:absolute;top:6px;bottom:6px;width:6px;border-radius:3px;background:var(--accent);left:50%;transform:translateX(-3px);transition:left .08s linear}
+.tcents{font-family:var(--f-mono);direction:ltr}
+.meter{width:100%;max-width:420px;height:6px;background:var(--line);border-radius:3px;overflow:hidden;direction:ltr}
+.meter i{display:block;height:100%;width:0;background:var(--good)}
+/* settings */
+.set{display:flex;flex-direction:column;gap:18px}
+.set h4{margin:0 0 8px;font-size:.85rem;letter-spacing:.06em;color:var(--muted)}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.chip{border:1.5px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:8px;font:600 .95rem var(--f-body);cursor:pointer;text-align:center}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:4px}
+.seg button{flex:1;min-width:90px;border:0;background:none;color:var(--muted);font:600 .95rem var(--f-body);padding:8px;border-radius:9px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.note{font-size:.9rem;color:var(--muted);margin:6px 0 0}
+.err{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:12px;font-weight:600}
+@media (prefers-reduced-motion:reduce){.tbar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>מרווח <span>בקול</span></h1>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="practice" aria-selected="true">אימון</button>
+    <button role="tab" data-tab="learn" aria-selected="false">לימוד</button>
+    <button role="tab" data-tab="tuner" aria-selected="false">טיונר</button>
+    <button role="tab" data-tab="settings" aria-selected="false">הגדרות</button>
+  </nav>
+
+  <div id="errBox" class="err" hidden></div>
+
+  <!-- PRACTICE -->
+  <section id="tab-practice">
+    <div id="idle" class="card stand">
+      <div class="iname" style="font-size:1.6rem">סבב אימון ללא ידיים</div>
+      <p class="muted" style="margin:0" id="idleSummary"></p>
+      <ol class="howto">
+        <li>מקישים פעם אחת על "התחל". מכאן הכול רץ לבד.</li>
+        <li>האפליקציה אומרת את שם המרווח ומנגנת אותו כדוגמה.</li>
+        <li>אחר כך היא מנגנת רק את הצליל הראשון.</li>
+        <li>אחרי הצפצוף הכפול אתה שר את הצליל השני. היא בודקת, אומרת לך איך היה, וממשיכה.</li>
+        <li>טעות? מקבלים ניסיון נוסף. שתי שתיקות ברצף עוצרות את הסבב.</li>
+      </ol>
+      <button class="btn big" id="startBtn">התחל סבב</button>
+      <p class="note">מומלץ אוזניות, ולשיר צליל ארוך ויציב של כחצי שנייה לכל צליל.</p>
+      <div id="lastSummary" hidden></div>
+    </div>
+
+    <div id="running" class="card stand" hidden>
+      <div class="topline"><span id="counter"></span><div class="progress" id="progress"></div></div>
+      <div class="iname" id="iname"></div>
+      <div class="status" id="status"></div>
+      <canvas id="chart"></canvas>
+      <div class="readout"><span>target <b id="roTarget">—</b></span><span>you <b id="roYou">—</b></span><span>Δ <b id="roDelta">—</b></span></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="row">
+        <button class="btn ghost" id="pauseBtn">השהה</button>
+        <button class="btn ghost" id="stopBtn">סיים סבב</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEARN -->
+  <section id="tab-learn" hidden>
+    <p class="muted" style="margin:0 0 10px">הקש כדי לשמוע כל מרווח. ליד כל אחד יש שירים מוכרים שנפתחים בו, תשיר אותם בראש כדי לזכור את הצליל.</p>
+    <div class="learn-list" id="learnList"></div>
+  </section>
+
+  <!-- TUNER -->
+  <section id="tab-tuner" hidden>
+    <div class="card tuner">
+      <div class="tnote" id="tNote">—</div>
+      <div class="tcents" id="tCents">&nbsp;</div>
+      <div class="tbar"><i id="tNeedle"></i></div>
+      <div class="meter"><i id="tMeter"></i></div>
+      <p class="note">שיר צליל אחד ארוך. בדיקה טובה לפני אימון: אם הפס הירוק כמעט לא זז, המיקרופון לא שומע אותך מספיק.</p>
+      <button class="btn" id="tunerBtn">הפעל מיקרופון</button>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" hidden>
+    <div class="card set">
+      <div><h4>מרווחים בסבב</h4><div class="chips" id="ivlChips"></div></div>
+      <div><h4>כיוון</h4><div class="seg" data-key="dir">
+        <button data-v="up">עולה</button><button data-v="down">יורד</button><button data-v="both">גם וגם</button></div></div>
+      <div><h4>מה שרים</h4><div class="seg" data-key="mode">
+        <button data-v="target">רק את השני</button><button data-v="both">שני הצלילים</button></div>
+        <p class="note">"שני הצלילים": אתה שר בסיס ואז מרווח, והבדיקה היא ביחס לבסיס שלך. "רק את השני": האפליקציה מנגנת את הבסיס ואתה שר רק את צליל היעד.</p></div>
+      <div><h4>דוגמה לפני שירה</h4><div class="seg" data-key="example">
+        <button data-v="on">לנגן דוגמה</button><button data-v="off">רק שם המרווח</button></div>
+        <p class="note">"רק שם המרווח" הוא האתגר האמיתי: שומעים רק את הבסיס ושרים מהזיכרון. בטעות תמיד תושמע דוגמה.</p></div>
+      <div><h4>הקראה קולית</h4><div class="seg" data-key="speech">
+        <button data-v="on">פועלת</button><button data-v="off">כבויה</button></div></div>
+      <div><h4>טווח קול</h4><div class="seg" data-key="range">
+        <button data-v="low">גבר</button><button data-v="mid">אישה</button><button data-v="high">ילד</button></div></div>
+      <div><h4>סבילות (בסנטים)</h4><div class="seg" data-key="tol">
+        <button data-v="25">25 מחמיר</button><button data-v="35">35 רגיל</button><button data-v="50">50 מקל</button></div></div>
+      <div><h4>תרגילים בסבב</h4><div class="seg" data-key="count">
+        <button data-v="5">5</button><button data-v="10">10</button><button data-v="20">20</button></div></div>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+/* ---------- data ---------- */
+const IVL = [
+  {s:1,  name:"סקונדה קטנה", alt:"חצי טון", up:"נושא הסרט \"מלתעות\"", down:"\"לאליזה\" של בטהובן"},
+  {s:2,  name:"סקונדה גדולה", alt:"טון שלם", up:"Frère Jacques", down:"Mary Had a Little Lamb"},
+  {s:3,  name:"טרצה קטנה", alt:"טון וחצי", up:"Greensleeves", down:"Hey Jude"},
+  {s:4,  name:"טרצה גדולה", alt:"2 טונים", up:"When the Saints Go Marching In", down:"Swing Low, Sweet Chariot"},
+  {s:5,  name:"קוורטה זכה", alt:"2.5 טונים", up:"\"הנה באה הכלה\" (וגנר)", down:"Eine kleine Nachtmusik"},
+  {s:6,  name:"טריטון", alt:"3 טונים", up:"Maria (סיפור הפרברים)", down:null},
+  {s:7,  name:"קווינטה זכה", alt:"3.5 טונים", up:"Twinkle Twinkle Little Star", down:"The Flintstones"},
+  {s:8,  name:"סקסטה קטנה", alt:"4 טונים", up:"The Entertainer (הקפיצה בפתיחה)", down:null},
+  {s:9,  name:"סקסטה גדולה", alt:"4.5 טונים", up:"My Bonnie Lies Over the Ocean", down:"Nobody Knows the Trouble I've Seen"},
+  {s:10, name:"ספטימה קטנה", alt:"5 טונים", up:"Somewhere (סיפור הפרברים)", down:"Watermelon Man"},
+  {s:11, name:"ספטימה גדולה", alt:"5.5 טונים", up:"Take On Me (פזמון)", down:"I Love You (קול פורטר)"},
+  {s:12, name:"אוקטבה", alt:"6 טונים", up:"Somewhere Over the Rainbow", down:"Willow Weep for Me"}
+];
+const byS = s => IVL.find(i => i.s === s);
+const NOTE = ["דו","דו#","רה","רה#","מי","פה","פה#","סול","סול#","לה","לה#","סי"];
+const RANGES = {low:[45,64], mid:[57,76], high:[60,79]};
+
+/* ---------- storage ---------- */
+const DEF = {ivls:[1,2,3,4], dir:"both", mode:"target", example:"on", speech:"on", range:"low", tol:"35", count:"10"};
+function load(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+const S = Object.assign({}, DEF, load("mrv-settings-v2", {}));
+const STATS = load("mrv-stats", {});
+
+/* ---------- tabs ---------- */
+const $ = id => document.getElementById(id);
+let tab = "practice";
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("section[id^=tab-]").forEach(s => s.hidden = s.id !== "tab-" + tab);
+  if (tab === "learn") renderLearn();
+});
+
+/* ---------- settings UI ---------- */
+function renderSettings(){
+  const c = $("ivlChips"); c.innerHTML = "";
+  IVL.forEach(i => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = i.name;
+    b.setAttribute("aria-pressed", S.ivls.includes(i.s));
+    b.onclick = () => {
+      if (S.ivls.includes(i.s)) { if (S.ivls.length > 1) S.ivls = S.ivls.filter(x => x !== i.s); }
+      else S.ivls = [...S.ivls, i.s].sort((a,b)=>a-b);
+      save("mrv-settings-v2", S); renderSettings();
+    };
+    c.appendChild(b);
+  });
+  document.querySelectorAll(".seg").forEach(seg => {
+    seg.querySelectorAll("button").forEach(b => {
+      b.setAttribute("aria-pressed", S[seg.dataset.key] === b.dataset.v);
+      b.onclick = () => { S[seg.dataset.key] = b.dataset.v; save("mrv-settings-v2", S); renderSettings(); };
+    });
+  });
+  const dirTxt = {up:"עולים", down:"יורדים", both:"עולים ויורדים"}[S.dir];
+  $("idleSummary").textContent = `${S.count} תרגילים · ${S.ivls.map(s=>byS(s).name).join(", ")} · ${dirTxt} · ${S.mode==="both"?"שרים את שני הצלילים":"שרים רק את היעד"}. אפשר לשנות בהגדרות.`;
+}
+
+/* ---------- audio ---------- */
+let ctx = null, master = null, analyser = null, micOn = false, tbuf = null, ybuf = null;
+function ensureCtx(){
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ctx.createDynamicsCompressor();
+    master = ctx.createGain(); master.gain.value = 0.9;
+    master.connect(comp).connect(ctx.destination);
+  }
+  if (ctx.state !== "running") ctx.resume();
+  return ctx;
+}
+async function ensureMic(){
+  ensureCtx();
+  if (micOn) return;
+  try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {}
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error("nomic");
+  const stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
+  const src = ctx.createMediaStreamSource(stream);
+  analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
+  src.connect(analyser);
+  tbuf = new Float32Array(2048); ybuf = new Float32Array(1100);
+  micOn = true;
+  setInterval(detectTick, 30);
+}
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+function tone(midi, t0, dur = 0.85, vol = 0.32){
+  const f = mf(midi), g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(vol * 0.35, t0 + 0.3);
+  g.gain.exponentialRampToValueAtTime(0.0005, t0 + dur);
+  g.connect(master);
+  [[1,1],[2,.5],[3,.25],[4,.12],[5,.06]].forEach(([h,a]) => {
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.frequency.value = f * h; og.gain.value = a;
+    o.connect(og).connect(g); o.start(t0); o.stop(t0 + dur + 0.05);
+  });
+  return t0 + dur;
+}
+function blip(freq, t0, d = 0.07, vol = 0.18, type = "sine"){
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0005, t0 + d);
+  o.connect(g).connect(master); o.start(t0); o.stop(t0 + d + 0.02);
+  return t0 + d;
+}
+const cue = () => { const t = ctx.currentTime + 0.02; blip(1320, t); return blip(1320, t + 0.14); };
+const chimeOk = () => { const t = ctx.currentTime + 0.02; tone(84, t, 0.4, .15); return tone(88, t + 0.12, 0.5, .15); };
+const chimeNo = () => { const t = ctx.currentTime + 0.02; return blip(196, t, 0.35, 0.16, "triangle"); };
+
+/* ---------- pitch detection (YIN) ---------- */
+let live = {f:null, c:null, rms:0};
+const rawHist = [];
+function yin(buf, sr){
+  let rms = 0; for (let i = 0; i < buf.length; i++) rms += buf[i]*buf[i];
+  rms = Math.sqrt(rms / buf.length);
+  if (rms < 0.01) return {f:null, rms};
+  const W = 1024, tMin = Math.floor(sr / 1000), tMax = Math.min(Math.floor(sr / 65), 1023, ybuf.length - 2);
+  for (let tau = 1; tau <= tMax + 1; tau++){
+    let sum = 0;
+    for (let i = 0; i < W; i++){ const d = buf[i] - buf[i + tau]; sum += d*d; }
+    ybuf[tau] = sum;
+  }
+  ybuf[0] = 1; let run = 0;
+  for (let tau = 1; tau <= tMax + 1; tau++){ run += ybuf[tau]; ybuf[tau] = run ? ybuf[tau] * tau / run : 1; }
+  let tau = -1;
+  for (let t = tMin; t <= tMax; t++){
+    if (ybuf[t] < 0.15){ while (t + 1 <= tMax && ybuf[t+1] < ybuf[t]) t++; tau = t; break; }
+  }
+  if (tau < 2) return {f:null, rms};
+  const x0 = ybuf[tau-1], x1 = ybuf[tau], x2 = ybuf[tau+1], den = x0 + x2 - 2*x1;
+  const better = tau + (den ? (x0 - x2) / (2 * den) : 0);
+  return {f: sr / better, rms};
+}
+const median = a => { if (!a.length) return null; const s = [...a].sort((x,y)=>x-y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m-1]+s[m])/2; };
+const toC = f => 1200 * Math.log2(f / 440) + 6900; // cents, midi*100
+function detectTick(){
+  analyser.getFloatTimeDomainData(tbuf);
+  const r = yin(tbuf, ctx.sampleRate);
+  rawHist.push(r.f ? toC(r.f) : null); if (rawHist.length > 5) rawHist.shift();
+  const nn = rawHist.filter(x => x != null);
+  const c = nn.length >= 3 && r.f ? median(nn) : null;
+  live = {f:r.f, c, rms:r.rms};
+  const t = performance.now();
+  if (listener) { feed(listener, c, t); trail.push({t, c}); }
+  if (tab === "tuner") drawTuner();
+}
+
+/* ---------- segmenter ---------- */
+let listener = null, trail = [];
+function makeListener(need, ignoreRoot, expected){
+  return {need, ignoreRoot, expected, segs:[], cur:[], anchor:null, gapStart:null, done:null};
+}
+function segValue(cur){
+  const t0 = cur[0].t, t1 = cur[cur.length-1].t, D = t1 - t0;
+  const pts = cur.filter(p => p.t >= t0 + D*0.25 && p.t <= t1 - D*0.1).map(p => p.c);
+  return median(pts.length ? pts : cur.map(p => p.c));
+}
+const fold = (rel, center) => rel - 1200 * Math.round((rel - center) / 1200);
+function isRootLike(L, v){
+  return L.ignoreRoot != null && L.segs.length === 0 && Math.abs(fold(v - L.ignoreRoot, 0)) < 50 && Math.abs(L.expected) >= 100;
+}
+function closeSeg(L){
+  if (L.cur.length && L.cur[L.cur.length-1].t - L.cur[0].t >= 230){
+    const v = segValue(L.cur);
+    if (!isRootLike(L, v)) L.segs.push(v);
+  }
+  L.cur = []; L.anchor = null; L.gapStart = null;
+  if (L.segs.length >= L.need) L.done = L.segs.slice(0, L.need);
+}
+function feed(L, c, t){
+  if (L.done) return;
+  if (c == null){
+    if (L.cur.length){ if (L.gapStart == null) L.gapStart = t; else if (t - L.gapStart > 120) closeSeg(L); }
+    return;
+  }
+  L.gapStart = null;
+  if (L.cur.length){
+    const recent = median(L.cur.slice(-8).map(p => p.c));
+    if (Math.abs(c - recent) > 70) closeSeg(L);
+    else {
+      const t0 = L.cur[0].t;
+      if (L.anchor == null && t - t0 > 260) L.anchor = median(L.cur.filter(p => p.t - t0 > 70).map(p => p.c));
+      if (L.anchor != null){
+        const last = median([...L.cur.slice(-3).map(p => p.c), c]);
+        if (Math.abs(last - L.anchor) > 75){ const tail = L.cur.splice(-3); closeSeg(L); L.cur = tail; }
+      }
+    }
+  }
+  if (L.done) return;
+  L.cur.push({c, t});
+  // finalize the last needed note once it has been held steadily
+  if (L.segs.length === L.need - 1 && L.anchor != null && t - L.cur[0].t >= 700){
+    const v = segValue(L.cur);
+    if (!isRootLike(L, v)) L.done = [...L.segs, v];
+  }
+}
+
+/* ---------- speech ---------- */
+let heVoice = null;
+function pickVoice(){ const vs = speechSynthesis?.getVoices?.() || []; heVoice = vs.find(v => /^he|^iw/i.test(v.lang)) || null; }
+if (window.speechSynthesis){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text, id){
+  if (S.speech !== "on" || !window.speechSynthesis) return Promise.resolve();
+  return new Promise(res => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "he-IL"; if (heVoice) u.voice = heVoice; u.rate = 1.05;
+    let fin = false; const end = () => { if (!fin){ fin = true; res(); } };
+    u.onend = end; u.onerror = end;
+    setTimeout(end, 900 + text.length * 110);
+    speechSynthesis.speak(u);
+  }).then(() => guard(id));
+}
+
+/* ---------- session runner ---------- */
+const ABORT = Symbol("abort");
+let runId = 0, session = null, paused = false, wakeLock = null;
+function guard(id){ if (id !== runId) throw ABORT; }
+async function sleep(ms, id){ await new Promise(r => setTimeout(r, ms)); guard(id); }
+async function until(t, id){ await sleep(Math.max(0, (t - ctx.currentTime) * 1000), id); }
+function setStatus(t, cls = ""){ $("status").textContent = t; $("status").className = "status " + cls; }
+function setVerdict(html, cls = ""){ $("verdict").innerHTML = html; $("verdict").className = "verdict " + cls; }
+async function lockScreen(){ try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {} }
+document.addEventListener("visibilitychange", () => { if (session && !paused && document.visibilityState === "visible") lockScreen(); });
+
+function makeExercise(prev){
+  let pool = S.ivls; if (pool.length > 1 && prev) pool = pool.filter(s => s !== prev.s) .concat(pool.length > 2 ? [] : []);
+  const s = pool[Math.floor(Math.random() * pool.length)];
+  const dir = S.dir === "both" ? (Math.random() < .5 ? 1 : -1) : (S.dir === "up" ? 1 : -1);
+  const [lo, hi] = RANGES[S.range];
+  const rMin = dir > 0 ? lo : lo + s, rMax = dir > 0 ? hi - s : hi;
+  const root = rMin + Math.floor(Math.random() * (rMax - rMin + 1));
+  return {s, dir, root, target: root + dir * s, expected: dir * s * 100, result:null};
+}
+function ivlLabel(cents){
+  const n = Math.round(cents / 100);
+  if (n === 0) return "אותו צליל";
+  const a = Math.abs(n);
+  const nm = a <= 12 ? byS(a).name : `${byS(a - 12)?.name || ""} + אוקטבה`;
+  return `${nm} ${n > 0 ? "למעלה" : "למטה"}`;
+}
+function renderProgress(){
+  $("progress").innerHTML = session.list.map((e, i) =>
+    `<i class="${e.result ? (e.result.ok ? "ok" : "no") : (i === session.idx ? "now" : "")}"></i>`).join("");
+  $("counter").textContent = `תרגיל ${session.idx + 1} מתוך ${session.list.length}`;
+}
+
+async function startSession(){
+  $("errBox").hidden = true;
+  try { ensureCtx(); await ensureMic(); }
+  catch(e){ showErr(e); return; }
+  if (window.speechSynthesis && S.speech === "on"){ speechSynthesis.speak(new SpeechSynthesisUtterance("")); }
+  const list = []; let prev = null;
+  for (let i = 0; i < +S.count; i++){ prev = makeExercise(prev); list.push(prev); }
+  session = {list, idx:0, silent:0};
+  paused = false; $("pauseBtn").textContent = "השהה";
+  $("idle").hidden = true; $("running").hidden = false;
+  lockScreen();
+  run();
+}
+async function run(){
+  const id = ++runId;
+  try {
+    while (session.idx < session.list.length){
+      renderProgress();
+      await doExercise(session.list[session.idx], id);
+      session.idx++;
+    }
+    await finish(id);
+  } catch(e){ if (e !== ABORT) { console.error(e); showErr(e); } }
+}
+async function doExercise(ex, id){
+  const I = byS(ex.s);
+  $("iname").innerHTML = `${I.name} <span class="dir">${ex.dir > 0 ? "↑" : "↓"}</span><small>${I.alt} · ${ex.dir > 0 ? "למעלה" : "למטה"}</small>`;
+  for (let attempt = 1; attempt <= 2; attempt++){
+    setVerdict(""); clearReadout(); trail = []; curEx = ex;
+    setStatus("מקשיב לשם המרווח…");
+    await speak(attempt === 1 ? `${I.name} ${ex.dir > 0 ? "למעלה" : "למטה"}` : "שוב", id);
+    const withExample = S.example === "on" || attempt > 1;
+    if (withExample){
+      setStatus("דוגמה");
+      const t = ctx.currentTime + 0.05;
+      tone(ex.root, t); const e = tone(ex.target, t + 0.95);
+      await until(e + 0.3, id);
+    }
+    if (S.mode === "target" || !withExample){
+      setStatus("צליל הבסיס");
+      const e = tone(ex.root, ctx.currentTime + 0.05);
+      await until(e + 0.15, id);
+    }
+    cue(); await sleep(260, id);
+    setStatus(S.mode === "both" ? "שיר את שני הצלילים" : "שיר את צליל היעד", "listen");
+    const res = await listen(ex, id);
+    if (!res){
+      setVerdict("לא שמעתי אותך", "no");
+      await speak("לא שמעתי", id);
+      session.silent++;
+      if (session.silent >= 2){ await speak("עצרתי. הקש להמשך", id); pause(true); throw ABORT; }
+      continue;
+    }
+    session.silent = 0;
+    const tol = +S.tol, ok = Math.abs(res.err) <= tol;
+    const sungName = ivlLabel(res.sung);
+    const sign = res.err > 0 ? "+" : "";
+    record(ex, ok);
+    if (ok){
+      setVerdict(`${Math.abs(res.err) <= 15 ? "מדויק!" : "יפה!"}<small>${sungName} · ${sign}${Math.round(res.err)} סנט</small>`, "ok");
+      chimeOk(); await sleep(450, id);
+      await speak(Math.abs(res.err) <= 15 ? "מדויק" : "יפה", id);
+      ex.result = {ok:true, err:res.err};
+      await sleep(900, id);
+      return;
+    }
+    const sameStep = Math.round(res.sung / 100) === Math.round(ex.expected / 100);
+    const hint = sameStep ? `קצת ${res.err > 0 ? "גבוה" : "נמוך"}` : `שרת ${sungName}`;
+    setVerdict(`${hint}<small>${sign}${Math.round(res.err)} סנט מהיעד</small>`, "no");
+    chimeNo(); await sleep(400, id);
+    await speak(hint, id);
+    ex.result = {ok:false, err:res.err};
+    await sleep(900, id);
+    if (attempt === 2) return;
+  }
+  if (!ex.result) ex.result = {ok:false, err:null};
+}
+let curEx = null;
+function listen(ex, id){
+  const rootC = ex.root * 100;
+  listener = S.mode === "both" ? makeListener(2, null, ex.expected) : makeListener(1, rootC, ex.expected);
+  const start = performance.now();
+  return new Promise((resolve, reject) => {
+    const iv = setInterval(() => {
+      if (id !== runId){ clearInterval(iv); listener = null; reject(ABORT); return; }
+      const L = listener;
+      if (L.done){
+        clearInterval(iv); listener = null;
+        let sung = S.mode === "both" ? L.done[1] - L.done[0] : L.done[0] - rootC;
+        sung = fold(sung, ex.expected);
+        resolve({sung, err: sung - ex.expected});
+      } else if (performance.now() - start > 7000){
+        clearInterval(iv); listener = null;
+        // accept a partially-held last note if we have enough
+        const need = L.need, segs = [...L.segs];
+        if (L.cur.length && L.cur[L.cur.length-1].t - L.cur[0].t > 300) segs.push(segValue(L.cur));
+        if (segs.length >= need){
+          let sung = need === 2 ? segs[1] - segs[0] : segs[0] - rootC;
+          sung = fold(sung, ex.expected);
+          resolve({sung, err: sung - ex.expected});
+        } else resolve(null);
+      }
+    }, 60);
+  });
+}
+function record(ex, ok){
+  const k = ex.s + (ex.dir > 0 ? "u" : "d");
+  const st = STATS[k] || {a:0, c:0}; st.a++; if (ok) st.c++; STATS[k] = st;
+  save("mrv-stats", STATS);
+}
+async function finish(id){
+  const n = session.list.length, c = session.list.filter(e => e.result?.ok).length;
+  renderProgress();
+  setStatus(""); setVerdict(`סיימת: ${c} מתוך ${n}`, c / n >= .7 ? "ok" : "no");
+  await speak(`סיימת. ${c} מתוך ${n}`, id);
+  endSession(true);
+}
+function endSession(showSummary){
+  runId++; listener = null;
+  try { speechSynthesis?.cancel(); } catch {}
+  try { wakeLock?.release(); } catch {}
+  $("running").hidden = true; $("idle").hidden = false;
+  if (showSummary && session){
+    const done = session.list.filter(e => e.result);
+    const n = done.length, c = done.filter(e => e.result.ok).length;
+    const box = $("lastSummary");
+    box.hidden = !n;
+    box.innerHTML = `<strong>סבב אחרון: ${c} מתוך ${n}</strong><div class="summary-list">` + done.map(e =>
+      `<div><span>${e.result.ok ? "✓" : "✗"} ${byS(e.s).name} ${e.dir > 0 ? "↑" : "↓"}</span><span class="mono">${e.result.err == null ? "—" : (e.result.err > 0 ? "+" : "") + Math.round(e.result.err) + "¢"}</span></div>`).join("") + "</div>";
+  }
+  session = session && showSummary ? null : session;
+  if (!showSummary) session = null;
+}
+function pause(auto){
+  if (!session) return;
+  paused = true; runId++; listener = null;
+  try { speechSynthesis?.cancel(); } catch {}
+  $("pauseBtn").textContent = "המשך";
+  setStatus(auto ? "הסבב נעצר כי לא שמעתי אותך" : "מושהה");
+  if (auto) setTimeout(() => {}, 0);
+}
+$("startBtn").onclick = startSession;
+$("stopBtn").onclick = () => endSession(true);
+$("pauseBtn").onclick = () => {
+  if (!session) return;
+  if (paused){ paused = false; session.silent = 0; $("pauseBtn").textContent = "השהה"; ensureCtx(); lockScreen(); run(); }
+  else pause(false);
+};
+function showErr(e){
+  const b = $("errBox"); b.hidden = false;
+  b.textContent = (e && (e.name === "NotAllowedError" || e.message === "nomic"))
+    ? "אין גישה למיקרופון. צריך לאשר גישה למיקרופון בדפדפן, ולפתוח את הדף מכתובת https (למשל GitHub Pages)."
+    : "משהו השתבש בהפעלת השמע: " + (e?.message || e);
+}
+
+/* ---------- chart ---------- */
+const cv = $("chart"), cx = cv.getContext("2d");
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function clearReadout(){ $("roTarget").textContent = "—"; $("roYou").textContent = "—"; $("roDelta").textContent = "—"; }
+function drawChart(){
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== W * dpr || cv.height !== H * dpr){ cv.width = W * dpr; cv.height = H * dpr; }
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx.clearRect(0, 0, W, H);
+  if (!curEx) return;
+  const ex = curEx, I = ex.expected;
+  // reference: in "both" mode, once the first sung note is captured, measure from it
+  const L = listener;
+  let ref = ex.root * 100;
+  const sungRoot = S.mode === "both" && L && L.segs.length ? L.segs[0] : null;
+  if (sungRoot != null) ref = sungRoot;
+  const lo = Math.min(0, I) - 250, hi = Math.max(0, I) + 250;
+  const pad = 26, y = v => H - 10 - (v - lo) / (hi - lo) * (H - 20);
+  const fg = css("--fg"), muted = css("--muted"), line = css("--line"), acc = css("--accent"), good = css("--good");
+  cx.font = "12px " + css("--f-body"); cx.textBaseline = "middle";
+  for (let k = Math.ceil(lo / 100); k <= Math.floor(hi / 100); k++){
+    cx.strokeStyle = line; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(pad, y(k*100)); cx.lineTo(W, y(k*100)); cx.stroke();
+  }
+  const tol = +S.tol;
+  cx.fillStyle = acc; cx.globalAlpha = .22; cx.fillRect(pad, y(I + tol), W - pad, y(I - tol) - y(I + tol)); cx.globalAlpha = 1;
+  cx.strokeStyle = acc; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(pad, y(I)); cx.lineTo(W, y(I)); cx.stroke();
+  cx.strokeStyle = muted; cx.lineWidth = 2; cx.setLineDash([5,4]); cx.beginPath(); cx.moveTo(pad, y(0)); cx.lineTo(W, y(0)); cx.stroke(); cx.setLineDash([]);
+  cx.fillStyle = muted; cx.textAlign = "left"; cx.fillText(sungRoot != null ? "your root" : "root", 2, y(0) - 10);
+  cx.fillStyle = acc; cx.fillText((I > 0 ? "+" : "") + Math.round(I / 100), 4, y(I));
+  // trail (last 5 s)
+  const now = performance.now(), span = 5000;
+  const pts = trail.filter(p => now - p.t < span);
+  let prevP = null, lastRel = null;
+  cx.lineWidth = 3; cx.lineCap = "round";
+  for (const p of pts){
+    if (p.c == null){ prevP = null; continue; }
+    const rel = fold(p.c - ref, I / 2);
+    const X = pad + (1 - (now - p.t) / span) * (W - pad - 8), Y = y(Math.max(lo, Math.min(hi, rel)));
+    if (prevP){ cx.strokeStyle = Math.abs(rel - I) <= tol ? good : fg; cx.beginPath(); cx.moveTo(prevP[0], prevP[1]); cx.lineTo(X, Y); cx.stroke(); }
+    prevP = [X, Y]; lastRel = rel;
+  }
+  if (prevP){ cx.fillStyle = lastRel != null && Math.abs(lastRel - I) <= tol ? good : fg; cx.beginPath(); cx.arc(prevP[0], prevP[1], 6, 0, 7); cx.fill(); }
+  if (listener){
+    $("roTarget").textContent = (I > 0 ? "+" : "") + I + "¢";
+    if (live.c != null && lastRel != null){
+      $("roYou").textContent = (lastRel > 0 ? "+" : "") + Math.round(lastRel) + "¢";
+      const d = Math.round(lastRel - I); $("roDelta").textContent = (d > 0 ? "+" : "") + d;
+    }
+  }
+}
+(function loop(){ if (tab === "practice" && !$("running").hidden) drawChart(); requestAnimationFrame(loop); })();
+
+/* ---------- tuner ---------- */
+function drawTuner(){
+  $("tMeter").style.width = Math.min(100, live.rms * 600) + "%";
+  if (live.c == null) return;
+  const m = Math.round(live.c / 100), dev = live.c - m * 100;
+  $("tNote").textContent = NOTE[((m % 12) + 12) % 12] + " " + (Math.floor(m / 12) - 1);
+  $("tCents").textContent = (dev > 0 ? "+" : "") + Math.round(dev) + "¢  ·  " + live.f.toFixed(1) + " Hz";
+  $("tNeedle").style.left = (50 + dev) + "%";
+}
+$("tunerBtn").onclick = async () => {
+  try { await ensureMic(); $("tunerBtn").textContent = "המיקרופון פועל"; $("tunerBtn").disabled = true; $("errBox").hidden = true; }
+  catch(e){ showErr(e); }
+};
+
+/* ---------- learn ---------- */
+function renderLearn(){
+  const box = $("learnList"); box.innerHTML = "";
+  IVL.forEach(i => {
+    const su = STATS[i.s + "u"], sd = STATS[i.s + "d"];
+    const acc = st => st ? `${Math.round(100 * st.c / st.a)}% (${st.a})` : "—";
+    const d = document.createElement("div");
+    d.className = "card ivl";
+    d.innerHTML = `<div><h3>${i.name}</h3><div class="meta">${i.alt} · ${i.s} חצאי טונים</div></div>
+      <div class="play"><button aria-label="נגן למעלה">↑</button><button aria-label="נגן למטה">↓</button></div>
+      <div class="songs">
+        <span>↑ ${i.up || "—"}</span>
+        ${i.down ? `<span>↓ ${i.down}</span>` : ""}
+        <span class="acc">דיוק: ↑ ${acc(su)}  ·  ↓ ${acc(sd)}</span>
+      </div>`;
+    const [bu, bd] = d.querySelectorAll(".play button");
+    const [lo, hi] = RANGES[S.range];
+    bu.onclick = () => { ensureCtx(); const r = lo + 3, t = ctx.currentTime + .05; tone(r, t); tone(r + i.s, t + .95); };
+    bd.onclick = () => { ensureCtx(); const r = Math.min(hi, lo + 3 + i.s), t = ctx.currentTime + .05; tone(r, t); tone(r - i.s, t + .95); };
+    box.appendChild(d);
+  });
+}
+
+renderSettings();
+</script>
+</body>
+</html>

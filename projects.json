@@ -387,6 +387,18 @@
      "url": "https://claude.ai/artifact/2ZiD1FjdmoNJKpqF1Bz3tp"
     }
    ]
+  },
+  {
+   "id": "intervals",
+   "group": "tools",
+   "name": "מרווח בקול",
+   "desc": "אימון שמיעה למרווחים מוזיקליים: האפליקציה מדגימה מרווח, מנגנת את הצליל הראשון, ואתה שר את השני. זיהוי גובה הצליל בזמן אמת עם תצוגה כמו טיונר, וסבב שרץ בלי מגע.",
+   "tags": [
+    "מוזיקה",
+    "שירה"
+   ],
+   "image": "images/intervals.svg",
+   "url": "intervals/"
   }
  ]
 }
