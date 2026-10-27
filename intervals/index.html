@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>מרווח בקול</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,7 +24,7 @@
   --bg:#11161E; --surface:#1A212C; --fg:#E5E9EF; --muted:#9AA5B5; --line:#2C3644;
   --accent:#E2A548; --accent-soft:#3A2E1A; --good:#4CC28A; --good-soft:#173A2B; --bad:#EE6F65; --bad-soft:#40201E; color-scheme:dark}
 *{box-sizing:border-box}
-html,body{margin:0}
+html,body{margin:0;-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.5;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-tap-highlight-color:transparent}
@@ -35,7 +35,8 @@ h1 span{color:var(--accent)}
 .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
 .tabs button{flex:1;border:0;background:none;color:var(--muted);font:600 .95rem var(--f-body);padding:8px 10px;border-radius:9px;cursor:pointer}
 .tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
-section[hidden]{display:none!important}
+[hidden]{display:none!important}
+button,a{touch-action:manipulation}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
 .muted{color:var(--muted)}
 .btn{border:0;border-radius:14px;font:700 1.05rem var(--f-body);padding:14px 20px;cursor:pointer;background:var(--accent);color:#fff}
@@ -55,7 +56,7 @@ section[hidden]{display:none!important}
 .dir{color:var(--accent)}
 .status{text-align:center;font-weight:700;font-size:1.1rem;min-height:1.6em}
 .status.listen{color:var(--accent);font-size:1.5rem}
-canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(--bg)}
+canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12px;background:var(--bg)}
 .readout{display:flex;justify-content:space-around;font-family:var(--f-mono);font-size:.95rem;font-variant-numeric:tabular-nums;color:var(--muted);direction:ltr}
 .readout b{color:var(--fg);font-weight:500}
 .verdict{text-align:center;border-radius:12px;padding:12px;font-weight:700;font-size:1.15rem;min-height:3.2em;display:flex;flex-direction:column;justify-content:center}
@@ -137,16 +138,16 @@ canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(-
 
     <div id="running" class="card stand" hidden>
       <div class="topline"><span id="counter"></span><div class="progress" id="progress"></div></div>
+      <div class="row">
+        <button class="btn ghost" id="pauseBtn">השהה</button>
+        <button class="btn ghost" id="stopBtn">סיים סבב</button>
+      </div>
       <div class="iname" id="iname"></div>
       <div class="status" id="status"></div>
       <canvas id="chart"></canvas>
       <div class="livemeter" title="עוצמת המיקרופון"><i id="pMeter"></i></div>
       <div class="readout"><span>target <b id="roTarget">—</b></span><span>you <b id="roYou">—</b></span><span>Δ <b id="roDelta">—</b></span></div>
       <div class="verdict" id="verdict"></div>
-      <div class="row">
-        <button class="btn ghost" id="pauseBtn">השהה</button>
-        <button class="btn ghost" id="stopBtn">סיים סבב</button>
-      </div>
     </div>
   </section>
 
@@ -493,7 +494,7 @@ async function startSession(){
   for (let i = 0; i < +S.count; i++){ prev = makeExercise(prev); list.push(prev); }
   session = {list, idx:0, silent:0};
   paused = false; $("pauseBtn").textContent = "השהה";
-  $("idle").hidden = true; $("running").hidden = false;
+  $("idle").hidden = true; $("running").hidden = false; window.scrollTo(0, 0);
   lockScreen();
   run();
 }
