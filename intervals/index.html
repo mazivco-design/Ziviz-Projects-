@@ -83,6 +83,13 @@ canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(-
 .tcents{font-family:var(--f-mono);direction:ltr}
 .meter{width:100%;max-width:420px;height:6px;background:var(--line);border-radius:3px;overflow:hidden;direction:ltr}
 .meter i{display:block;height:100%;width:0;background:var(--good)}
+.diag{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.diag h4{margin:0;font-size:.85rem;letter-spacing:.06em;color:var(--muted)}
+.diag-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px}
+.diag-grid b{font-weight:600}
+.mono{font-family:var(--f-mono);direction:ltr;text-align:right}
+.livemeter{height:6px;background:var(--line);border-radius:3px;overflow:hidden;direction:ltr}
+.livemeter i{display:block;height:100%;width:0;background:var(--good)}
 /* settings */
 .set{display:flex;flex-direction:column;gap:18px}
 .set h4{margin:0 0 8px;font-size:.85rem;letter-spacing:.06em;color:var(--muted)}
@@ -105,7 +112,7 @@ canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(-
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="practice" aria-selected="true">אימון</button>
     <button role="tab" data-tab="learn" aria-selected="false">לימוד</button>
-    <button role="tab" data-tab="tuner" aria-selected="false">טיונר</button>
+    <button role="tab" data-tab="tuner" aria-selected="false">בדיקה</button>
     <button role="tab" data-tab="settings" aria-selected="false">הגדרות</button>
   </nav>
 
@@ -133,6 +140,7 @@ canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(-
       <div class="iname" id="iname"></div>
       <div class="status" id="status"></div>
       <canvas id="chart"></canvas>
+      <div class="livemeter" title="עוצמת המיקרופון"><i id="pMeter"></i></div>
       <div class="readout"><span>target <b id="roTarget">—</b></span><span>you <b id="roYou">—</b></span><span>Δ <b id="roDelta">—</b></span></div>
       <div class="verdict" id="verdict"></div>
       <div class="row">
@@ -155,8 +163,21 @@ canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(-
       <div class="tcents" id="tCents">&nbsp;</div>
       <div class="tbar"><i id="tNeedle"></i></div>
       <div class="meter"><i id="tMeter"></i></div>
-      <p class="note">שיר צליל אחד ארוך. בדיקה טובה לפני אימון: אם הפס הירוק כמעט לא זז, המיקרופון לא שומע אותך מספיק.</p>
+      <p class="note">שיר צליל אחד ארוך. אם הפס הירוק זז ומופיע שם של תו, האפליקציה שומעת אותך.</p>
       <button class="btn" id="tunerBtn">הפעל מיקרופון</button>
+    </div>
+    <div class="card diag">
+      <h4>בדיקת שמע</h4>
+      <div class="diag-grid">
+        <span>מיקרופון</span><b id="dMic">כבוי</b>
+        <span>מנוע השמע</span><b id="dCtx">—</b>
+        <span>עוצמה עכשיו</span><b id="dLvl" class="mono">—</b>
+        <span>רעש רקע</span><b id="dNoise" class="mono">—</b>
+        <span>סף שמיעה</span><b id="dGate" class="mono">—</b>
+      </div>
+      <button class="btn ghost" id="selfTestBtn">בדיקה עצמית: נגן צליל ובדוק שנשמע</button>
+      <div id="selfTestOut" class="note"></div>
+      <p class="note">הבדיקה העצמית מנגנת צליל לה ברמקול ובודקת אם המיקרופון קולט אותו בגובה הנכון. עם אוזניות היא לא תשמע את הצליל, וזה תקין.</p>
     </div>
   </section>
 
@@ -258,18 +279,34 @@ function ensureCtx(){
   if (ctx.state !== "running") ctx.resume();
   return ctx;
 }
+let micStream = null, gate = 0.002, noiseFloor = null, noiseSamples = [];
+try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {}
 async function ensureMic(){
   ensureCtx();
-  if (micOn) return;
-  try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {}
+  if (micOn) { await ctx.resume().catch(()=>{}); return; }
   if (!navigator.mediaDevices?.getUserMedia) throw new Error("nomic");
-  const stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
-  const src = ctx.createMediaStreamSource(stream);
+  micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:true}});
+  // Safari may suspend or interrupt the audio engine while the permission prompt is up
+  if (ctx.state !== "running") { try { await ctx.resume(); } catch {} }
+  const src = ctx.createMediaStreamSource(micStream);
   analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
   src.connect(analyser);
+  // Safari only processes nodes that lead to the speakers: route through a silent gain
+  const mute = ctx.createGain(); mute.gain.value = 0;
+  analyser.connect(mute).connect(ctx.destination);
   tbuf = new Float32Array(2048); ybuf = new Float32Array(1100);
-  micOn = true;
+  micOn = true; noiseSamples = []; noiseFloor = null;
   setInterval(detectTick, 30);
+  setInterval(updateDiag, 200);
+}
+function updateDiag(){
+  const ok = micStream && micStream.getAudioTracks().some(t => t.readyState === "live" && !t.muted);
+  $("dMic").textContent = !micStream ? "כבוי" : ok ? "פועל" : "מושתק או מנותק";
+  $("dCtx").textContent = ctx ? ({running:"פועל", suspended:"מושהה", interrupted:"הופרע", closed:"סגור"}[ctx.state] || ctx.state) + " · " + ctx.sampleRate + " Hz" : "—";
+  $("dLvl").textContent = live.rms.toFixed(4);
+  $("dNoise").textContent = noiseFloor == null ? "מודד…" : noiseFloor.toFixed(4);
+  $("dGate").textContent = gate.toFixed(4);
+  if (ctx && ctx.state !== "running") ctx.resume().catch(()=>{});
 }
 const mf = m => 440 * Math.pow(2, (m - 69) / 12);
 function tone(midi, t0, dur = 0.85, vol = 0.32){
@@ -304,7 +341,7 @@ const rawHist = [];
 function yin(buf, sr){
   let rms = 0; for (let i = 0; i < buf.length; i++) rms += buf[i]*buf[i];
   rms = Math.sqrt(rms / buf.length);
-  if (rms < 0.01) return {f:null, rms};
+  if (rms < gate) return {f:null, rms};
   const W = 1024, tMin = Math.floor(sr / 1000), tMax = Math.min(Math.floor(sr / 65), 1023, ybuf.length - 2);
   for (let tau = 1; tau <= tMax + 1; tau++){
     let sum = 0;
@@ -331,6 +368,9 @@ function detectTick(){
   const nn = rawHist.filter(x => x != null);
   const c = nn.length >= 3 && r.f ? median(nn) : null;
   live = {f:r.f, c, rms:r.rms};
+  // learn the background noise during the first ~0.6 s, then hear anything clearly above it
+  if (noiseFloor == null){ noiseSamples.push(r.rms); if (noiseSamples.length >= 20){ noiseFloor = median(noiseSamples); gate = Math.min(0.01, Math.max(0.0015, noiseFloor * 2.5)); } }
+  const pm = $("pMeter"); if (pm) pm.style.width = Math.min(100, Math.sqrt(r.rms) * 250) + "%";
   const t = performance.now();
   if (listener) { feed(listener, c, t); trail.push({t, c}); }
   if (tab === "tuner") drawTuner();
@@ -644,7 +684,7 @@ function drawChart(){
 
 /* ---------- tuner ---------- */
 function drawTuner(){
-  $("tMeter").style.width = Math.min(100, live.rms * 600) + "%";
+  $("tMeter").style.width = Math.min(100, Math.sqrt(live.rms) * 250) + "%";
   if (live.c == null) return;
   const m = Math.round(live.c / 100), dev = live.c - m * 100;
   $("tNote").textContent = NOTE[((m % 12) + 12) % 12] + " " + (Math.floor(m / 12) - 1);
@@ -654,6 +694,23 @@ function drawTuner(){
 $("tunerBtn").onclick = async () => {
   try { await ensureMic(); $("tunerBtn").textContent = "המיקרופון פועל"; $("tunerBtn").disabled = true; $("errBox").hidden = true; }
   catch(e){ showErr(e); }
+};
+
+$("selfTestBtn").onclick = async () => {
+  const out = $("selfTestOut");
+  try { await ensureMic(); } catch(e){ showErr(e); return; }
+  $("tunerBtn").textContent = "המיקרופון פועל"; $("tunerBtn").disabled = true;
+  out.textContent = "מנגן לה (220 Hz)…";
+  const got = [], t0 = ctx.currentTime + 0.1;
+  tone(57, t0, 1.6, 0.45);
+  const iv = setInterval(() => { if (live.f) got.push(live.f); }, 30);
+  await new Promise(r => setTimeout(r, 1900));
+  clearInterval(iv);
+  if (!got.length){ out.textContent = "לא נקלט צליל. אם אין אוזניות, בדוק שהעוצמה של האייפד לא על אפס ושהמתג השקט כבוי, ושלספארי יש הרשאת מיקרופון בהגדרות."; return; }
+  const f = median(got), cents = Math.round(1200 * Math.log2(f / 220));
+  out.textContent = Math.abs(cents) < 30
+    ? `נקלט ${f.toFixed(1)} Hz, סטייה של ${cents} סנט. השמיעה תקינה.`
+    : `נקלט ${f.toFixed(1)} Hz במקום 220. משהו בזיהוי משתבש. צלם לי את המסך הזה.`;
 };
 
 /* ---------- learn ---------- */
