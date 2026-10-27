@@ -54,7 +54,7 @@ section[hidden]{display:none!important}
 .iname small{display:block;font-family:var(--f-body);font-size:1rem;color:var(--muted);font-weight:600}
 .dir{color:var(--accent)}
 .status{text-align:center;font-weight:700;font-size:1.1rem;min-height:1.6em}
-.status.listen{color:var(--accent)}
+.status.listen{color:var(--accent);font-size:1.5rem}
 canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(--bg)}
 .readout{display:flex;justify-content:space-around;font-family:var(--f-mono);font-size:.95rem;font-variant-numeric:tabular-nums;color:var(--muted);direction:ltr}
 .readout b{color:var(--fg);font-weight:500}
@@ -127,7 +127,7 @@ canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(-
         <li>מקישים פעם אחת על "התחל". מכאן הכול רץ לבד.</li>
         <li>האפליקציה אומרת את שם המרווח ומנגנת אותו כדוגמה.</li>
         <li>אחר כך היא מנגנת רק את הצליל הראשון.</li>
-        <li>אחרי הצפצוף הכפול אתה שר את הצליל השני. היא בודקת, אומרת לך איך היה, וממשיכה.</li>
+        <li>מיד כשהצליל הראשון נגמר אתה שר את הצליל השני. היא בודקת, אומרת לך איך היה, וממשיכה.</li>
         <li>טעות? מקבלים ניסיון נוסף. שתי שתיקות ברצף עוצרות את הסבב.</li>
       </ol>
       <button class="btn big" id="startBtn">התחל סבב</button>
@@ -193,6 +193,9 @@ canvas{width:100%;height:240px;display:block;border-radius:12px;background:var(-
       <div><h4>דוגמה לפני שירה</h4><div class="seg" data-key="example">
         <button data-v="on">לנגן דוגמה</button><button data-v="off">רק שם המרווח</button></div>
         <p class="note">"רק שם המרווח" הוא האתגר האמיתי: שומעים רק את הבסיס ושרים מהזיכרון. בטעות תמיד תושמע דוגמה.</p></div>
+      <div><h4>סימן שמגיע תורך</h4><div class="seg" data-key="cue">
+        <button data-v="off">בלי צליל</button><button data-v="click">נקישה קצרה</button></div>
+        <p class="note">בלי צליל: שרים מיד כשהצליל הראשון נגמר, והמסך מתחלף ל"שיר". הנקישה היא רעש קצר בלי גובה, כדי שלא תתבלבל עם הצליל שצריך לזכור.</p></div>
       <div><h4>הקראה קולית</h4><div class="seg" data-key="speech">
         <button data-v="on">פועלת</button><button data-v="off">כבויה</button></div></div>
       <div><h4>טווח קול</h4><div class="seg" data-key="range">
@@ -227,7 +230,7 @@ const NOTE = ["דו","דו#","רה","רה#","מי","פה","פה#","סול","סו
 const RANGES = {low:[45,64], mid:[57,76], high:[60,79]};
 
 /* ---------- storage ---------- */
-const DEF = {ivls:[1,2,3,4], dir:"both", mode:"target", example:"on", speech:"on", range:"low", tol:"35", count:"10"};
+const DEF = {ivls:[1,2,3,4], dir:"both", mode:"target", example:"on", speech:"on", cue:"off", range:"low", tol:"35", count:"10"};
 function load(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 const S = Object.assign({}, DEF, load("mrv-settings-v2", {}));
@@ -331,7 +334,13 @@ function blip(freq, t0, d = 0.07, vol = 0.18, type = "sine"){
   o.connect(g).connect(master); o.start(t0); o.stop(t0 + d + 0.02);
   return t0 + d;
 }
-const cue = () => { const t = ctx.currentTime + 0.02; blip(1320, t); return blip(1320, t + 0.14); };
+// a short unpitched click, so it doesn't compete with the note you need to remember
+const cue = () => {
+  const t = ctx.currentTime + 0.02, n = Math.floor(ctx.sampleRate * 0.03), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4);
+  const s = ctx.createBufferSource(), g = ctx.createGain(); g.gain.value = 0.25;
+  s.buffer = buf; s.connect(g).connect(master); s.start(t); return t + 0.03;
+};
 const chimeOk = () => { const t = ctx.currentTime + 0.02; tone(84, t, 0.4, .15); return tone(88, t + 0.12, 0.5, .15); };
 const chimeNo = () => { const t = ctx.currentTime + 0.02; return blip(196, t, 0.35, 0.16, "triangle"); };
 
@@ -518,7 +527,7 @@ async function doExercise(ex, id){
       const e = tone(ex.root, ctx.currentTime + 0.05);
       await until(e + 0.15, id);
     }
-    cue(); await sleep(260, id);
+    if (S.cue === "click") { cue(); await sleep(200, id); } else await sleep(S.mode === "both" ? 350 : 60, id);
     setStatus(S.mode === "both" ? "שיר את שני הצלילים" : "שיר את צליל היעד", "listen");
     const res = await listen(ex, id);
     if (!res){
