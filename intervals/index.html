@@ -11,7 +11,7 @@
 /* Layout: one narrow column, tabs on top, the practice view is a "music stand" — big interval name, pitch trail chart, verdict */
 :root{
   --bg:#EDF0F4; --surface:#FFFFFF; --fg:#1A2230; --muted:#5D6878; --line:#D3D9E2;
-  --accent:#B7791F; --accent-soft:#F3E3C6; --good:#2C9466; --good-soft:#D5EEE2; --bad:#C9483F; --bad-soft:#F6DAD7;
+  --accent:#B7791F; --accent-soft:#F3E3C6; --good:#2C9466; --good-soft:#D5EEE2; --bad:#C9483F; --bad-soft:#F6DAD7; --kw:#FFFFFF; --kw-fg:#1A2230; --kbk:#1A2230;
   --f-display:"Secular One","Assistant",system-ui,sans-serif;
   --f-body:"Assistant",system-ui,-apple-system,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -19,10 +19,10 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#11161E; --surface:#1A212C; --fg:#E5E9EF; --muted:#9AA5B5; --line:#2C3644;
-  --accent:#E2A548; --accent-soft:#3A2E1A; --good:#4CC28A; --good-soft:#173A2B; --bad:#EE6F65; --bad-soft:#40201E; color-scheme:dark}}
+  --accent:#E2A548; --accent-soft:#3A2E1A; --good:#4CC28A; --good-soft:#173A2B; --bad:#EE6F65; --bad-soft:#40201E; --kw:#DCE1E8; --kw-fg:#1A2230; --kbk:#07090D; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#11161E; --surface:#1A212C; --fg:#E5E9EF; --muted:#9AA5B5; --line:#2C3644;
-  --accent:#E2A548; --accent-soft:#3A2E1A; --good:#4CC28A; --good-soft:#173A2B; --bad:#EE6F65; --bad-soft:#40201E; color-scheme:dark}
+  --accent:#E2A548; --accent-soft:#3A2E1A; --good:#4CC28A; --good-soft:#173A2B; --bad:#EE6F65; --bad-soft:#40201E; --kw:#DCE1E8; --kw-fg:#1A2230; --kbk:#07090D; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.5;
@@ -91,6 +91,30 @@ canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12p
 .mono{font-family:var(--f-mono);direction:ltr;text-align:right}
 .livemeter{height:6px;background:var(--line);border-radius:3px;overflow:hidden;direction:ltr}
 .livemeter i{display:block;height:100%;width:0;background:var(--good)}
+/* piano */
+.kbwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.kb{position:relative;padding-top:26px}
+.kb-tags{position:absolute;top:0;left:0;right:0;height:24px;pointer-events:none}
+.kb-board{position:relative;display:flex;height:clamp(96px,14vh,140px);touch-action:pan-x;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.key{cursor:pointer}
+.key.w{position:relative;flex:1;min-width:30px;background:var(--kw);border:1px solid var(--line);border-left-width:0;border-radius:0 0 7px 7px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px}
+.key.w:first-child{border-left-width:1px}
+.key.b{position:absolute;top:0;height:62%;background:var(--kbk);border-radius:0 0 5px 5px;z-index:2}
+.key.root{box-shadow:inset 0 -7px 0 var(--accent)}
+.key.target{box-shadow:inset 0 -7px 0 var(--good)}
+.key.lit{background:var(--accent)}
+.key.sung::after{content:"";position:absolute;left:50%;top:22%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px var(--kw)}
+.key.sung.ok::after{background:var(--good)}
+.lab{font:600 .72rem var(--f-body);white-space:nowrap;color:var(--kw-fg);opacity:.4;direction:rtl}
+.kb-tags .lab{position:absolute;transform:translateX(-50%);top:2px;opacity:1}
+.lab.on{opacity:1;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.lab.root{background:var(--accent);color:#fff;border-color:var(--accent)}
+.lab.target{background:var(--good);color:#fff;border-color:var(--good)}
+.lab.lit{background:var(--accent);color:#fff;border-color:var(--accent)}
+.kbcap{text-align:center;font-weight:700;min-height:1.5em}
+.learn-kb{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;flex-direction:column;gap:6px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+@media (prefers-reduced-motion:no-preference){.key{transition:background-color .08s}}
 /* settings */
 .set{display:flex;flex-direction:column;gap:18px}
 .set h4{margin:0 0 8px;font-size:.85rem;letter-spacing:.06em;color:var(--muted)}
@@ -148,12 +172,17 @@ canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12p
       <div class="livemeter" title="עוצמת המיקרופון"><i id="pMeter"></i></div>
       <div class="readout"><span>target <b id="roTarget">—</b></span><span>you <b id="roYou">—</b></span><span>Δ <b id="roDelta">—</b></span></div>
       <div class="verdict" id="verdict"></div>
+      <div class="kbwrap" id="kbPWrap"><div class="kb" id="kbP"></div></div>
     </div>
   </section>
 
   <!-- LEARN -->
   <section id="tab-learn" hidden>
-    <p class="muted" style="margin:0 0 10px">הקש כדי לשמוע כל מרווח. ליד כל אחד יש שירים מוכרים שנפתחים בו, תשיר אותם בראש כדי לזכור את הצליל.</p>
+    <div class="learn-kb" id="kbLBox">
+      <div class="kbwrap" id="kbLWrap"><div class="kb" id="kbL"></div></div>
+      <div class="kbcap" id="kbCap">הקש על שני קלידים כדי לשמוע ולראות את המרווח ביניהם</div>
+    </div>
+    <p class="muted" style="margin:0 0 10px">החצים ↑ ↓ מנגנים כל מרווח מהקליד האחרון שהקשת. ליד כל מרווח יש שירים מוכרים שנפתחים בו, תשיר אותם בראש כדי לזכור את הצליל.</p>
     <div class="learn-list" id="learnList"></div>
   </section>
 
@@ -197,6 +226,11 @@ canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12p
       <div><h4>סימן שמגיע תורך</h4><div class="seg" data-key="cue">
         <button data-v="off">בלי צליל</button><button data-v="click">נקישה קצרה</button></div>
         <p class="note">בלי צליל: שרים מיד כשהצליל הראשון נגמר, והמסך מתחלף ל"שיר". הנקישה היא רעש קצר בלי גובה, כדי שלא תתבלבל עם הצליל שצריך לזכור.</p></div>
+      <div><h4>מקלדת פסנתר</h4><div class="seg" data-key="kb">
+        <button data-v="on">מוצגת</button><button data-v="off">מוסתרת</button></div></div>
+      <div><h4>מה כתוב על הקלידים</h4><div class="seg" data-key="labels">
+        <button data-v="name">שם התו</button><button data-v="deg">דרגה בסולם</button></div>
+        <p class="note">"דרגה בסולם" נמדדת מצליל הבסיס: 1 הוא הבסיס, 3 טרצה גדולה, ♭3 טרצה קטנה, 5 קווינטה וכן הלאה.</p></div>
       <div><h4>הקראה קולית</h4><div class="seg" data-key="speech">
         <button data-v="on">פועלת</button><button data-v="off">כבויה</button></div></div>
       <div><h4>טווח קול</h4><div class="seg" data-key="range">
@@ -231,7 +265,7 @@ const NOTE = ["דו","דו#","רה","רה#","מי","פה","פה#","סול","סו
 const RANGES = {low:[45,64], mid:[57,76], high:[60,79]};
 
 /* ---------- storage ---------- */
-const DEF = {ivls:[1,2,3,4], dir:"both", mode:"target", example:"on", speech:"on", cue:"off", range:"low", tol:"35", count:"10"};
+const DEF = {ivls:[1,2,3,4], dir:"both", mode:"target", example:"on", speech:"on", cue:"off", kb:"on", labels:"name", range:"low", tol:"35", count:"10"};
 function load(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 const S = Object.assign({}, DEF, load("mrv-settings-v2", {}));
@@ -268,6 +302,7 @@ function renderSettings(){
     });
   });
   const dirTxt = {up:"עולים", down:"יורדים", both:"עולים ויורדים"}[S.dir];
+  applyKb();
   $("idleSummary").textContent = `${S.count} תרגילים · ${S.ivls.map(s=>byS(s).name).join(", ")} · ${dirTxt} · ${S.mode==="both"?"שרים את שני הצלילים":"שרים רק את היעד"}. אפשר לשנות בהגדרות.`;
 }
 
@@ -344,6 +379,94 @@ const cue = () => {
 };
 const chimeOk = () => { const t = ctx.currentTime + 0.02; tone(84, t, 0.4, .15); return tone(88, t + 0.12, 0.5, .15); };
 const chimeNo = () => { const t = ctx.currentTime + 0.02; return blip(196, t, 0.35, 0.16, "triangle"); };
+
+/* ---------- piano keyboard ---------- */
+const BLACK = new Set([1,3,6,8,10]);
+const DEG = ["1","♭2","2","♭3","3","4","♯4","5","♭6","6","♭7","7"];
+const degName = d => d === 0 ? "1" : Math.abs(d) === 12 ? "8" : DEG[((d % 12) + 12) % 12];
+const noteName = m => NOTE[((m % 12) + 12) % 12];
+class Keys {
+  constructor(el, wrap, onTap){
+    this.el = el; this.wrap = wrap; this.onTap = onTap;
+    this.root = null; this.target = null; this.labelRoot = null; this.sung = null; this.sungOk = false; this.lit = new Map();
+    el.addEventListener("pointerdown", e => {
+      const k = e.target.closest(".key"); if (!k) return;
+      this.onTap(+k.dataset.m);
+    });
+  }
+  build(lo, hi){
+    this.lo = lo; this.hi = hi; this.k = {};
+    const whites = []; for (let m = lo; m <= hi; m++) if (!BLACK.has(m % 12)) whites.push(m);
+    const W = 100 / whites.length;
+    const tags = document.createElement("div"); tags.className = "kb-tags";
+    const board = document.createElement("div"); board.className = "kb-board";
+    whites.forEach(m => {
+      const el = document.createElement("div"); el.className = "key w"; el.dataset.m = m;
+      const lab = document.createElement("span"); lab.className = "lab"; el.appendChild(lab);
+      board.appendChild(el); this.k[m] = {el, lab, white:true};
+    });
+    for (let m = lo; m <= hi; m++) if (BLACK.has(m % 12)){
+      const i = whites.indexOf(m - 1), x = (i + 1) * W;
+      const el = document.createElement("div"); el.className = "key b"; el.dataset.m = m;
+      el.style.left = (x - W * 0.31) + "%"; el.style.width = (W * 0.62) + "%";
+      const lab = document.createElement("span"); lab.className = "lab"; lab.style.left = x + "%";
+      board.appendChild(el); tags.appendChild(lab); this.k[m] = {el, lab, white:false};
+    }
+    this.el.style.minWidth = (whites.length * 30) + "px";
+    this.el.replaceChildren(tags, board);
+    this.render();
+  }
+  label(m){
+    return this.labelRoot != null && S.labels === "deg" ? degName(m - this.labelRoot) : noteName(m);
+  }
+  render(){
+    if (!this.k) return;
+    for (const m in this.k){
+      const n = +m, {el, lab, white} = this.k[m];
+      const lit = (this.lit.get(n) || 0) > 0, root = n === this.root, target = n === this.target, sung = n === this.sung;
+      el.classList.toggle("lit", lit); el.classList.toggle("root", root); el.classList.toggle("target", target);
+      el.classList.toggle("sung", sung); el.classList.toggle("ok", sung && this.sungOk);
+      const on = lit || root || target || sung;
+      lab.className = "lab" + (on ? " on" : "") + (lit ? " lit" : root ? " root" : target ? " target" : "");
+      lab.textContent = on ? this.label(n) : (white && n % 12 === 0 ? "דו" + (Math.floor(n / 12) - 1) : "");
+    }
+  }
+  setMarks(root, target, labelRoot = root){ this.root = root; this.target = target; this.labelRoot = labelRoot; this.render(); }
+  setSung(m, ok){ if (m === this.sung && ok === this.sungOk) return; this.sung = m; this.sungOk = ok; this.render(); }
+  light(m, delay, ms){
+    if (!this.k?.[m]) return;
+    setTimeout(() => { this.lit.set(m, (this.lit.get(m) || 0) + 1); this.render(); }, delay);
+    setTimeout(() => { this.lit.set(m, Math.max(0, (this.lit.get(m) || 1) - 1)); this.render(); }, delay + ms);
+  }
+  show(m){
+    const k = this.k?.[m]; if (!k || this.wrap.scrollWidth <= this.wrap.clientWidth) return;
+    const x = k.el.offsetLeft + k.el.offsetWidth / 2;
+    if (x < this.wrap.scrollLeft + 40 || x > this.wrap.scrollLeft + this.wrap.clientWidth - 40) this.wrap.scrollLeft = x - this.wrap.clientWidth / 2;
+  }
+}
+// play a note and light its key on every keyboard, in time with the sound
+function playNote(m, t0, dur = 0.85, vol){
+  const end = tone(m, t0, dur, vol);
+  const delay = Math.max(0, (t0 - ctx.currentTime) * 1000);
+  kbP.light(m, delay, dur * 800); kbL.light(m, delay, dur * 800);
+  return end;
+}
+let learnLast = null;
+const kbP = new Keys($("kbP"), $("kbPWrap"), m => { ensureCtx(); playNote(m, ctx.currentTime + 0.01, 0.7); });
+const kbL = new Keys($("kbL"), $("kbLWrap"), m => {
+  ensureCtx(); playNote(m, ctx.currentTime + 0.01, 0.7);
+  const prev = learnLast; learnLast = m;
+  if (prev == null || prev === m){ kbL.setMarks(m, null); $("kbCap").textContent = noteName(m) + (prev === m ? "" : " · הקש על קליד נוסף"); return; }
+  kbL.setMarks(prev, m);
+  $("kbCap").textContent = `מ${noteName(prev)} ל${noteName(m)}: ${ivlLabel((m - prev) * 100)}`;
+});
+function kbRange(){ const [lo, hi] = RANGES[S.range]; return [Math.floor(lo / 12) * 12, Math.ceil((hi + 1) / 12) * 12]; }
+function applyKb(){
+  const [lo, hi] = kbRange();
+  $("kbPWrap").hidden = $("kbLBox").hidden = S.kb !== "on";
+  if (kbP.lo !== lo || kbP.hi !== hi){ kbP.build(lo, hi); kbL.build(lo, hi); learnLast = null; }
+  else { kbP.render(); kbL.render(); }
+}
 
 /* ---------- pitch detection (YIN) ---------- */
 let live = {f:null, c:null, rms:0};
@@ -514,18 +637,19 @@ async function doExercise(ex, id){
   $("iname").innerHTML = `${I.name} <span class="dir">${ex.dir > 0 ? "↑" : "↓"}</span><small>${I.alt} · ${ex.dir > 0 ? "למעלה" : "למטה"}</small>`;
   for (let attempt = 1; attempt <= 2; attempt++){
     setVerdict(""); clearReadout(); trail = []; curEx = ex;
+    kbP.setMarks(ex.root, null); kbP.setSung(null, false); kbP.show(ex.root);
     setStatus("מקשיב לשם המרווח…");
     await speak(attempt === 1 ? `${I.name} ${ex.dir > 0 ? "למעלה" : "למטה"}` : "שוב", id);
     const withExample = S.example === "on" || attempt > 1;
     if (withExample){
       setStatus("דוגמה");
       const t = ctx.currentTime + 0.05;
-      tone(ex.root, t); const e = tone(ex.target, t + 0.95);
+      playNote(ex.root, t); const e = playNote(ex.target, t + 0.95);
       await until(e + 0.3, id);
     }
     if (S.mode === "target" || !withExample){
       setStatus("צליל הבסיס");
-      const e = tone(ex.root, ctx.currentTime + 0.05);
+      const e = playNote(ex.root, ctx.currentTime + 0.05);
       await until(e + 0.15, id);
     }
     if (S.cue === "click") { cue(); await sleep(200, id); } else await sleep(S.mode === "both" ? 350 : 60, id);
@@ -543,6 +667,7 @@ async function doExercise(ex, id){
     const sungName = ivlLabel(res.sung);
     const sign = res.err > 0 ? "+" : "";
     record(ex, ok);
+    kbP.setSung(null, false); kbP.setMarks(ex.root, ex.target);
     if (ok){
       setVerdict(`${Math.abs(res.err) <= 15 ? "מדויק!" : "יפה!"}<small>${sungName} · ${sign}${Math.round(res.err)} סנט</small>`, "ok");
       chimeOk(); await sleep(450, id);
@@ -681,6 +806,10 @@ function drawChart(){
     if (prevP){ cx.strokeStyle = Math.abs(rel - I) <= tol ? good : fg; cx.beginPath(); cx.moveTo(prevP[0], prevP[1]); cx.lineTo(X, Y); cx.stroke(); }
     prevP = [X, Y]; lastRel = rel;
   }
+  if (listener && live.c != null && lastRel != null){
+    // in "both" mode the target is measured from your own first note, so place the dot relative to it
+    kbP.setSung(Math.round((ex.root * 100 + lastRel) / 100) + (sungRoot != null ? Math.round((sungRoot - ex.root * 100) / 100) : 0), Math.abs(lastRel - I) <= tol);
+  } else if (!listener) kbP.setSung(null, false);
   if (prevP){ cx.fillStyle = lastRel != null && Math.abs(lastRel - I) <= tol ? good : fg; cx.beginPath(); cx.arc(prevP[0], prevP[1], 6, 0, 7); cx.fill(); }
   if (listener){
     $("roTarget").textContent = (I > 0 ? "+" : "") + I + "¢";
@@ -724,6 +853,18 @@ $("selfTestBtn").onclick = async () => {
 };
 
 /* ---------- learn ---------- */
+function playLearn(i, dir){
+  ensureCtx();
+  const [lo, hi] = kbRange();
+  let r = learnLast ?? (RANGES[S.range][0] + 3);
+  while (r + dir * i.s > hi) r -= 12;
+  while (r + dir * i.s < lo) r += 12;
+  const tgt = r + dir * i.s, t = ctx.currentTime + .05;
+  playNote(r, t); playNote(tgt, t + .95);
+  learnLast = r;
+  kbL.setMarks(r, tgt); kbL.show(r);
+  $("kbCap").textContent = `${i.name} ${dir > 0 ? "למעלה" : "למטה"}: מ${noteName(r)} ל${noteName(tgt)}`;
+}
 function renderLearn(){
   const box = $("learnList"); box.innerHTML = "";
   IVL.forEach(i => {
@@ -739,9 +880,8 @@ function renderLearn(){
         <span class="acc">דיוק: ↑ ${acc(su)}  ·  ↓ ${acc(sd)}</span>
       </div>`;
     const [bu, bd] = d.querySelectorAll(".play button");
-    const [lo, hi] = RANGES[S.range];
-    bu.onclick = () => { ensureCtx(); const r = lo + 3, t = ctx.currentTime + .05; tone(r, t); tone(r + i.s, t + .95); };
-    bd.onclick = () => { ensureCtx(); const r = Math.min(hi, lo + 3 + i.s), t = ctx.currentTime + .05; tone(r, t); tone(r - i.s, t + .95); };
+    bu.onclick = () => playLearn(i, 1);
+    bd.onclick = () => playLearn(i, -1);
     box.appendChild(d);
   });
 }
