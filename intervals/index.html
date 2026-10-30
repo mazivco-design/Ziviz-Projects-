@@ -336,6 +336,7 @@ function ensureCtx(){
   if (ctx.state !== "running") ctx.resume();
   return ctx;
 }
+let micSrc = null, micMute = null, micTimers = [];
 let micStream = null, gate = 0.002, noiseFloor = null, noiseSamples = [];
 try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {}
 async function ensureMic(){
@@ -353,8 +354,27 @@ async function ensureMic(){
   analyser.connect(mute).connect(ctx.destination);
   tbuf = new Float32Array(2048); ybuf = new Float32Array(1100);
   micOn = true; noiseSamples = []; noiseFloor = null;
-  setInterval(detectTick, 30);
-  setInterval(updateDiag, 200);
+  micSrc = src; micMute = mute;
+  micTimers = [setInterval(detectTick, 30), setInterval(updateDiag, 200)];
+  micButton();
+}
+function stopMic(){
+  if (!micOn) return;
+  if (session) endSession(true);
+  extRun++;
+  micTimers.forEach(clearInterval); micTimers = [];
+  try { micSrc.disconnect(); analyser.disconnect(); micMute.disconnect(); } catch {}
+  micStream?.getTracks().forEach(t => t.stop());
+  micStream = null; micOn = false; listener = null;
+  live = {f:null, c:null, rms:0}; rawHist.length = 0;
+  $("tNote").textContent = "—"; $("tCents").textContent = "\u00a0"; $("tMeter").style.width = "0"; $("tNeedle").style.left = "50%";
+  updateDiag(); micButton();
+}
+function micButton(){
+  const b = $("tunerBtn");
+  b.disabled = false;
+  b.textContent = micOn ? "עצור האזנה" : "הפעל מיקרופון";
+  b.classList.toggle("ghost", micOn);
 }
 function updateDiag(){
   const ok = micStream && micStream.getAudioTracks().some(t => t.readyState === "live" && !t.muted);
@@ -851,7 +871,8 @@ function drawTuner(){
   $("tNeedle").style.left = (50 + dev) + "%";
 }
 $("tunerBtn").onclick = async () => {
-  try { await ensureMic(); $("tunerBtn").textContent = "המיקרופון פועל"; $("tunerBtn").disabled = true; $("errBox").hidden = true; }
+  if (micOn){ stopMic(); return; }
+  try { await ensureMic(); $("errBox").hidden = true; }
   catch(e){ showErr(e); }
 };
 
@@ -881,7 +902,6 @@ function waitStable(id, ms = 10000){
 async function runExt(){
   const id = ++extRun, out = []; extSkipped = false;
   try { await ensureMic(); } catch(e){ showErr(e); return; }
-  $("tunerBtn").textContent = "המיקרופון פועל"; $("tunerBtn").disabled = true;
   $("extStart").textContent = "עצור"; $("extSkip").hidden = false; $("extSummary").hidden = true;
   let prev = null;
   for (let n = 0; n < 8 && id === extRun; n++){
@@ -939,7 +959,6 @@ $("extSkip").onclick = () => { extSkipped = true; };
 $("selfTestBtn").onclick = async () => {
   const out = $("selfTestOut");
   try { await ensureMic(); } catch(e){ showErr(e); return; }
-  $("tunerBtn").textContent = "המיקרופון פועל"; $("tunerBtn").disabled = true;
   out.textContent = "מנגן לה (220 Hz)…";
   const got = [], t0 = ctx.currentTime + 0.1;
   tone(57, t0, 1.6, 0.45);
