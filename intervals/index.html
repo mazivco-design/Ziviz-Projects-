@@ -28,7 +28,7 @@ html,body{margin:0;-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.5;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-tap-highlight-color:transparent}
-.wrap{max-width:720px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
+.wrap{max-width:1240px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 h1{font-family:var(--f-display);font-weight:400;font-size:1.7rem;margin:0;letter-spacing:.01em}
 h1 span{color:var(--accent)}
@@ -74,7 +74,7 @@ canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12p
 .ivl .play{display:flex;gap:6px}
 .ivl .play button{border:1.5px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:8px 12px;font:700 1rem var(--f-body);cursor:pointer}
 .acc{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
-.learn-list{display:flex;flex-direction:column;gap:10px}
+.learn-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
 /* tuner */
 .tuner{display:flex;flex-direction:column;align-items:center;gap:10px;padding-block:20px}
 .tnote{font-family:var(--f-display);font-size:4rem;line-height:1}
@@ -84,7 +84,7 @@ canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12p
 .tcents{font-family:var(--f-mono);direction:ltr}
 .meter{width:100%;max-width:420px;height:6px;background:var(--line);border-radius:3px;overflow:hidden;direction:ltr}
 .meter i{display:block;height:100%;width:0;background:var(--good)}
-.diag{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.diag{display:flex;flex-direction:column;gap:12px}
 .diag h4{margin:0;font-size:.85rem;letter-spacing:.06em;color:var(--muted)}
 .diag-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px}
 .diag-grid b{font-weight:600}
@@ -95,7 +95,7 @@ canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12p
 .kbwrap{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .kb{position:relative;padding-top:26px}
 .kb-tags{position:absolute;top:0;left:0;right:0;height:24px;pointer-events:none}
-.kb-board{position:relative;display:flex;height:clamp(96px,14vh,140px);touch-action:pan-x;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.kb-board{position:relative;display:flex;height:clamp(110px,22vh,230px);touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .key{cursor:pointer}
 .key.w{position:relative;flex:1;min-width:30px;background:var(--kw);border:1px solid var(--line);border-left-width:0;border-radius:0 0 7px 7px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px}
 .key.w:first-child{border-left-width:1px}
@@ -120,8 +120,22 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .ext-sub{text-align:center;color:var(--muted)}
 .ext-hear{text-align:center;font-weight:700;color:var(--muted)}
 .ext-hear b{color:var(--fg)}
+/* wide screens */
+#tab-tuner:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@media (min-width:760px){#tab-tuner:not([hidden]){grid-template-columns:repeat(2,minmax(0,1fr))}}
+#extCard{grid-column:1/-1;order:3}
+#idle{width:100%;max-width:780px;align-self:center;margin-inline:auto}
+.run-grid{display:flex;flex-direction:column;gap:12px}
+.run-info,.run-chart{display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (min-width:900px){
+  .run-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px;align-items:center}
+  .run-info .verdict{min-height:5em;font-size:1.3rem}
+  canvas{height:clamp(180px,30vh,280px)}
+  .lab{font-size:.85rem}
+}
 /* settings */
-.set{display:flex;flex-direction:column;gap:18px}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px 32px}
+.set > div:first-child{grid-column:1/-1}
 .set h4{margin:0 0 8px;font-size:.85rem;letter-spacing:.06em;color:var(--muted)}
 .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
 .chip{border:1.5px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:8px;font:600 .95rem var(--f-body);cursor:pointer;text-align:center}
@@ -171,12 +185,18 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         <button class="btn ghost" id="pauseBtn">השהה</button>
         <button class="btn ghost" id="stopBtn">סיים סבב</button>
       </div>
-      <div class="iname" id="iname"></div>
-      <div class="status" id="status"></div>
-      <canvas id="chart"></canvas>
-      <div class="livemeter" title="עוצמת המיקרופון"><i id="pMeter"></i></div>
-      <div class="readout"><span>target <b id="roTarget">—</b></span><span>you <b id="roYou">—</b></span><span>Δ <b id="roDelta">—</b></span></div>
-      <div class="verdict" id="verdict"></div>
+      <div class="run-grid">
+        <div class="run-info">
+          <div class="iname" id="iname"></div>
+          <div class="status" id="status"></div>
+          <div class="verdict" id="verdict"></div>
+        </div>
+        <div class="run-chart">
+          <canvas id="chart"></canvas>
+          <div class="livemeter" title="עוצמת המיקרופון"><i id="pMeter"></i></div>
+          <div class="readout"><span>target <b id="roTarget">—</b></span><span>you <b id="roYou">—</b></span><span>Δ <b id="roDelta">—</b></span></div>
+        </div>
+      </div>
       <div class="kbwrap" id="kbPWrap"><div class="kb" id="kbP"></div></div>
     </div>
   </section>
