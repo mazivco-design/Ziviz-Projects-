@@ -118,6 +118,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .ext-ask{text-align:center;display:flex;flex-direction:column;gap:2px}
 .ext-note{font-family:var(--f-display);font-size:3rem;line-height:1.1}
 .ext-sub{text-align:center;color:var(--muted)}
+.ext-hear{text-align:center;font-weight:700;color:var(--muted)}
+.ext-hear b{color:var(--fg)}
 /* settings */
 .set{display:flex;flex-direction:column;gap:18px}
 .set h4{margin:0 0 8px;font-size:.85rem;letter-spacing:.06em;color:var(--muted)}
@@ -207,6 +209,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         <div class="ext-sub" id="extSub">&nbsp;</div>
       </div>
       <div class="kbwrap" id="kbXWrap"><div class="kb" id="kbX"></div></div>
+      <div class="ext-hear" id="extHear">המיקרופון כבוי</div>
       <div class="verdict" id="extVerdict"></div>
       <div class="row">
         <button class="btn" id="extStart">התחל בדיקה: 8 תווים</button>
@@ -368,7 +371,7 @@ function stopMic(){
   micStream = null; micOn = false; listener = null;
   live = {f:null, c:null, rms:0}; rawHist.length = 0;
   $("tNote").textContent = "—"; $("tCents").textContent = "\u00a0"; $("tMeter").style.width = "0"; $("tNeedle").style.left = "50%";
-  updateDiag(); micButton();
+  updateDiag(); micButton(); $("extHear").textContent = "המיקרופון כבוי"; kbX.setSung(null, false);
 }
 function micButton(){
   const b = $("tunerBtn");
@@ -515,7 +518,7 @@ function yin(buf, sr){
   let rms = 0; for (let i = 0; i < buf.length; i++) rms += buf[i]*buf[i];
   rms = Math.sqrt(rms / buf.length);
   if (rms < gate) return {f:null, rms};
-  const W = 1024, tMin = Math.floor(sr / 1000), tMax = Math.min(Math.floor(sr / 65), 1023, ybuf.length - 2);
+  const tMin = Math.floor(sr / 1000), tMax = Math.min(Math.floor(sr / 65), ybuf.length - 2), W = buf.length - tMax - 2;
   for (let tau = 1; tau <= tMax + 1; tau++){
     let sum = 0;
     for (let i = 0; i < W; i++){ const d = buf[i] - buf[i + tau]; sum += d*d; }
@@ -525,7 +528,12 @@ function yin(buf, sr){
   for (let tau = 1; tau <= tMax + 1; tau++){ run += ybuf[tau]; ybuf[tau] = run ? ybuf[tau] * tau / run : 1; }
   let tau = -1;
   for (let t = tMin; t <= tMax; t++){
-    if (ybuf[t] < 0.15){ while (t + 1 <= tMax && ybuf[t+1] < ybuf[t]) t++; tau = t; break; }
+    if (ybuf[t] < 0.2){ while (t + 1 <= tMax && ybuf[t+1] < ybuf[t]) t++; tau = t; break; }
+  }
+  if (tau < 0){
+    // no clear dip: accept the deepest one if it is still reasonably periodic (real instruments in a room)
+    let best = tMin; for (let t = tMin; t <= tMax; t++) if (ybuf[t] < ybuf[best]) best = t;
+    if (ybuf[best] < 0.4) tau = best;
   }
   if (tau < 2) return {f:null, rms};
   const x0 = ybuf[tau-1], x1 = ybuf[tau], x2 = ybuf[tau+1], den = x0 + x2 - 2*x1;
@@ -542,11 +550,11 @@ function detectTick(){
   const c = nn.length >= 3 && r.f ? median(nn) : null;
   live = {f:r.f, c, rms:r.rms};
   // learn the background noise during the first ~0.6 s, then hear anything clearly above it
-  if (noiseFloor == null){ noiseSamples.push(r.rms); if (noiseSamples.length >= 20){ noiseFloor = median(noiseSamples); gate = Math.min(0.01, Math.max(0.0015, noiseFloor * 2.5)); } }
+  if (noiseFloor == null){ noiseSamples.push(r.rms); if (noiseSamples.length >= 20){ noiseFloor = median(noiseSamples); gate = Math.min(0.004, Math.max(0.0008, noiseFloor * 2)); } }
   const pm = $("pMeter"); if (pm) pm.style.width = Math.min(100, Math.sqrt(r.rms) * 250) + "%";
   const t = performance.now();
   if (listener) { feed(listener, c, t); trail.push({t, c}); }
-  if (tab === "tuner") drawTuner();
+  if (tab === "tuner"){ drawTuner(); hearTick(t); }
 }
 
 /* ---------- segmenter ---------- */
@@ -880,9 +888,21 @@ $("tunerBtn").onclick = async () => {
 const NOTE_EN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const fullName = m => `${noteName(m)} ${Math.floor(m / 12) - 1}`;
 const enName = m => NOTE_EN[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
-let extRun = 0;
-function waitStable(id, ms = 10000){
-  // resolves with the median pitch (in cents) once a note is held steadily for ~0.6 s, or null on timeout
+let extRun = 0, extBusy = false, heardAt = 0, heardM = null;
+// show the note the mic hears right now; keep it on the keyboard for a moment after the sound fades
+function hearTick(t){
+  if (live.c != null){
+    heardM = Math.round(live.c / 100); heardAt = t;
+    const dev = Math.round(live.c - heardM * 100);
+    $("extHear").innerHTML = `שומע עכשיו: <b>${fullName(heardM)}</b> · <span class="mono">${enName(heardM)} · ${(440 * Math.pow(2, (live.c - 6900) / 1200)).toFixed(1)} Hz · ${dev > 0 ? "+" : ""}${dev}¢</span>`;
+  } else if (t - heardAt > 1500){
+    heardM = null;
+    $("extHear").textContent = micOn ? (live.rms > gate ? "שומע צליל, אבל לא מזהה גובה" : "שקט") : "המיקרופון כבוי";
+  }
+  if (!extBusy) kbX.setSung(heardM, true);
+}
+function waitStable(id, ms = 30000){
+  // resolves with the pitch (in cents) once most of the last ~0.6 s agree on one note; tolerates gaps and fading notes
   return new Promise(res => {
     const buf = [], t0 = performance.now();
     const iv = setInterval(() => {
@@ -890,17 +910,17 @@ function waitStable(id, ms = 10000){
       if (extSkipped){ extSkipped = false; clearInterval(iv); res("skip"); return; }
       buf.push(live.c); if (buf.length > 12) buf.shift();
       const vals = buf.filter(v => v != null);
-      if (vals.length === 12){
-        const m = median(vals);
-        kbX.setSung(Math.round(m / 100), false);
-        if (vals.every(v => Math.abs(v - m) < 30)){ clearInterval(iv); res(m); return; }
-      } else if (live.c != null) kbX.setSung(Math.round(live.c / 100), false);
+      if (live.c != null) kbX.setSung(Math.round(live.c / 100), false);
+      if (vals.length >= 8){
+        const m = median(vals), near = vals.filter(v => Math.abs(v - m) < 35);
+        if (near.length >= 8){ clearInterval(iv); res(median(near)); return; }
+      }
       if (performance.now() - t0 > ms){ clearInterval(iv); res(null); }
     }, 50);
   });
 }
 async function runExt(){
-  const id = ++extRun, out = []; extSkipped = false;
+  const id = ++extRun, out = []; extSkipped = false; extBusy = true;
   try { await ensureMic(); } catch(e){ showErr(e); return; }
   $("extStart").textContent = "עצור"; $("extSkip").hidden = false; $("extSummary").hidden = true;
   let prev = null;
@@ -908,7 +928,7 @@ async function runExt(){
     let m; do { m = 40 + Math.floor(Math.random() * 37); } while (m === prev); prev = m;
     $("extNote").textContent = fullName(m);
     $("extSub").textContent = `${enName(m)} · ${mf(m).toFixed(1)} Hz · תו ${n + 1} מתוך 8`;
-    $("extVerdict").innerHTML = "נגן את התו והחזק אותו"; $("extVerdict").className = "verdict";
+    $("extVerdict").innerHTML = "נגן את התו"; $("extVerdict").className = "verdict";
     kbX.setMarks(null, m, null); kbX.setSung(null, false); kbX.show(m);
     if (S.speech === "on") speak(noteName(m), runId).catch(() => {});
     await new Promise(r => setTimeout(r, 900));
@@ -918,16 +938,16 @@ async function runExt(){
       got = await waitStable(id);
       if (got === undefined) break;
       if (got === "skip"){ out.push(out.lastMiss?.m === m ? out.lastMiss : {m, res:null}); break; }
-      if (got === null){ out.push({m, res:null}); $("extVerdict").innerHTML = "לא זוהה צליל יציב"; $("extVerdict").className = "verdict no"; break; }
+      if (got === null){ out.push({m, res:null}); $("extVerdict").innerHTML = "לא זוהה צליל במשך חצי דקה"; $("extVerdict").className = "verdict no"; break; }
       const diff = got - m * 100, pc = fold(diff, 0), oct = Math.round((diff - pc) / 1200), heard = Math.round(got / 100);
-      const ok = Math.abs(diff) <= 35;
+      const ok = Math.abs(diff) <= 50;
       kbX.setSung(heard, ok);
       if (ok){
         out.push({m, res:diff});
         $("extVerdict").innerHTML = `זוהה נכון<small>${fullName(heard)} · ${diff > 0 ? "+" : ""}${Math.round(diff)} סנט</small>`; $("extVerdict").className = "verdict ok";
         break;
       }
-      const why = Math.abs(pc) <= 35 ? `זוהה אותו תו באוקטבה ${oct > 0 ? "גבוהה" : "נמוכה"} יותר` : `זוהה ${fullName(heard)} (${enName(heard)})`;
+      const why = Math.abs(pc) <= 50 ? `זוהה אותו תו באוקטבה ${oct > 0 ? "גבוהה" : "נמוכה"} יותר` : `זוהה ${fullName(heard)} (${enName(heard)})`;
       $("extVerdict").innerHTML = `${why}<small>${(mf(m) * Math.pow(2, diff / 1200)).toFixed(1)} Hz · נסה שוב או דלג</small>`; $("extVerdict").className = "verdict no";
       out.lastMiss = {m, res:diff};
       await new Promise(r => setTimeout(r, 1200));
@@ -938,15 +958,15 @@ async function runExt(){
   }
   if (id === extRun){
     extRun++;
-    const ok = out.filter(o => o.res != null && Math.abs(o.res) <= 35);
+    const ok = out.filter(o => o.res != null && Math.abs(o.res) <= 50);
     const avg = ok.length ? Math.round(ok.reduce((a, o) => a + Math.abs(o.res), 0) / ok.length) : null;
     $("extNote").textContent = `${ok.length} מתוך ${out.length}`;
     $("extSub").textContent = avg != null ? `סטייה ממוצעת ${avg} סנט` : " ";
     $("extVerdict").innerHTML = ok.length === out.length ? "הזיהוי עובד טוב" : "חלק מהתווים לא זוהו נכון. צלם לי את הרשימה."; $("extVerdict").className = "verdict " + (ok.length === out.length ? "ok" : "no");
     $("extSummary").hidden = false;
-    $("extSummary").innerHTML = out.map(o => `<div><span>${o.res != null && Math.abs(o.res) <= 35 ? "✓" : "✗"} ${fullName(o.m)}</span><span class="mono">${o.res == null ? "לא זוהה" : (o.res > 0 ? "+" : "") + Math.round(o.res) + "¢"}</span></div>`).join("");
+    $("extSummary").innerHTML = out.map(o => `<div><span>${o.res != null && Math.abs(o.res) <= 50 ? "✓" : "✗"} ${fullName(o.m)}</span><span class="mono">${o.res == null ? "לא זוהה" : (o.res > 0 ? "+" : "") + Math.round(o.res) + "¢"}</span></div>`).join("");
   }
-  kbX.setSung(null, false); kbX.setMarks(null, null, null);
+  extBusy = false; kbX.setSung(null, false); kbX.setMarks(null, null, null);
   $("extStart").textContent = "התחל בדיקה: 8 תווים"; $("extSkip").hidden = true;
 }
 let extSkipped = false;
