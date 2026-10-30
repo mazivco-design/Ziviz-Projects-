@@ -554,6 +554,7 @@ function detectTick(){
   const pm = $("pMeter"); if (pm) pm.style.width = Math.min(100, Math.sqrt(r.rms) * 250) + "%";
   const t = performance.now();
   if (listener) { feed(listener, c, t); trail.push({t, c}); }
+  if (extBusy){ extHist.push({t, c}); if (extHist.length > 40) extHist.shift(); }
   if (tab === "tuner"){ drawTuner(); hearTick(t); }
 }
 
@@ -888,7 +889,7 @@ $("tunerBtn").onclick = async () => {
 const NOTE_EN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const fullName = m => `${noteName(m)} ${Math.floor(m / 12) - 1}`;
 const enName = m => NOTE_EN[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
-let extRun = 0, extBusy = false, heardAt = 0, heardM = null;
+let extHist = [], extRun = 0, extBusy = false, heardAt = 0, heardM = null;
 // show the note the mic hears right now; keep it on the keyboard for a moment after the sound fades
 function hearTick(t){
   if (live.c != null){
@@ -904,16 +905,17 @@ function hearTick(t){
 function waitStable(id, ms = 30000){
   // resolves with the pitch (in cents) once most of the last ~0.6 s agree on one note; tolerates gaps and fading notes
   return new Promise(res => {
-    const buf = [], t0 = performance.now();
+    const t0 = performance.now(); extHist = [];
     const iv = setInterval(() => {
       if (id !== extRun){ clearInterval(iv); res(undefined); return; }
       if (extSkipped){ extSkipped = false; clearInterval(iv); res("skip"); return; }
-      buf.push(live.c); if (buf.length > 12) buf.shift();
-      const vals = buf.filter(v => v != null);
+      const now = performance.now();
+      const vals = extHist.filter(h => now - h.t < 700 && h.c != null).map(h => h.c);
       if (live.c != null) kbX.setSung(Math.round(live.c / 100), false);
-      if (vals.length >= 8){
+      // short notes (a phone piano app) count too: about a tenth of a second on one pitch is enough
+      if (vals.length >= 3){
         const m = median(vals), near = vals.filter(v => Math.abs(v - m) < 35);
-        if (near.length >= 8){ clearInterval(iv); res(median(near)); return; }
+        if (near.length >= 3){ clearInterval(iv); extHist = []; res(median(near)); return; }
       }
       if (performance.now() - t0 > ms){ clearInterval(iv); res(null); }
     }, 50);
@@ -928,7 +930,7 @@ async function runExt(){
     let m; do { m = 40 + Math.floor(Math.random() * 37); } while (m === prev); prev = m;
     $("extNote").textContent = fullName(m);
     $("extSub").textContent = `${enName(m)} · ${mf(m).toFixed(1)} Hz · תו ${n + 1} מתוך 8`;
-    $("extVerdict").innerHTML = "נגן את התו"; $("extVerdict").className = "verdict";
+    $("extVerdict").innerHTML = "נגן את התו<small>צליל קצר מספיק. אם לא נקלט, נגן אותו שוב או החזק את הקליד</small>"; $("extVerdict").className = "verdict";
     kbX.setMarks(null, m, null); kbX.setSung(null, false); kbX.show(m);
     if (S.speech === "on") speak(noteName(m), runId).catch(() => {});
     await new Promise(r => setTimeout(r, 900));
