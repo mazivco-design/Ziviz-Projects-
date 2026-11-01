@@ -30,6 +30,9 @@
   .say-word { font-size:24px; height:46px; padding:0 22px; border-radius:12px; display:flex; align-items:center; gap:8px; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
   .feedback { min-height:30px; font-size:22px; font-weight:bold; color:var(--green); direction:ltr; text-align:center; }
+  .feedback .word { font-size:40px; font-weight:900; letter-spacing:1px; color:#333; }
+  .feedback .word b { color:#e65100; font-size:56px; background:#fff3e0; border:3px solid var(--gold); border-radius:12px; padding:0 8px; margin-right:2px; }
+  @media (max-width:480px) { .feedback .word { font-size:30px; } .feedback .word b { font-size:42px; } }
   .next { visibility:hidden; }
   .next.show { visibility:visible; }
   .end { text-align:center; font-size:22px; line-height:1.6; }
@@ -96,6 +99,7 @@ function pool(){
   });
   return out;
 }
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 /* ---------- game ---------- */
@@ -136,7 +140,8 @@ $('stage').addEventListener('click', e => {
     if (firstTry) score++;
     b.classList.add('right');
     document.querySelectorAll('.choice').forEach(x => x.disabled = true);
-    $('feedback').textContent = `${q.letter} – ${q.name} ✓`;
+    const name = q.name || q.letter, first = name.slice(0, 1), rest = name.slice(1);
+    $('feedback').innerHTML = `<span class="word"><b>${esc(first)}</b>${esc(rest)}</span> ✓`;
     speak(q.letter); if (q.name) speak(q.name, false);
     $('score').textContent = `${idx + 1} / ${round.length}  ·  ⭐ ${score}`;
     $('next').classList.add('show');
