@@ -23,6 +23,11 @@
   .choice.right { background:#c8e6c9; border-color:var(--green); color:var(--green); }
   .choice.wrong { background:#ffcdd2; border-color:#b71c1c; color:#b71c1c; animation:shake .35s; opacity:.6; pointer-events:none; }
   .choice:disabled { pointer-events:none; }
+  .opt { display:flex; flex-direction:column; gap:6px; }
+  .opt .choice { width:100%; }
+  .say { background:#f0f0f0; border:2px solid #ccc; border-radius:10px; font-size:20px; height:40px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .say:active { background:#ddd; transform:scale(.95); }
+  .say-word { font-size:24px; height:46px; padding:0 22px; border-radius:12px; display:flex; align-items:center; gap:8px; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
   .feedback { min-height:30px; font-size:22px; font-weight:bold; color:var(--green); direction:ltr; text-align:center; }
   .next { visibility:hidden; }
@@ -112,13 +117,19 @@ function show(){
   $('score').textContent = `${idx + 1} / ${round.length}  ·  ⭐ ${score}`;
   $('stage').innerHTML = `
     <div class="picture"><img src="${q.img}" alt=""></div>
+    <button class="say say-word" type="button" data-say-word="1" title="השמע את שם הדמות">🔊 <span>מה השם?</span></button>
     <p class="question">באיזו אות מתחיל השם?</p>
-    <div class="choices">${choices.map(l => `<button class="choice" type="button" data-l="${l}">${l}</button>`).join('')}</div>
+    <div class="choices">${choices.map(l => `<div class="opt">
+      <button class="choice" type="button" data-l="${l}">${l}</button>
+      <button class="say" type="button" data-say-letter="${l}" title="השמע את האות">🔊</button>
+    </div>`).join('')}</div>
     <div class="feedback" id="feedback"></div>
     <button class="btn primary next" id="next" type="button">הבא ➜</button>`;
   $('next').onclick = () => { idx++; show(); };
 }
 $('stage').addEventListener('click', e => {
+  const sl = e.target.closest('[data-say-letter]'); if (sl) return speak(sl.dataset.sayLetter);
+  const sw = e.target.closest('[data-say-word]'); if (sw) { const w = round[idx] && round[idx].name; return speak(w || round[idx].letter); }
   const b = e.target.closest('.choice'); if (!b) return;
   const q = round[idx];
   if (b.dataset.l === q.letter) {
