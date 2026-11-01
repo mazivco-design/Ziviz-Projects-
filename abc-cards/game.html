@@ -7,6 +7,7 @@
 <style>
   :root { --primary:#d32f2f; --dark:#212121; --gold:#ffb300; --bg:#f5f5f5; --green:#2e7d32; }
   * { box-sizing:border-box; }
+  html, body { overscroll-behavior:none; }
   body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:14px; padding-top:calc(14px + env(safe-area-inset-top)); color:var(--dark); }
   .top { width:100%; max-width:720px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .top h1 { margin:0; font-size:20px; color:var(--primary); }
@@ -14,7 +15,7 @@
   .btn.primary { background:var(--primary); }
   .score { font-size:17px; font-weight:bold; color:#444; direction:ltr; }
   .stage { width:100%; max-width:720px; margin:14px auto 0; background:#fff; border:3px solid #222; border-radius:16px; padding:16px; display:flex; flex-direction:column; align-items:center; gap:16px; }
-  .picture { width:100%; height:min(46vh,380px); border-radius:12px; background:#fafafa; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .picture { width:100%; height:clamp(160px, calc(100dvh - 430px), 380px); border-radius:12px; background:#fafafa; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .picture img { width:100%; height:100%; object-fit:contain; }
   .question { font-size:20px; font-weight:bold; color:#444; margin:0; }
   .choices { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; width:100%; direction:ltr; }
@@ -116,6 +117,7 @@ function start(){
 function show(){
   if (idx >= round.length) return finish();
   const q = round[idx]; firstTry = true;
+  window.scrollTo(0, 0);
   const others = shuffle(data.filter(l => l !== q.letter)).slice(0, 3);
   const choices = shuffle([q.letter, ...others]);
   $('score').textContent = `${idx + 1} / ${round.length}  ·  ⭐ ${score}`;

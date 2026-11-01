@@ -7,21 +7,22 @@
 <style>
   :root { --primary:#d32f2f; --dark:#212121; --gold:#ffb300; --bg:#f5f5f5; --green:#2e7d32; --blue:#1565c0; }
   * { box-sizing:border-box; }
+  html, body { overscroll-behavior:none; }
   body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:14px; padding-top:calc(14px + env(safe-area-inset-top)); color:var(--dark); }
   .top { width:100%; max-width:860px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .top h1 { margin:0; font-size:20px; color:var(--primary); }
   .btn { background:#555; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; text-decoration:none; font-family:inherit; }
   .btn.primary { background:var(--primary); }
   .score { font-size:17px; font-weight:bold; color:#444; direction:ltr; }
-  .stage { width:100%; max-width:860px; margin:14px auto 0; background:#fff; border:3px solid #222; border-radius:16px; padding:14px; }
+  .stage { width:100%; max-width:860px; margin:10px auto 0; background:#fff; border:3px solid #222; border-radius:16px; padding:14px; }
   .question { font-size:19px; font-weight:bold; color:#444; margin:0 0 12px; text-align:center; }
   .board { display:grid; grid-template-columns:1fr 1fr; gap:14px; direction:ltr; }
   .col { display:flex; flex-direction:column; gap:10px; }
   .tile { display:flex; align-items:center; gap:8px; }
-  .pick { flex:1; height:min(18vh,130px); border:3px solid #ccc; border-radius:14px; background:#fafafa; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s; position:relative; }
+  .pick { flex:1; height:clamp(64px, calc((100dvh - 250px) / 4), 150px); border:3px solid #ccc; border-radius:14px; background:#fafafa; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s; position:relative; }
   .pick:active { transform:scale(.97); }
   .pick img { width:100%; height:100%; object-fit:contain; }
-  .pick .emoji { font-size:min(12vh,84px); line-height:1; }
+  .pick .emoji { font-size:clamp(40px, calc((100dvh - 250px) / 6), 96px); line-height:1; }
   .pick.sel { border-color:var(--blue); background:#e3f2fd; box-shadow:0 0 0 4px #bbdefb; }
   .pick.done { border-color:var(--green); background:#e8f5e9; opacity:.75; pointer-events:none; }
   .pick.done::after { content:'✓'; position:absolute; top:4px; right:8px; color:var(--green); font-size:22px; font-weight:900; }
@@ -29,14 +30,14 @@
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
   .say { background:#f0f0f0; border:2px solid #ccc; border-radius:10px; font-size:20px; width:44px; height:44px; cursor:pointer; -webkit-tap-highlight-color:transparent; flex:none; }
   .say:active { background:#ddd; }
-  .label { text-align:center; min-height:44px; margin-top:12px; direction:ltr; font-size:26px; font-weight:900; color:#333; }
+  .label { text-align:center; min-height:40px; margin-top:8px; direction:ltr; font-size:26px; font-weight:900; color:#333; }
   .label b { color:#e65100; background:#fff3e0; border:2px solid var(--gold); border-radius:8px; padding:0 6px; }
   .label .sep { color:#999; margin:0 10px; font-weight:400; }
   .end { text-align:center; font-size:22px; line-height:1.6; padding:20px 0; }
   .end .big { font-size:48px; }
   .empty { text-align:center; color:#666; font-size:17px; line-height:1.7; padding:30px 10px; }
   #status { font-size:13px; color:#666; }
-  @media (max-width:520px) { .pick { height:16vh; } .pick .emoji { font-size:10vh; } .label { font-size:20px; } }
+  @media (max-width:520px) { .label { font-size:20px; } }
 </style>
 </head>
 <body>
@@ -161,6 +162,7 @@ function start(){
 function showRound(){
   if (ri >= rounds.length) return finish();
   const items = rounds[ri]; sel = null; left = items.length;
+  window.scrollTo(0, 0);
   const ninja = shuffle(items.map(p => ({ letter:p.letter, name:p.name || p.letter, img:p.img })));
   const world = shuffle(items.map(p => { const ws = worldWords(p), [w, e] = ws[Math.floor(Math.random() * ws.length)]; return { letter:p.letter, name:w, emoji:e }; }));
   $('score').textContent = `סבב ${ri + 1} / ${rounds.length}  ·  ⭐ ${score}`;
