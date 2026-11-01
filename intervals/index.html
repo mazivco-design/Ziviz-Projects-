@@ -245,9 +245,14 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         <span>עוצמה עכשיו</span><b id="dLvl" class="mono">—</b>
         <span>רעש רקע</span><b id="dNoise" class="mono">—</b>
         <span>סף שמיעה</span><b id="dGate" class="mono">—</b>
+        <span>קליטה</span><b id="dCap">—</b>
+        <span>בהירות הצליל</span><b id="dClar" class="mono">—</b>
       </div>
       <button class="btn ghost" id="selfTestBtn">בדיקה עצמית: נגן צליל ובדוק שנשמע</button>
       <div id="selfTestOut" class="note"></div>
+      <button class="btn ghost" id="recBtn">הקלט חמש שניות לבדיקה</button>
+      <button class="btn" id="recSave" hidden>שמור / שתף את ההקלטה</button>
+      <div id="recOut" class="note">בזמן ההקלטה נגן או שיר כמה תווים, ואחר כך צרף את הקובץ לשיחה עם Claude וכתוב אילו תווים ניגנת.</div>
       <p class="note">הבדיקה העצמית מנגנת צליל לה ברמקול ובודקת אם המיקרופון קולט אותו בגובה הנכון. עם אוזניות היא לא תשמע את הצליל, וזה תקין.</p>
     </div>
   </section>
@@ -348,7 +353,23 @@ function renderSettings(){
 }
 
 /* ---------- audio ---------- */
-let ctx = null, master = null, analyser = null, micOn = false, tbuf = null, ybuf = null;
+let ctx = null, master = null, analyser = null, micOn = false, tbuf = null;
+const WIN = 2048, HOP = 512, ring = new Float32Array(WIN);
+let workletNode = null, workletLoaded = false, hopMs = 11, lastUi = 0;
+const WORKLET_SRC = `class Tap extends AudioWorkletProcessor{
+  constructor(){ super(); this.b = new Float32Array(512); this.n = 0; }
+  process(inputs){
+    const ch = inputs[0] && inputs[0][0];
+    if (ch) for (let k = 0; k < ch.length; k++){ this.b[this.n++] = ch[k]; if (this.n === this.b.length){ this.port.postMessage(this.b.slice(0)); this.n = 0; } }
+    return true;
+  }
+}
+registerProcessor("tap", Tap);`;
+function onSamples(chunk){
+  ring.copyWithin(0, chunk.length); ring.set(chunk, WIN - chunk.length);
+  if (recOn) recPush(chunk);
+  analyze(ring);
+}
 function ensureCtx(){
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -366,7 +387,7 @@ async function ensureMic(){
   ensureCtx();
   if (micOn) { await ctx.resume().catch(()=>{}); return; }
   if (!navigator.mediaDevices?.getUserMedia) throw new Error("nomic");
-  micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:true}});
+  micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
   // Safari may suspend or interrupt the audio engine while the permission prompt is up
   if (ctx.state !== "running") { try { await ctx.resume(); } catch {} }
   const src = ctx.createMediaStreamSource(micStream);
@@ -375,10 +396,24 @@ async function ensureMic(){
   // Safari only processes nodes that lead to the speakers: route through a silent gain
   const mute = ctx.createGain(); mute.gain.value = 0;
   analyser.connect(mute).connect(ctx.destination);
-  tbuf = new Float32Array(2048); ybuf = new Float32Array(1100);
-  micOn = true; noiseSamples = []; noiseFloor = null;
-  micSrc = src; micMute = mute;
-  micTimers = [setInterval(detectTick, 30), setInterval(updateDiag, 200)];
+  tbuf = new Float32Array(WIN);
+  micOn = true; noiseSamples = []; noiseFloor = null; ring.fill(0);
+  micSrc = src; micMute = mute; workletNode = null;
+  // preferred: an AudioWorklet hands us every sample, with no gaps or repeats
+  try {
+    if (ctx.audioWorklet){
+      if (!workletLoaded){
+        const url = URL.createObjectURL(new Blob([WORKLET_SRC], {type:"application/javascript"}));
+        await ctx.audioWorklet.addModule(url); workletLoaded = true;
+      }
+      workletNode = new AudioWorkletNode(ctx, "tap", {numberOfInputs:1, numberOfOutputs:1, outputChannelCount:[1]});
+      workletNode.port.onmessage = e => onSamples(e.data);
+      src.connect(workletNode); workletNode.connect(mute);
+    }
+  } catch(e){ console.warn("worklet unavailable", e); workletNode = null; }
+  hopMs = workletNode ? HOP / ctx.sampleRate * 1000 : 25;
+  micTimers = [setInterval(updateDiag, 200)];
+  if (!workletNode) micTimers.push(setInterval(() => { analyser.getFloatTimeDomainData(tbuf); analyze(tbuf); }, 25));
   micButton();
 }
 function stopMic(){
@@ -386,7 +421,8 @@ function stopMic(){
   if (session) endSession(true);
   extRun++;
   micTimers.forEach(clearInterval); micTimers = [];
-  try { micSrc.disconnect(); analyser.disconnect(); micMute.disconnect(); } catch {}
+  try { micSrc.disconnect(); analyser.disconnect(); micMute.disconnect(); workletNode?.disconnect(); if (workletNode) workletNode.port.onmessage = null; } catch {}
+  workletNode = null; recStop();
   micStream?.getTracks().forEach(t => t.stop());
   micStream = null; micOn = false; listener = null;
   live = {f:null, c:null, rms:0}; rawHist.length = 0;
@@ -406,6 +442,8 @@ function updateDiag(){
   $("dLvl").textContent = live.rms.toFixed(4);
   $("dNoise").textContent = noiseFloor == null ? "מודד…" : noiseFloor.toFixed(4);
   $("dGate").textContent = gate.toFixed(4);
+  $("dCap").textContent = !micOn ? "—" : workletNode ? "כל דגימה" : "דגימה חלקית (דפדפן ישן)";
+  $("dClar").textContent = live.clarity ? live.clarity.toFixed(2) : "—";
   if (ctx && ctx.state !== "running") ctx.resume().catch(()=>{});
 }
 const mf = m => 440 * Math.pow(2, (m - 69) / 12);
@@ -534,48 +572,76 @@ function applyKb(){
 /* ---------- pitch detection (YIN) ---------- */
 let live = {f:null, c:null, rms:0};
 const rawHist = [];
-function yin(buf, sr){
-  let rms = 0; for (let i = 0; i < buf.length; i++) rms += buf[i]*buf[i];
-  rms = Math.sqrt(rms / buf.length);
-  if (rms < gate) return {f:null, rms};
-  const tMin = Math.floor(sr / 1000), tMax = Math.min(Math.floor(sr / 65), ybuf.length - 2), W = buf.length - tMax - 2;
-  for (let tau = 1; tau <= tMax + 1; tau++){
-    let sum = 0;
-    for (let i = 0; i < W; i++){ const d = buf[i] - buf[i + tau]; sum += d*d; }
-    ybuf[tau] = sum;
+/* McLeod pitch method, the approach used by instrument tuners: normalized
+   autocorrelation (via FFT), then the first peak within 90% of the best one.
+   Returns the pitch and a "clarity" score (1 = perfectly periodic). */
+const N2 = WIN * 2, fre = new Float32Array(N2), fim = new Float32Array(N2), nsdf = new Float32Array(WIN);
+const fftRev = new Uint32Array(N2), fftCos = new Float32Array(N2 / 2), fftSin = new Float32Array(N2 / 2);
+(() => { const bits = Math.log2(N2);
+  for (let i = 0; i < N2; i++){ let r = 0; for (let b = 0; b < bits; b++) r |= ((i >> b) & 1) << (bits - 1 - b); fftRev[i] = r; }
+  for (let i = 0; i < N2 / 2; i++){ fftCos[i] = Math.cos(2 * Math.PI * i / N2); fftSin[i] = -Math.sin(2 * Math.PI * i / N2); } })();
+function fft(re, im, inv){
+  for (let i = 0; i < N2; i++){ const j = fftRev[i]; if (j > i){ let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+  for (let size = 2; size <= N2; size <<= 1){
+    const half = size >> 1, step = N2 / size;
+    for (let i = 0; i < N2; i += size) for (let j = 0, k = 0; j < half; j++, k += step){
+      const c = fftCos[k], sn = inv ? -fftSin[k] : fftSin[k], a = i + j, b = a + half;
+      const tr = re[b] * c - im[b] * sn, ti = re[b] * sn + im[b] * c;
+      re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+    }
   }
-  ybuf[0] = 1; let run = 0;
-  for (let tau = 1; tau <= tMax + 1; tau++){ run += ybuf[tau]; ybuf[tau] = run ? ybuf[tau] * tau / run : 1; }
-  let tau = -1;
-  for (let t = tMin; t <= tMax; t++){
-    if (ybuf[t] < 0.2){ while (t + 1 <= tMax && ybuf[t+1] < ybuf[t]) t++; tau = t; break; }
+}
+let MIN_CLARITY = 0.7;
+function mpm(buf, sr){
+  const W = buf.length; let mean = 0, rms = 0;
+  for (let i = 0; i < W; i++) mean += buf[i]; mean /= W;
+  for (let i = 0; i < W; i++){ const v = buf[i] - mean; rms += v * v; }
+  rms = Math.sqrt(rms / W);
+  if (rms < gate) return {f:null, rms, clarity:0};
+  for (let i = 0; i < N2; i++){ fre[i] = i < W ? buf[i] - mean : 0; fim[i] = 0; }
+  fft(fre, fim, false);
+  for (let i = 0; i < N2; i++){ fre[i] = fre[i] * fre[i] + fim[i] * fim[i]; fim[i] = 0; }
+  fft(fre, fim, true);                       // fre[t] / N2 = autocorrelation r(t)
+  const minLag = Math.floor(sr / 1100), maxLag = Math.min(W - 2, Math.ceil(sr / 60));
+  let m = 0; for (let i = 0; i < W; i++){ const v = buf[i] - mean; m += 2 * v * v; }
+  nsdf[0] = 1;
+  for (let t = 1; t <= maxLag + 1; t++){
+    const a = buf[t - 1] - mean, b = buf[W - t] - mean; m -= a * a + b * b;
+    nsdf[t] = m > 0 ? 2 * (fre[t] / N2) / m : 0;
   }
-  if (tau < 0){
-    // no clear dip: accept the deepest one if it is still reasonably periodic (real instruments in a room)
-    let best = tMin; for (let t = tMin; t <= tMax; t++) if (ybuf[t] < ybuf[best]) best = t;
-    if (ybuf[best] < 0.4) tau = best;
+  // collect the highest point of each positive lobe (skipping the lobe at lag 0)
+  const peaks = []; let pos = false, bi = -1;
+  for (let t = 1; t <= maxLag; t++){
+    if (!pos && nsdf[t] > 0 && nsdf[t - 1] <= 0){ pos = true; bi = -1; }
+    else if (pos && nsdf[t] <= 0){ if (bi > 0) peaks.push(bi); pos = false; }
+    if (pos && (bi < 0 || nsdf[t] > nsdf[bi])) bi = t;
   }
-  if (tau < 2) return {f:null, rms};
-  const x0 = ybuf[tau-1], x1 = ybuf[tau], x2 = ybuf[tau+1], den = x0 + x2 - 2*x1;
+  if (pos && bi > 0 && bi < maxLag) peaks.push(bi);
+  const cand = peaks.filter(t => t >= minLag);
+  if (!cand.length) return {f:null, rms, clarity:0};
+  let best = 0; for (const t of cand) best = Math.max(best, nsdf[t]);
+  const tau = cand.find(t => nsdf[t] >= 0.9 * best), clarity = nsdf[tau];
+  if (clarity < MIN_CLARITY) return {f:null, rms, clarity};
+  const x0 = nsdf[tau - 1], x1 = nsdf[tau], x2 = nsdf[tau + 1], den = x0 + x2 - 2 * x1;
   const better = tau + (den ? (x0 - x2) / (2 * den) : 0);
-  return {f: sr / better, rms};
+  return {f: sr / better, rms, clarity};
 }
 const median = a => { if (!a.length) return null; const s = [...a].sort((x,y)=>x-y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m-1]+s[m])/2; };
 const toC = f => 1200 * Math.log2(f / 440) + 6900; // cents, midi*100
-function detectTick(){
-  analyser.getFloatTimeDomainData(tbuf);
-  const r = yin(tbuf, ctx.sampleRate);
+function analyze(buf){
+  const r = mpm(buf, ctx.sampleRate);
   rawHist.push(r.f ? toC(r.f) : null); if (rawHist.length > 5) rawHist.shift();
   const nn = rawHist.filter(x => x != null);
   const c = nn.length >= 3 && r.f ? median(nn) : null;
-  live = {f:r.f, c, rms:r.rms};
+  live = {f:r.f, c, rms:r.rms, clarity:r.clarity};
   // learn the background noise during the first ~0.6 s, then hear anything clearly above it
-  if (noiseFloor == null){ noiseSamples.push(r.rms); if (noiseSamples.length >= 20){ noiseFloor = median(noiseSamples); gate = Math.min(0.004, Math.max(0.0008, noiseFloor * 2)); } }
-  const pm = $("pMeter"); if (pm) pm.style.width = Math.min(100, Math.sqrt(r.rms) * 250) + "%";
+  if (noiseFloor == null){ noiseSamples.push(r.rms); if (noiseSamples.length >= Math.round(500 / hopMs)){ noiseFloor = median(noiseSamples); gate = Math.min(0.004, Math.max(0.0008, noiseFloor * 2)); } }
   const t = performance.now();
+  const ui = t - lastUi > 33; if (ui) lastUi = t;
+  if (ui){ const pm = $("pMeter"); if (pm) pm.style.width = Math.min(100, Math.sqrt(r.rms) * 250) + "%"; }
   if (listener) { feed(listener, c, t); trail.push({t, c}); }
-  if (extBusy){ extHist.push({t, c}); if (extHist.length > 40) extHist.shift(); }
-  if (tab === "tuner"){ drawTuner(); hearTick(t); }
+  if (extBusy){ extHist.push({t, c}); if (extHist.length > 120) extHist.shift(); }
+  if (tab === "tuner" && ui){ drawTuner(); hearTick(t); }
 }
 
 /* ---------- segmenter ---------- */
@@ -933,9 +999,10 @@ function waitStable(id, ms = 30000){
       const vals = extHist.filter(h => now - h.t < 700 && h.c != null).map(h => h.c);
       if (live.c != null) kbX.setSung(Math.round(live.c / 100), false);
       // short notes (a phone piano app) count too: about a tenth of a second on one pitch is enough
-      if (vals.length >= 3){
+      const need = Math.max(3, Math.round(70 / hopMs));
+      if (vals.length >= need){
         const m = median(vals), near = vals.filter(v => Math.abs(v - m) < 35);
-        if (near.length >= 3){ clearInterval(iv); extHist = []; res(median(near)); return; }
+        if (near.length >= need){ clearInterval(iv); extHist = []; res(median(near)); return; }
       }
       if (performance.now() - t0 > ms){ clearInterval(iv); res(null); }
     }, 50);
@@ -997,6 +1064,47 @@ $("extStart").onclick = () => {
   else { extRun++; $("extNote").textContent = "—"; $("extSub").textContent = " "; $("extVerdict").textContent = ""; $("extVerdict").className = "verdict"; }
 };
 $("extSkip").onclick = () => { extSkipped = true; };
+
+/* ---------- record 5 s of raw mic audio as a WAV file ---------- */
+let recOn = false, recBuf = null, recLen = 0, recFile = null;
+function recPush(chunk){
+  const n = Math.min(chunk.length, recBuf.length - recLen);
+  recBuf.set(chunk.subarray(0, n), recLen); recLen += n;
+  $("recOut").textContent = `מקליט… ${Math.ceil((recBuf.length - recLen) / ctx.sampleRate)}`;
+  if (recLen >= recBuf.length) recFinish();
+}
+function recStop(){ recOn = false; }
+function wav(samples, sr){
+  const b = new ArrayBuffer(44 + samples.length * 2), v = new DataView(b);
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + samples.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true);
+  v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, samples[i])) * 32767, true);
+  return new Blob([b], {type:"audio/wav"});
+}
+function recFinish(){
+  recOn = false;
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+  recFile = new File([wav(recBuf, ctx.sampleRate)], `interval-sample-${stamp}.wav`, {type:"audio/wav"});
+  let peak = 0; for (let i = 0; i < recBuf.length; i++) peak = Math.max(peak, Math.abs(recBuf[i]));
+  $("recOut").textContent = `ההקלטה מוכנה (${ctx.sampleRate} Hz, עוצמת שיא ${peak.toFixed(2)}). שמור אותה וצרף לשיחה.`;
+  $("recSave").hidden = false; $("recBtn").disabled = false;
+}
+$("recBtn").onclick = async () => {
+  try { await ensureMic(); } catch(e){ showErr(e); return; }
+  if (!workletNode){ $("recOut").textContent = "הדפדפן הזה לא תומך בהקלטה המלאה."; return; }
+  recBuf = new Float32Array(Math.round(ctx.sampleRate * 5)); recLen = 0; recOn = true;
+  $("recSave").hidden = true; $("recBtn").disabled = true;
+};
+$("recSave").onclick = async () => {
+  if (!recFile) return;
+  try {
+    if (navigator.canShare?.({files:[recFile]})){ await navigator.share({files:[recFile], title:recFile.name}); return; }
+  } catch(e){ if (e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(recFile); a.download = recFile.name;
+  document.body.appendChild(a); a.click(); a.remove();
+};
 
 $("selfTestBtn").onclick = async () => {
   const out = $("selfTestOut");
