@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>משחק ABC נינג'גו – זוגות</title>
+<style>
+  :root { --primary:#d32f2f; --dark:#212121; --gold:#ffb300; --bg:#f5f5f5; --green:#2e7d32; --blue:#1565c0; }
+  * { box-sizing:border-box; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:14px; color:var(--dark); min-height:100vh; display:flex; flex-direction:column; align-items:center; }
+  .top { width:100%; max-width:860px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .top h1 { margin:0; font-size:20px; color:var(--primary); }
+  .btn { background:#555; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; text-decoration:none; font-family:inherit; }
+  .btn.primary { background:var(--primary); }
+  .score { font-size:17px; font-weight:bold; color:#444; direction:ltr; }
+  .stage { width:100%; max-width:860px; margin-top:14px; background:#fff; border:3px solid #222; border-radius:16px; padding:14px; }
+  .question { font-size:19px; font-weight:bold; color:#444; margin:0 0 12px; text-align:center; }
+  .board { display:grid; grid-template-columns:1fr 1fr; gap:14px; direction:ltr; }
+  .col { display:flex; flex-direction:column; gap:10px; }
+  .tile { display:flex; align-items:center; gap:8px; }
+  .pick { flex:1; height:min(18vh,130px); border:3px solid #ccc; border-radius:14px; background:#fafafa; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s; position:relative; }
+  .pick:active { transform:scale(.97); }
+  .pick img { width:100%; height:100%; object-fit:contain; }
+  .pick .emoji { font-size:min(12vh,84px); line-height:1; }
+  .pick.sel { border-color:var(--blue); background:#e3f2fd; box-shadow:0 0 0 4px #bbdefb; }
+  .pick.done { border-color:var(--green); background:#e8f5e9; opacity:.75; pointer-events:none; }
+  .pick.done::after { content:'✓'; position:absolute; top:4px; right:8px; color:var(--green); font-size:22px; font-weight:900; }
+  .pick.wrong { border-color:#b71c1c; background:#ffcdd2; animation:shake .35s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .say { background:#f0f0f0; border:2px solid #ccc; border-radius:10px; font-size:20px; width:44px; height:44px; cursor:pointer; -webkit-tap-highlight-color:transparent; flex:none; }
+  .say:active { background:#ddd; }
+  .label { text-align:center; min-height:44px; margin-top:12px; direction:ltr; font-size:26px; font-weight:900; color:#333; }
+  .label b { color:#e65100; background:#fff3e0; border:2px solid var(--gold); border-radius:8px; padding:0 6px; }
+  .label .sep { color:#999; margin:0 10px; font-weight:400; }
+  .end { text-align:center; font-size:22px; line-height:1.6; padding:20px 0; }
+  .end .big { font-size:48px; }
+  .empty { text-align:center; color:#666; font-size:17px; line-height:1.7; padding:30px 10px; }
+  #status { font-size:13px; color:#666; }
+  @media (max-width:520px) { .pick { height:16vh; } .pick .emoji { font-size:10vh; } .label { font-size:20px; } }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>🧩 זוגות: נינג'גו ועולם</h1>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+    <span id="status"></span>
+    <span class="score" id="score"></span>
+    <a class="btn" href="./">🃏 לקלפים</a>
+  </div>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<script>
+const data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const NAMES = { A:'Airjitzu', B:'Borg', C:'Cole', D:'Dareth', E:'Elemental Masters', F:'First Spinjitzu Master', G:'Garmadon', H:'Harumi', I:'Ice Dragon',
+  J:'Jay', K:'Kai', L:'Lloyd', M:'Misako', N:'Nya', O:'Overlord', P:'Pixal', Q:'Quiet One', R:'Ronin', S:'Spinjitzu', T:'Tournament of Elements',
+  U:'Ultra Dragon', V:'Vex', W:'Master Wu', X:'Samurai X', Y:'Master Yang', Z:'Zane' };
+const KEY = 'ninjago_abc_v3';
+const $ = id => document.getElementById(id);
+function status(t){ $('status').textContent = t; }
+
+/* ---------- voice ---------- */
+let voices = [];
+function loadVoices(){ if ('speechSynthesis' in window) voices = speechSynthesis.getVoices(); }
+loadVoices();
+if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+function getBestVoice(){
+  if (!voices.length) loadVoices();
+  return voices.find(v => v.lang.startsWith('en') && /Natural|Online|Neural|Google US English/.test(v.name))
+      || voices.find(v => v.lang.startsWith('en') && /Google|Microsoft|Samantha/.test(v.name))
+      || voices.find(v => v.lang.startsWith('en')) || null;
+}
+function speak(text, clear = true){
+  if (!text || !text.trim() || !('speechSynthesis' in window)) return;
+  if (clear) speechSynthesis.cancel();
+  text = text.trim();
+  if (/^[A-Za-z]$/.test(text)) text = text.toLowerCase();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = .88; u.pitch = 1.05;
+  const v = getBestVoice(); if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+
+/* ---------- the pictures: every tab of every letter that has an image ---------- */
+let cards = {};
+try { cards = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e) {}
+function pool(){
+  const out = [];
+  Object.keys(cards).forEach(k => {
+    const m = k.match(/^card_(\d+)(?:_(\d+))?$/); if (!m) return;
+    const c = cards[k]; if (!c || c.del || !c.img) return;
+    const letter = data[+m[1]]; if (!letter) return;
+    out.push({ key:k, letter, name: c.name || (m[2] ? '' : NAMES[letter]), img: c.img });
+  });
+  return out;
+}
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+
+/* ---------- the "world" side: familiar things starting with the same sound as the Ninjago name ---------- */
+const WORLD = {
+  A:[['airplane','✈️'],['astronaut','🧑‍🚀']],              B:[['banana','🍌'],['ball','⚽'],['bear','🐻']],
+  C:[['cat','🐱'],['car','🚗'],['cake','🎂']],              D:[['dog','🐶'],['dolphin','🐬'],['duck','🦆']],
+  E:[['elephant','🐘'],['egg','🥚']],                        F:[['fish','🐟'],['frog','🐸'],['fire','🔥']],
+  G:[['gift','🎁'],['guitar','🎸'],['goat','🐐']],           H:[['hat','🎩'],['house','🏠'],['horse','🐴']],
+  I:[['ice cream','🍦'],['ice','🧊']],                       J:[['juice','🧃'],['jellyfish','🪼']],
+  K:[['kite','🪁'],['key','🔑'],['kangaroo','🦘']],          L:[['lion','🦁'],['lemon','🍋'],['ladybug','🐞']],
+  M:[['moon','🌙'],['monkey','🐵'],['mouse','🐭']],          N:[['nose','👃'],['nut','🥜']],
+  O:[['ocean','🌊'],['owl','🦉']],                           P:[['pizza','🍕'],['penguin','🐧'],['pig','🐷']],
+  Q:[['queen','👸'],['question','❓']],                      R:[['rabbit','🐰'],['rainbow','🌈'],['robot','🤖']],
+  S:[['sun','☀️'],['snake','🐍'],['star','⭐']],              T:[['tree','🌳'],['tiger','🐯'],['train','🚂']],
+  U:[['umbrella','☂️'],['unicorn','🦄']],                    V:[['violin','🎻'],['volcano','🌋']],
+  W:[['watermelon','🍉'],['whale','🐳'],['wolf','🐺']],      X:[['x-ray','🩻']],
+  Y:[['yo-yo','🪀'],['yarn','🧶']],                          Z:[['zebra','🦓']]
+};
+
+/* ---------- game ---------- */
+const PAIRS = 4;
+let rounds = [], ri = 0, score = 0, mistakes = 0, sel = null, left = 0;
+function start(){
+  // one Ninjago picture per letter, letters shuffled, cut into rounds of 4
+  const byLetter = {};
+  shuffle(pool()).forEach(p => { if (!byLetter[p.letter]) byLetter[p.letter] = p; });
+  const letters = shuffle(Object.keys(byLetter));
+  rounds = []; for (let i = 0; i < letters.length; i += PAIRS) rounds.push(letters.slice(i, i + PAIRS).map(l => byLetter[l]));
+  if (rounds.length > 1 && rounds[rounds.length - 1].length < 2) rounds.pop(); // no lonely last round
+  ri = 0; score = 0; mistakes = 0;
+  if (!rounds.length) {
+    $('score').textContent = '';
+    $('stage').innerHTML = `<div class="empty">צריך לפחות שתי אותיות עם תמונה בקלפים.<br>תוסיף תמונות לדמויות בדף הקלפים – והמשחק יתחיל לעבוד מעצמו.<br><br><a class="btn primary" href="./">🃏 לדף הקלפים</a></div>`;
+    return;
+  }
+  showRound();
+}
+function showRound(){
+  if (ri >= rounds.length) return finish();
+  const items = rounds[ri]; sel = null; left = items.length;
+  const ninja = shuffle(items.map(p => ({ letter:p.letter, name:p.name || p.letter, img:p.img })));
+  const world = shuffle(items.map(p => { const [w, e] = WORLD[p.letter][Math.floor(Math.random() * WORLD[p.letter].length)]; return { letter:p.letter, name:w, emoji:e }; }));
+  $('score').textContent = `סבב ${ri + 1} / ${rounds.length}  ·  ⭐ ${score}`;
+  const tile = (side, t) => `<div class="tile">
+      <div class="pick" data-side="${side}" data-l="${t.letter}" data-name="${esc(t.name)}">${t.img ? `<img src="${t.img}" alt="">` : `<span class="emoji">${t.emoji}</span>`}</div>
+      <button class="say" type="button" data-say="${esc(t.name)}" title="השמע">🔊</button>
+    </div>`;
+  $('stage').innerHTML = `
+    <p class="question">חבר כל דמות למשהו שמתחיל באותה אות</p>
+    <div class="board">
+      <div class="col">${ninja.map(t => tile('n', t)).join('')}</div>
+      <div class="col">${world.map(t => tile('w', t)).join('')}</div>
+    </div>
+    <div class="label" id="label"></div>`;
+}
+$('stage').addEventListener('click', e => {
+  const say = e.target.closest('[data-say]'); if (say) return speak(say.dataset.say);
+  const p = e.target.closest('.pick'); if (!p || p.classList.contains('done')) return;
+  speak(p.dataset.name);
+  if (!sel) { sel = p; p.classList.add('sel'); return; }
+  if (sel === p) { p.classList.remove('sel'); sel = null; return; }
+  if (sel.dataset.side === p.dataset.side) { sel.classList.remove('sel'); sel = p; p.classList.add('sel'); return; }
+  const a = sel, b = p; sel = null;
+  if (a.dataset.l === b.dataset.l) {
+    a.classList.remove('sel'); a.classList.add('done'); b.classList.add('done'); score++; left--;
+    const n = a.dataset.side === 'n' ? a : b, w = a.dataset.side === 'n' ? b : a;
+    const hl = t => `<b>${esc(t.slice(0, 1).toUpperCase())}</b>${esc(t.slice(1))}`;
+    $('label').innerHTML = `${hl(n.dataset.name)}<span class="sep">=</span>${hl(w.dataset.name)}`;
+    speak(n.dataset.name); speak(w.dataset.name, false);
+    $('score').textContent = `סבב ${ri + 1} / ${rounds.length}  ·  ⭐ ${score}`;
+    if (!left) setTimeout(() => { ri++; showRound(); }, 1800);
+  } else {
+    mistakes++;
+    a.classList.remove('sel'); a.classList.add('wrong'); b.classList.add('wrong');
+    setTimeout(() => { a.classList.remove('wrong'); b.classList.remove('wrong'); }, 500);
+  }
+});
+function finish(){
+  $('score').textContent = '';
+  const all = mistakes === 0;
+  $('stage').innerHTML = `<div class="end">
+    <div class="big">${all ? '🏆' : '🎉'}</div>
+    ${all ? 'מושלם! כל הזוגות בלי טעויות!' : `כל הכבוד! <b>${score}</b> זוגות, עם ${mistakes} טעויות`}
+    <br><br><button class="btn primary" type="button" onclick="start()">🔁 עוד פעם</button></div>`;
+}
+start();
+
+/* ---------- keep the pictures fresh from the account (same data as the cards page) ---------- */
+function hook(){
+  if (!window.ZSync) return;
+  window.ZSync.onUser(u => {
+    if (!u) return;
+    window.ZSync.watchItems('abc-cards', items => {
+      let changed = false;
+      Object.keys(items).forEach(k => {
+        let r = null; try { r = JSON.parse(items[k]); } catch(e) {}
+        const l = cards[k];
+        if (r && (!l || (r.t || 0) > (l.t || 0))) { cards[k] = r; changed = true; }
+      });
+      if (changed) { try { localStorage.setItem(KEY, JSON.stringify(cards)); } catch(e) {} if (!rounds.length) start(); }
+    });
+  });
+}
+window.addEventListener('zsync-ready', hook); hook();
+</script>
+<script src="../firebase-config.js"></script>
+<script type="module" src="../sync.js"></script>
+</body>
+</html>
