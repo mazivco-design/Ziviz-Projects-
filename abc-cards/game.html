@@ -7,13 +7,13 @@
 <style>
   :root { --primary:#d32f2f; --dark:#212121; --gold:#ffb300; --bg:#f5f5f5; --green:#2e7d32; }
   * { box-sizing:border-box; }
-  body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:14px; color:var(--dark); min-height:100vh; display:flex; flex-direction:column; align-items:center; }
-  .top { width:100%; max-width:720px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:14px; padding-top:calc(14px + env(safe-area-inset-top)); color:var(--dark); }
+  .top { width:100%; max-width:720px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .top h1 { margin:0; font-size:20px; color:var(--primary); }
   .btn { background:#555; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; text-decoration:none; font-family:inherit; }
   .btn.primary { background:var(--primary); }
   .score { font-size:17px; font-weight:bold; color:#444; direction:ltr; }
-  .stage { width:100%; max-width:720px; margin-top:14px; background:#fff; border:3px solid #222; border-radius:16px; padding:16px; display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .stage { width:100%; max-width:720px; margin:14px auto 0; background:#fff; border:3px solid #222; border-radius:16px; padding:16px; display:flex; flex-direction:column; align-items:center; gap:16px; }
   .picture { width:100%; height:min(46vh,380px); border-radius:12px; background:#fafafa; border:2px dashed #ccc; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .picture img { width:100%; height:100%; object-fit:contain; }
   .question { font-size:20px; font-weight:bold; color:#444; margin:0; }
@@ -59,7 +59,7 @@
 const data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const NAMES = { A:'Airjitzu', B:'Borg', C:'Cole', D:'Dareth', E:'Elemental Masters', F:'First Spinjitzu Master', G:'Garmadon', H:'Harumi', I:'Ice Dragon',
   J:'Jay', K:'Kai', L:'Lloyd', M:'Misako', N:'Nya', O:'Overlord', P:'Pixal', Q:'Quiet One', R:'Ronin', S:'Spinjitzu', T:'Tournament of Elements',
-  U:'Ultra Dragon', V:'Vex', W:'Master Wu', X:'Samurai X', Y:'Master Yang', Z:'Zane' };
+  U:'Ultra Dragon', V:'Vex', W:'Wu', X:'Samurai X', Y:'Yang', Z:'Zane' };
 const KEY = 'ninjago_abc_v3';
 const $ = id => document.getElementById(id);
 function status(t){ $('status').textContent = t; }

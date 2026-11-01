@@ -7,13 +7,13 @@
 <style>
   :root { --primary:#d32f2f; --dark:#212121; --gold:#ffb300; --bg:#f5f5f5; --green:#2e7d32; --blue:#1565c0; }
   * { box-sizing:border-box; }
-  body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:14px; color:var(--dark); min-height:100vh; display:flex; flex-direction:column; align-items:center; }
-  .top { width:100%; max-width:860px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:var(--bg); margin:0; padding:14px; padding-top:calc(14px + env(safe-area-inset-top)); color:var(--dark); }
+  .top { width:100%; max-width:860px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   .top h1 { margin:0; font-size:20px; color:var(--primary); }
   .btn { background:#555; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; text-decoration:none; font-family:inherit; }
   .btn.primary { background:var(--primary); }
   .score { font-size:17px; font-weight:bold; color:#444; direction:ltr; }
-  .stage { width:100%; max-width:860px; margin-top:14px; background:#fff; border:3px solid #222; border-radius:16px; padding:14px; }
+  .stage { width:100%; max-width:860px; margin:14px auto 0; background:#fff; border:3px solid #222; border-radius:16px; padding:14px; }
   .question { font-size:19px; font-weight:bold; color:#444; margin:0 0 12px; text-align:center; }
   .board { display:grid; grid-template-columns:1fr 1fr; gap:14px; direction:ltr; }
   .col { display:flex; flex-direction:column; gap:10px; }
@@ -56,7 +56,7 @@
 const data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const NAMES = { A:'Airjitzu', B:'Borg', C:'Cole', D:'Dareth', E:'Elemental Masters', F:'First Spinjitzu Master', G:'Garmadon', H:'Harumi', I:'Ice Dragon',
   J:'Jay', K:'Kai', L:'Lloyd', M:'Misako', N:'Nya', O:'Overlord', P:'Pixal', Q:'Quiet One', R:'Ronin', S:'Spinjitzu', T:'Tournament of Elements',
-  U:'Ultra Dragon', V:'Vex', W:'Master Wu', X:'Samurai X', Y:'Master Yang', Z:'Zane' };
+  U:'Ultra Dragon', V:'Vex', W:'Wu', X:'Samurai X', Y:'Yang', Z:'Zane' };
 const KEY = 'ninjago_abc_v3';
 const $ = id => document.getElementById(id);
 function status(t){ $('status').textContent = t; }
@@ -92,7 +92,7 @@ function pool(){
     const m = k.match(/^card_(\d+)(?:_(\d+))?$/); if (!m) return;
     const c = cards[k]; if (!c || c.del || !c.img) return;
     const letter = data[+m[1]]; if (!letter) return;
-    out.push({ key:k, letter, name: c.name || (m[2] ? '' : NAMES[letter]), img: c.img });
+    out.push({ key:k, letter, name: c.name || (m[2] ? '' : NAMES[letter]), img: c.img, renamed: !!c.name || !!m[2] });
   });
   return out;
 }
@@ -100,22 +100,45 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 
-/* ---------- the "world" side: familiar things starting with the same sound as the Ninjago name ---------- */
+/* ---------- the "world" side ----------
+   syl: starts with the same syllable as the Ninjago name (Kai → kite, Cole → coat)
+   con: starts with the same consonant / vowel sound only (Kai → key)
+   Checked against the CMU pronouncing dictionary (American English). */
 const WORLD = {
-  A:[['airplane','✈️'],['astronaut','🧑‍🚀']],              B:[['banana','🍌'],['ball','⚽'],['bear','🐻']],
-  C:[['cat','🐱'],['car','🚗'],['cake','🎂']],              D:[['dog','🐶'],['dolphin','🐬'],['duck','🦆']],
-  E:[['elephant','🐘'],['egg','🥚']],                        F:[['fish','🐟'],['frog','🐸'],['fire','🔥']],
-  G:[['gift','🎁'],['guitar','🎸'],['goat','🐐']],           H:[['hat','🎩'],['house','🏠'],['horse','🐴']],
-  I:[['ice cream','🍦'],['ice','🧊']],                       J:[['juice','🧃'],['jellyfish','🪼']],
-  K:[['kite','🪁'],['key','🔑'],['kangaroo','🦘']],          L:[['lion','🦁'],['lemon','🍋'],['ladybug','🐞']],
-  M:[['moon','🌙'],['monkey','🐵'],['mouse','🐭']],          N:[['nose','👃'],['nut','🥜']],
-  O:[['ocean','🌊'],['owl','🦉']],                           P:[['pizza','🍕'],['penguin','🐧'],['pig','🐷']],
-  Q:[['queen','👸'],['question','❓']],                      R:[['rabbit','🐰'],['rainbow','🌈'],['robot','🤖']],
-  S:[['sun','☀️'],['snake','🐍'],['star','⭐']],              T:[['tree','🌳'],['tiger','🐯'],['train','🚂']],
-  U:[['umbrella','☂️'],['unicorn','🦄']],                    V:[['violin','🎻'],['volcano','🌋']],
-  W:[['watermelon','🍉'],['whale','🐳'],['wolf','🐺']],      X:[['x-ray','🩻']],
-  Y:[['yo-yo','🪀'],['yarn','🧶']],                          Z:[['zebra','🦓']]
+  A:{ syl:[['airplane','✈️'],['airport','🛫']],                       con:[['apple','🍎'],['ant','🐜'],['avocado','🥑']] },
+  B:{ syl:[['boar','🐗'],['ball','⚽']],                              con:[['banana','🍌'],['bear','🐻']] },
+  C:{ syl:[['coat','🧥'],['cold','🥶'],['cone','🍦'],['koala','🐨']], con:[['cat','🐱'],['car','🚗'],['cake','🎂']] },
+  D:{ syl:[],                                                         con:[['dog','🐶'],['dolphin','🐬'],['duck','🦆']] },
+  E:{ syl:[['elephant','🐘'],['elf','🧝']],                           con:[['egg','🥚']] },
+  F:{ syl:[['fern','🌿']],                                            con:[['fish','🐟'],['frog','🐸'],['fire','🔥']] },
+  G:{ syl:[['garlic','🧄']],                                          con:[['gift','🎁'],['guitar','🎸'],['goat','🐐']] },
+  H:{ syl:[['heart','❤️']],                                           con:[['hat','🎩'],['house','🏠'],['horse','🐴']] },
+  I:{ syl:[['ice','🧊'],['ice cream','🍦'],['island','🏝️']],          con:[] },
+  J:{ syl:[],                                                         con:[['juice','🧃'],['jellyfish','🪼'],['jam','🫙']] },
+  K:{ syl:[['kite','🪁']],                                            con:[['key','🔑'],['kangaroo','🦘'],['koala','🐨']] },
+  L:{ syl:[],                                                         con:[['lion','🦁'],['lemon','🍋'],['ladybug','🐞']] },
+  M:{ syl:[['mitten','🧤'],['milk','🥛']],                            con:[['moon','🌙'],['monkey','🐵'],['mouse','🐭']] },
+  N:{ syl:[['night','🌃'],['nine','9️⃣']],                            con:[['nose','👃'],['nut','🥜']] },
+  O:{ syl:[['ocean','🌊'],['okay','👌']],                             con:[] },
+  P:{ syl:[['pig','🐷'],['pin','📌'],['pickle','🥒']],                con:[['penguin','🐧'],['pizza','🍕']] },
+  Q:{ syl:[],                                                         con:[['queen','👸'],['question','❓']] },
+  R:{ syl:[['robot','🤖'],['rope','🪢'],['road','🛣️']],              con:[['rabbit','🐰'],['rainbow','🌈']] },
+  S:{ syl:[],                                                         con:[['spoon','🥄'],['spider','🕷️'],['sponge','🧽'],['sun','☀️'],['snake','🐍'],['star','⭐']] },
+  T:{ syl:[['turtle','🐢'],['turkey','🦃']],                          con:[['tree','🌳'],['tiger','🐯'],['train','🚂']] },
+  U:{ syl:[],                                                         con:[['umbrella','☂️']] },
+  V:{ syl:[['vest','🦺']],                                            con:[['violin','🎻'],['volcano','🌋']] },
+  W:{ syl:[],                                                         con:[['watermelon','🍉'],['whale','🐳'],['wolf','🐺'],['wood','🪵']] },
+  X:{ syl:[],                                                         con:[] },   // no familiar word starts with the X sound – the letter is left out of this game
+  Y:{ syl:[],                                                         con:[['yo-yo','🪀'],['yarn','🧶']] },
+  Z:{ syl:[],                                                         con:[['zebra','🦓']] }
 };
+/* which words fit a picture: same syllable when the card still carries the original Ninjago name, otherwise same sound/letter */
+function worldWords(p){
+  const w = WORLD[p.letter] || { syl:[], con:[] };
+  const original = !p.renamed;
+  if (original && w.syl.length) return w.syl;
+  return w.con.length ? w.con.concat(original ? [] : w.syl) : w.syl;
+}
 
 /* ---------- game ---------- */
 const PAIRS = 4;
@@ -123,7 +146,7 @@ let rounds = [], ri = 0, score = 0, mistakes = 0, sel = null, left = 0;
 function start(){
   // one Ninjago picture per letter, letters shuffled, cut into rounds of 4
   const byLetter = {};
-  shuffle(pool()).forEach(p => { if (!byLetter[p.letter]) byLetter[p.letter] = p; });
+  shuffle(pool()).forEach(p => { if (!byLetter[p.letter] && worldWords(p).length) byLetter[p.letter] = p; });
   const letters = shuffle(Object.keys(byLetter));
   rounds = []; for (let i = 0; i < letters.length; i += PAIRS) rounds.push(letters.slice(i, i + PAIRS).map(l => byLetter[l]));
   if (rounds.length > 1 && rounds[rounds.length - 1].length < 2) rounds.pop(); // no lonely last round
@@ -139,7 +162,7 @@ function showRound(){
   if (ri >= rounds.length) return finish();
   const items = rounds[ri]; sel = null; left = items.length;
   const ninja = shuffle(items.map(p => ({ letter:p.letter, name:p.name || p.letter, img:p.img })));
-  const world = shuffle(items.map(p => { const [w, e] = WORLD[p.letter][Math.floor(Math.random() * WORLD[p.letter].length)]; return { letter:p.letter, name:w, emoji:e }; }));
+  const world = shuffle(items.map(p => { const ws = worldWords(p), [w, e] = ws[Math.floor(Math.random() * ws.length)]; return { letter:p.letter, name:w, emoji:e }; }));
   $('score').textContent = `סבב ${ri + 1} / ${rounds.length}  ·  ⭐ ${score}`;
   const tile = (side, t) => `<div class="tile">
       <div class="pick" data-side="${side}" data-l="${t.letter}" data-name="${esc(t.name)}">${t.img ? `<img src="${t.img}" alt="">` : `<span class="emoji">${t.emoji}</span>`}</div>
