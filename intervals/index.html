@@ -70,7 +70,8 @@ canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12p
 .ivl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
 .ivl h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:1.3rem}
 .ivl .meta{font-size:.9rem;color:var(--muted)}
-.ivl .songs{grid-column:1/-1;font-size:.92rem;display:flex;flex-direction:column;gap:2px}
+.ivl .songs{grid-column:1/-1;font-size:.92rem;display:flex;flex-direction:column;gap:4px}
+.song-btn{border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--fg);border-radius:8px;padding:3px 10px;font:600 .9rem var(--f-body);cursor:pointer;text-align:start}
 .ivl .play{display:flex;gap:6px}
 .ivl .play button{border:1.5px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:8px 12px;font:700 1rem var(--f-body);cursor:pointer}
 .acc{font-family:var(--f-mono);font-size:.85rem;color:var(--muted)}
@@ -97,6 +98,7 @@ canvas{width:100%;height:clamp(150px,28vh,240px);display:block;border-radius:12p
 .kb-tags{position:absolute;top:0;left:0;right:0;height:24px;pointer-events:none}
 .kb-board{position:relative;display:flex;height:clamp(90px,16vh,170px);touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .key{cursor:pointer}
+.kbwrap.locked .kb-board{opacity:.55;cursor:not-allowed}
 .key.w{position:relative;flex:1;min-width:30px;background:var(--kw);border:1px solid var(--line);border-left-width:0;border-radius:0 0 7px 7px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px}
 .key.w:first-child{border-left-width:1px}
 .key.b{position:absolute;top:0;height:62%;background:var(--kbk);border-radius:0 0 5px 5px;z-index:2}
@@ -197,6 +199,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <div id="running" class="card stand" hidden>
       <div class="topline"><span id="counter"></span><div class="progress" id="progress"></div></div>
       <div class="row">
+        <button class="btn ghost" id="replayBtn">השמע שוב</button>
         <button class="btn ghost" id="pauseBtn">השהה</button>
         <button class="btn ghost" id="stopBtn">סיים סבב</button>
       </div>
@@ -222,7 +225,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       <div class="kbwrap" id="kbLWrap"><div class="kb" id="kbL"></div></div>
       <div class="kbcap" id="kbCap">הקש על שני קלידים כדי לשמוע ולראות את המרווח ביניהם</div>
     </div>
-    <p class="muted" style="margin:0 0 10px">החצים ↑ ↓ מנגנים כל מרווח מהקליד האחרון שהקשת. ליד כל מרווח יש שירים מוכרים שנפתחים בו, תשיר אותם בראש כדי לזכור את הצליל.</p>
+    <p class="muted" style="margin:0 0 10px">החצים ↑ ↓ מנגנים כל מרווח מהקליד האחרון שהקשת. כפתור ▶ מנגן את פתיחת שיר מוכר שמתחיל באותו מרווח (רק שירים ישנים שחופשיים לשימוש; לשאר מופיע רק השם).</p>
     <div class="learn-list" id="learnList"></div>
   </section>
 
@@ -296,6 +299,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       <div><h4>מה כתוב על הקלידים</h4><div class="seg" data-key="labels">
         <button data-v="name">שם התו</button><button data-v="deg">דרגה בסולם</button></div>
         <p class="note">"דרגה בסולם" נמדדת מצליל הבסיס: 1 הוא הבסיס, 3 טרצה גדולה, ♭3 טרצה קטנה, 5 קווינטה וכן הלאה.</p></div>
+      <div><h4>צליל הדוגמאות והקלידים</h4><div class="seg" data-key="sound">
+        <button data-v="sing">זמר שר את שם התו</button><button data-v="piano">פסנתר</button></div>
+        <p class="note">הזמר שר דו, רה, מי וכן הלאה בגובה המדויק. בקלידים השחורים הוא שר את התו שמתחת, חצי טון גבוה יותר.</p></div>
       <div><h4>הקראה קולית</h4><div class="seg" data-key="speech">
         <button data-v="on">פועלת</button><button data-v="off">כבויה</button></div></div>
       <div><h4>טווח קול</h4><div class="seg" data-key="range">
@@ -326,11 +332,25 @@ const IVL = [
   {s:12, name:"אוקטבה", alt:"6 טונים", up:"Somewhere Over the Rainbow", down:"Willow Weep for Me"}
 ];
 const byS = s => IVL.find(i => i.s === s);
+const SONGS = {
+  "1d": {name:"לאליזה (בטהובן)",            at:0, n:[0,-1,0,-1,0,-5,-2,-4,-7],     b:[.5,.5,.5,.5,.5,.5,.5,.5,1.5]},
+  "2u": {name:"Frère Jacques",              at:0, n:[0,2,4,0,0,2,4,0],              b:[1,1,1,1,1,1,1,1]},
+  "2d": {name:"Mary Had a Little Lamb",     at:0, n:[0,-2,-4,-2,0,0,0],             b:[1.5,.5,1,1,1,1,2]},
+  "3u": {name:"Greensleeves",               at:0, n:[0,3,5,7,8,7,5,2,-2,0,2,3,0],   b:[.5,1,.5,.75,.25,.5,1,.5,.75,.25,.5,1,.5]},
+  "3d": {name:"This Old Man",               at:0, n:[0,-3,0,0,-3,0],                b:[1,1,2,1,1,2]},
+  "4u": {name:"When the Saints Go Marching In", at:0, n:[0,4,5,7],                  b:[1,1,1,3]},
+  "4d": {name:"Swing Low, Sweet Chariot",   at:0, n:[0,-4],                         b:[1,3]},
+  "5u": {name:"הנה באה הכלה (וגנר)",         at:0, n:[0,5,5,5,0,7,4,5],              b:[1,.75,.25,2,1,.75,.25,2]},
+  "5d": {name:"Eine kleine Nachtmusik (מוצרט)", at:0, n:[0,-5,0,-5,0,-5,0,4,7],      b:[1,.5,1,.5,.5,.5,.5,.5,1.5]},
+  "7u": {name:"Twinkle Twinkle Little Star", at:1, n:[0,0,7,7,9,9,7],               b:[1,1,1,1,1,1,2]},
+  "8u": {name:"The Entertainer (ג'ופלין)",  at:2, n:[0,1,2,10,2,10,2,10],           b:[.5,.5,.5,1,.5,1,.5,2]},
+  "9u": {name:"My Bonnie Lies Over the Ocean", at:0, n:[0,9,7,5,7,5,2,0,-3],        b:[1,1.5,.5,1,1,1,1,1,3]}
+};
 const NOTE = ["דו","דו#","רה","רה#","מי","פה","פה#","סול","סול#","לה","לה#","סי"];
 const RANGES = {low:[45,64], mid:[57,76], high:[60,79]};
 
 /* ---------- storage ---------- */
-const DEF = {ivls:[1,2,3,4], dir:"both", mode:"target", example:"on", speech:"on", cue:"off", kb:"on", labels:"name", range:"low", tol:"35", count:"10"};
+const DEF = {ivls:[1,2,3,4], dir:"both", mode:"target", example:"on", speech:"on", sound:"sing", cue:"off", kb:"on", labels:"name", range:"low", tol:"35", count:"10"};
 function load(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ?? d; }catch{ return d; } }
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
 const S = Object.assign({}, DEF, load("mrv-settings-v2", {}));
@@ -363,7 +383,7 @@ function renderSettings(){
   document.querySelectorAll(".seg").forEach(seg => {
     seg.querySelectorAll("button").forEach(b => {
       b.setAttribute("aria-pressed", S[seg.dataset.key] === b.dataset.v);
-      b.onclick = () => { S[seg.dataset.key] = b.dataset.v; save("mrv-settings-v2", S); renderSettings(); };
+      b.onclick = () => { S[seg.dataset.key] = b.dataset.v; save("mrv-settings-v2", S); renderSettings(); if (ctx && S.sound === "sing") preloadSing(); };
     });
   });
   const dirTxt = {up:"עולים", down:"יורדים", both:"עולים ויורדים"}[S.dir];
@@ -392,6 +412,7 @@ function onSamples(chunk){
   analyze(ring);
 }
 function ensureCtx(){
+  if (ctx) { if (ctx.state !== "running") ctx.resume(); return ctx; }
   if (!ctx) {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     const comp = ctx.createDynamicsCompressor();
@@ -399,6 +420,7 @@ function ensureCtx(){
     master.connect(comp).connect(ctx.destination);
   }
   if (ctx.state !== "running") ctx.resume();
+  if (S.sound === "sing") setTimeout(preloadSing, 0);
   return ctx;
 }
 let micSrc = null, micMute = null, micTimers = [];
@@ -526,6 +548,7 @@ class Keys {
     this.root = null; this.target = null; this.labelRoot = null; this.sung = null; this.sungOk = false; this.lit = new Map();
     el.addEventListener("pointerdown", e => {
       const k = e.target.closest(".key"); if (!k) return;
+      if (listener) return;               // locked while the app is listening to you
       this.onTap(+k.dataset.m);
     });
   }
@@ -580,8 +603,31 @@ class Keys {
   }
 }
 // play a note and light its key on every keyboard, in time with the sound
+// audio files (sung notes, narration), decoded once and cached
+const bufCache = new Map();
+function loadBuf(url){
+  if (!bufCache.has(url)) bufCache.set(url, fetch(url).then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status))
+    .then(b => new Promise((res, rej) => ensureCtx().decodeAudioData(b, res, rej))).catch(() => null));
+  return bufCache.get(url);
+}
+const singBuf = {};
+function preloadSing(){ for (let m = 36; m <= 81; m++) loadBuf(`sing/${m}.mp3`).then(b => { if (b) singBuf[m] = b; }); }
+// while the app itself makes sound (and a moment after), the mic input is not treated as the player
+let selfUntil = 0;
+function markSelf(endCtxTime){ selfUntil = Math.max(selfUntil, performance.now() + (endCtxTime - ctx.currentTime) * 1000 + 250); }
+function playBuf(buf, t0, dur, vol = 0.9){
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = buf; g.gain.value = vol; src.connect(g).connect(master);
+  const end = dur ? Math.min(t0 + dur, t0 + buf.duration) : t0 + buf.duration;
+  if (dur && dur < buf.duration){ g.gain.setValueAtTime(vol, end - 0.04); g.gain.linearRampToValueAtTime(0.0001, end + 0.04); }
+  src.start(t0); src.stop(end + 0.06);
+  return {src, end};
+}
 function playNote(m, t0, dur = 0.85, vol){
-  const end = tone(m, t0, dur, vol);
+  let end;
+  if (S.sound === "sing" && singBuf[m]) end = playBuf(singBuf[m], t0, dur + 0.1).end;
+  else end = tone(m, t0, dur, vol);
+  markSelf(end);
   const delay = Math.max(0, (t0 - ctx.currentTime) * 1000);
   kbP.light(m, delay, dur * 800); kbL.light(m, delay, dur * 800); kbX.light(m, delay, dur * 800);
   return end;
@@ -675,8 +721,9 @@ function analyze(buf){
   const t = performance.now();
   const ui = t - lastUi > 33; if (ui) lastUi = t;
   if (ui){ const pm = $("pMeter"); if (pm) pm.style.width = Math.min(100, Math.sqrt(r.rms) * 250) + "%"; }
-  if (listener) { feed(listener, c, t); trail.push({t, c}); }
-  if (extBusy){ extHist.push({t, c}); if (extHist.length > 120) extHist.shift(); }
+  const own = t < selfUntil, heard = own ? null : c;
+  if (listener) { feed(listener, heard, t); trail.push({t, c:heard}); }
+  if (extBusy){ extHist.push({t, c:heard}); if (extHist.length > 120) extHist.shift(); }
   if (tab === "tuner" && ui){ drawTuner(); hearTick(t); }
 }
 
@@ -746,6 +793,26 @@ function speak(text, id){
   }).then(() => guard(id));
 }
 
+let speechSrcs = [];
+function stopSpeech(){ speechSrcs.forEach(x => { try { x.stop(); } catch {} }); speechSrcs = []; try { speechSynthesis?.cancel(); } catch {} }
+async function say(keys, text, id){
+  if (S.speech !== "on") return;
+  ensureCtx();
+  const bufs = keys ? await Promise.all(keys.map(k => loadBuf(`voice/${k}.mp3`))) : [null];
+  guard(id);
+  if (bufs.some(b => !b)) return speak(text, id);
+  let t = ctx.currentTime + 0.03;
+  for (const b of bufs){ const {src, end} = playBuf(b, t, 0, 1); speechSrcs.push(src); t = end + 0.04; }
+  markSelf(t);
+  await until(t, id);
+}
+const NUM_OK = n => [5, 10, 20].includes(n);
+function sungKeys(cents){
+  const n = Math.round(cents / 100);
+  if (n === 0) return ["sung-0"];
+  return Math.abs(n) <= 12 ? [`sung-${Math.abs(n)}-${n > 0 ? "up" : "down"}`] : null;
+}
+
 /* ---------- session runner ---------- */
 const ABORT = Symbol("abort");
 let runId = 0, session = null, paused = false, wakeLock = null;
@@ -810,7 +877,8 @@ async function doExercise(ex, id){
     setVerdict(""); clearReadout(); trail = []; curEx = ex;
     kbP.setMarks(ex.root, null); kbP.setSung(null, false); kbP.show(ex.root);
     setStatus("מקשיב לשם המרווח…");
-    await speak(attempt === 1 ? `${I.name} ${ex.dir > 0 ? "למעלה" : "למטה"}` : "שוב", id);
+    if (!ex.replay) await say(attempt === 1 ? [`ivl-${ex.s}-${ex.dir > 0 ? "up" : "down"}`] : ["again"], attempt === 1 ? `${I.name} ${ex.dir > 0 ? "למעלה" : "למטה"}` : "שוב", id);
+    ex.replay = false;
     const withExample = S.example === "on" || attempt > 1;
     if (withExample){
       setStatus("דוגמה");
@@ -828,9 +896,9 @@ async function doExercise(ex, id){
     const res = await listen(ex, id);
     if (!res){
       setVerdict("לא שמעתי אותך", "no");
-      await speak("לא שמעתי", id);
+      await say(["nohear"], "לא שמעתי", id);
       session.silent++;
-      if (session.silent >= 2){ await speak("עצרתי. הקש להמשך", id); pause(true); throw ABORT; }
+      if (session.silent >= 2){ await say(["stopped"], "עצרתי. הקש להמשך", id); pause(true); throw ABORT; }
       continue;
     }
     session.silent = 0;
@@ -842,7 +910,7 @@ async function doExercise(ex, id){
     if (ok){
       setVerdict(`${Math.abs(res.err) <= 15 ? "מדויק!" : "יפה!"}<small>${sungName} · ${sign}${Math.round(res.err)} סנט</small>`, "ok");
       chimeOk(); await sleep(450, id);
-      await speak(Math.abs(res.err) <= 15 ? "מדויק" : "יפה", id);
+      await say([Math.abs(res.err) <= 15 ? "exact" : "nice"], Math.abs(res.err) <= 15 ? "מדויק" : "יפה", id);
       ex.result = {ok:true, err:res.err};
       await sleep(900, id);
       return;
@@ -851,7 +919,7 @@ async function doExercise(ex, id){
     const hint = sameStep ? `קצת ${res.err > 0 ? "גבוה" : "נמוך"}` : `שרת ${sungName}`;
     setVerdict(`${hint}<small>${sign}${Math.round(res.err)} סנט מהיעד</small>`, "no");
     chimeNo(); await sleep(400, id);
-    await speak(hint, id);
+    await say(sameStep ? [res.err > 0 ? "high" : "low"] : sungKeys(res.sung), hint, id);
     ex.result = {ok:false, err:res.err};
     await sleep(900, id);
     if (attempt === 2) return;
@@ -895,12 +963,12 @@ async function finish(id){
   const n = session.list.length, c = session.list.filter(e => e.result?.ok).length;
   renderProgress();
   setStatus(""); setVerdict(`סיימת: ${c} מתוך ${n}`, c / n >= .7 ? "ok" : "no");
-  await speak(`סיימת. ${c} מתוך ${n}`, id);
+  await say(NUM_OK(n) && c <= 20 ? ["done", `num-${c}`, `of-${n}`] : null, `סיימת. ${c} מתוך ${n}`, id);
   endSession(true);
 }
 function endSession(showSummary){
   runId++; listener = null;
-  try { speechSynthesis?.cancel(); } catch {}
+  stopSpeech();
   try { wakeLock?.release(); } catch {}
   $("running").hidden = true; $("idle").hidden = false;
   if (showSummary && session){
@@ -917,13 +985,21 @@ function endSession(showSummary){
 function pause(auto){
   if (!session) return;
   paused = true; runId++; listener = null;
-  try { speechSynthesis?.cancel(); } catch {}
+  stopSpeech();
   $("pauseBtn").textContent = "המשך";
   setStatus(auto ? "הסבב נעצר כי לא שמעתי אותך" : "מושהה");
   if (auto) setTimeout(() => {}, 0);
 }
 $("startBtn").onclick = startSession;
 $("stopBtn").onclick = () => endSession(true);
+// replay: stop where we are, play the example again (without repeating the name), then listen again
+$("replayBtn").onclick = () => {
+  if (!session || session.idx >= session.list.length) return;
+  ensureCtx(); listener = null; stopSpeech();
+  const ex = session.list[session.idx]; ex.replay = true; ex.result = null;
+  if (paused){ paused = false; session.silent = 0; $("pauseBtn").textContent = "השהה"; lockScreen(); }
+  run();
+};
 $("pauseBtn").onclick = () => {
   if (!session) return;
   if (paused){ paused = false; session.silent = 0; $("pauseBtn").textContent = "השהה"; ensureCtx(); lockScreen(); run(); }
@@ -990,7 +1066,11 @@ function drawChart(){
     }
   }
 }
-(function loop(){ if (tab === "practice" && !$("running").hidden) drawChart(); requestAnimationFrame(loop); })();
+(function loop(){
+  if (tab === "practice" && !$("running").hidden) drawChart();
+  const lk = !!listener; if (lk !== loop.lk){ loop.lk = lk; $("kbPWrap").classList.toggle("locked", lk); $("kbXWrap").classList.toggle("locked", lk); $("kbLWrap").classList.toggle("locked", lk); }
+  requestAnimationFrame(loop);
+})();
 
 /* ---------- tuner ---------- */
 function drawTuner(){
@@ -1008,6 +1088,7 @@ $("tunerBtn").onclick = async () => {
 };
 
 /* ---------- check against another instrument ---------- */
+const NOTE_SLUG = ["do","do-sharp","re","re-sharp","mi","fa","fa-sharp","sol","sol-sharp","la","la-sharp","si"];
 const NOTE_EN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const fullName = m => `${noteName(m)} ${Math.floor(m / 12) - 1}`;
 const enName = m => NOTE_EN[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
@@ -1058,7 +1139,7 @@ async function runExt(){
     $("extSub").textContent = `${enName(m)} · ${mf(m).toFixed(1)} Hz · תו ${n + 1} מתוך 8`;
     $("extVerdict").innerHTML = "נגן את התו<small>צליל קצר מספיק. אם לא נקלט, נגן אותו שוב או החזק את הקליד</small>"; $("extVerdict").className = "verdict";
     kbX.setMarks(null, m, null); kbX.setSung(null, false); kbX.show(m);
-    if (S.speech === "on") speak(noteName(m), runId).catch(() => {});
+    say([`note-${NOTE_SLUG[((m % 12) + 12) % 12]}`], noteName(m), runId).catch(() => {});
     await new Promise(r => setTimeout(r, 900));
     if (id !== extRun) break;
     let got;
@@ -1174,6 +1255,27 @@ function playLearn(i, dir){
   kbL.setMarks(r, tgt); kbL.show(r);
   $("kbCap").textContent = `${i.name} ${dir > 0 ? "למעלה" : "למטה"}: מ${noteName(r)} ל${noteName(tgt)}`;
 }
+function songLine(i, k, arrow, text){
+  const sg = SONGS[i.s + k];
+  if (sg) return `<span>${arrow} <button class="song-btn" data-k="${i.s + k}">▶ ${sg.name}</button></span>`;
+  return text ? `<span>${arrow} ${text}</span>` : "";
+}
+let songRun = 0;
+function playSong(key){
+  const sg = SONGS[key]; if (!sg) return;
+  ensureCtx();
+  const [lo, hi] = kbRange();
+  let base = learnLast ?? (RANGES[S.range][0] + 3);
+  let start = base - sg.n[sg.at];
+  while (start + Math.max(...sg.n) > Math.min(hi, 81)) start -= 12;
+  while (start + Math.min(...sg.n) < Math.max(lo, 36)) start += 12;
+  const beat = 0.42, run = ++songRun;
+  let t = ctx.currentTime + 0.08;
+  sg.n.forEach((d, j) => { const dur = sg.b[j] * beat; playNote(start + d, t, Math.max(0.2, dur - 0.05)); t += dur; });
+  const a = start + sg.n[sg.at], z = start + sg.n[sg.at + 1];
+  kbL.setMarks(a, z); kbL.show(a);
+  $("kbCap").textContent = `${sg.name}: המרווח ${z > a ? "עולה" : "יורד"} מ${noteName(a)} ל${noteName(z)}`;
+}
 function renderLearn(){
   const box = $("learnList"); box.innerHTML = "";
   IVL.forEach(i => {
@@ -1184,10 +1286,11 @@ function renderLearn(){
     d.innerHTML = `<div><h3>${i.name}</h3><div class="meta">${i.alt} · ${i.s} חצאי טונים</div></div>
       <div class="play"><button aria-label="נגן למעלה">↑</button><button aria-label="נגן למטה">↓</button></div>
       <div class="songs">
-        <span>↑ ${i.up || "—"}</span>
-        ${i.down ? `<span>↓ ${i.down}</span>` : ""}
+        ${songLine(i, "u", "↑", i.up)}
+        ${songLine(i, "d", "↓", i.down)}
         <span class="acc">דיוק: ↑ ${acc(su)}  ·  ↓ ${acc(sd)}</span>
       </div>`;
+    d.querySelectorAll(".song-btn").forEach(b => b.onclick = () => playSong(b.dataset.k));
     const [bu, bd] = d.querySelectorAll(".play button");
     bu.onclick = () => playLearn(i, 1);
     bd.onclick = () => playLearn(i, -1);
