@@ -20,7 +20,8 @@
 .lab .chapters button:hover{border-color:var(--ink)}
 .lab .chapters button.on{border-color:var(--ink);color:var(--ink);font-weight:700}
 .lab .chapters button.done{border-color:var(--a);color:var(--a)}
-.lab .bench{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.lab .bench{display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;align-items:start}
+.lab .bench>.tutorcol{order:-1}
 @media (max-width:900px){.lab .bench{grid-template-columns:1fr}}
 .lab .stage{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:10px;min-width:0}
 .lab .stage svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none;direction:ltr}
@@ -35,7 +36,7 @@
 .lab .oldtoggle{font:inherit;font-size:.82rem;color:var(--muted);background:none;border:0;padding:2px 4px;margin-bottom:6px;cursor:pointer;text-decoration:underline}
 .lab .bench>.tutorcol{position:sticky;top:12px}
 .lab .tool:disabled{opacity:.4;cursor:default}
-@media (max-width:900px){.lab .tutor{max-height:none}.lab .bench>.tutorcol{position:static}}
+@media (max-width:900px){.lab .tutor{max-height:none}.lab .bench>.tutorcol{position:static;order:0}}
 .lab .msg{background:var(--sheet);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:12px 14px;opacity:.55;font-size:1.02rem;line-height:1.5}
 .lab .msg.now{opacity:1;border-color:var(--ink)}
 .lab .msg.me{align-self:flex-start;background:var(--a-soft);border-color:transparent;border-radius:14px 14px 4px 14px;opacity:.9;font-size:.95rem}
@@ -129,7 +130,7 @@ function fixMath(root){
     container.innerHTML = `<div class="lab" dir="rtl" lang="he">
       <div class="lab-head"><h2>${esc(def.title)}</h2><div class="chapters"></div></div>
       <div class="bench"><div><div class="stage"><svg viewBox="${def.viewBox || "0 0 620 360"}" role="img" aria-label="${esc(def.title)}"><defs>
-        <pattern id="lab-half" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="var(--sheet)"/><rect width="4" height="8" fill="var(--a)"/></pattern></defs><g class="scene"></g></svg></div>
+        <pattern id="lab-half" width="1" height="1" patternContentUnits="objectBoundingBox"><rect width="1" height="1" fill="var(--sheet)"/><rect x=".5" width=".5" height="1" fill="var(--a)"/></pattern></defs><g class="scene"></g></svg></div>
         <div class="tools"></div></div><div class="tutorcol"><div class="tutor" aria-live="polite"></div></div></div></div>`;
     const root = container.firstElementChild, svg = root.querySelector("svg"), sceneG = root.querySelector(".scene"),
       tutor = root.querySelector(".tutor"), tools = root.querySelector(".tools"), chap = root.querySelector(".chapters");
@@ -213,5 +214,5 @@ function fixMath(root){
     } else L.go(0);
     return L;
   }
-  window.Lab = { register: d => { LABS[d.id] = d; }, get: id => LABS[id], all: () => LABS, mount, G, fixMath };
+  window.Lab = { register: d => { LABS[d.id] = d; }, get: id => LABS[id], all: () => LABS, mount, G, fixMath, css: injectCss };
 })();
