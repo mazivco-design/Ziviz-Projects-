@@ -151,6 +151,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   canvas{height:clamp(180px,30vh,280px)}
   .lab{font-size:.85rem}
 }
+.verdict small.oct{font-weight:700;opacity:1}
+.verdict small.oct.off{color:var(--accent)}
+.sum-r{display:flex;gap:10px;align-items:center}
+.octtag{font-size:.8rem;font-weight:700;color:var(--accent)}
 /* settings */
 .set{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px 32px}
 .set > div:first-child{grid-column:1/-1}
@@ -169,7 +173,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <body>
 <div class="wrap">
   <header>
-    <h1>מרווח <span>בקול</span> <small class="ver">גרסה 5.11</small></h1>
+    <h1>מרווח <span>בקול</span> <small class="ver">גרסה 11.11</small></h1>
   </header>
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="practice" aria-selected="true">אימון</button>
@@ -876,7 +880,7 @@ async function doExercise(ex, id){
   $("iname").innerHTML = `${I.name} <span class="dir">${ex.dir > 0 ? "↑" : "↓"}</span><small>${I.alt} · ${ex.dir > 0 ? "למעלה" : "למטה"}</small>`;
   for (let attempt = 1; attempt <= 2; attempt++){
     setVerdict(""); clearReadout(); trail = []; curEx = ex;
-    kbP.setMarks(ex.root, null); kbP.setSung(null, false); kbP.show(ex.root);
+    kbP.keep = false; kbP.setMarks(ex.root, null); kbP.setSung(null, false); kbP.show(ex.root);
     setStatus("מקשיב לשם המרווח…");
     if (!ex.replay) await say(attempt === 1 ? [`ivl-${ex.s}-${ex.dir > 0 ? "up" : "down"}`] : ["again"], attempt === 1 ? `${I.name} ${ex.dir > 0 ? "למעלה" : "למטה"}` : "שוב", id);
     ex.replay = false;
@@ -907,27 +911,37 @@ async function doExercise(ex, id){
     const sungName = ivlLabel(res.sung);
     const sign = res.err > 0 ? "+" : "";
     record(ex, ok);
-    kbP.setSung(null, false); kbP.setMarks(ex.root, ex.target);
+    kbP.setMarks(ex.root, ex.target); kbP.keep = true; kbP.setSung(Math.round(res.abs / 100), ok);   // the dot stays on the key you actually sang
     if (ok){
-      setVerdict(`${Math.abs(res.err) <= 15 ? "מדויק!" : "יפה!"}<small>${sungName} · ${sign}${Math.round(res.err)} סנט</small>`, "ok");
+      setVerdict(`${Math.abs(res.err) <= 15 ? "מדויק!" : "יפה!"}<small>${sungName} · ${sign}${Math.round(res.err)} סנט</small><small class="oct${res.oct ? " off" : ""}">${octText(res.oct)}</small>`, "ok");
       chimeOk(); await sleep(450, id);
       await say([Math.abs(res.err) <= 15 ? "exact" : "nice"], Math.abs(res.err) <= 15 ? "מדויק" : "יפה", id);
-      ex.result = {ok:true, err:res.err};
+      ex.result = {ok:true, err:res.err, oct:res.oct};
       await sleep(900, id);
       return;
     }
     const sameStep = Math.round(res.sung / 100) === Math.round(ex.expected / 100);
     const hint = sameStep ? `קצת ${res.err > 0 ? "גבוה" : "נמוך"}` : `שרת ${sungName}`;
-    setVerdict(`${hint}<small>${sign}${Math.round(res.err)} סנט מהיעד</small>`, "no");
+    setVerdict(`${hint}<small>${sign}${Math.round(res.err)} סנט מהיעד</small>${res.oct ? `<small class="oct off">${octText(res.oct)}</small>` : ""}`, "no");
     chimeNo(); await sleep(400, id);
     await say(sameStep ? [res.err > 0 ? "high" : "low"] : sungKeys(res.sung), hint, id);
-    ex.result = {ok:false, err:res.err};
+    ex.result = {ok:false, err:res.err, oct:res.oct};
     await sleep(900, id);
     if (attempt === 2) return;
   }
   if (!ex.result) ex.result = {ok:false, err:null};
 }
 let curEx = null;
+// which octave the sung note really was in, compared with the target note (the pass/fail check ignores octaves)
+function withOct(res, absCents, ex){
+  res.abs = absCents; res.oct = Math.round((absCents - ex.target * 100) / 1200);
+  return res;
+}
+function octText(o){
+  if (o === 0) return "באוקטבה הנכונה";
+  const n = Math.abs(o), side = o < 0 ? "מתחת ליעד" : "מעל היעד";
+  return n === 1 ? `אוקטבה ${side}` : `${n === 2 ? "שתי" : n} אוקטבות ${side}`;
+}
 function listen(ex, id){
   const rootC = ex.root * 100;
   listener = S.mode === "both" ? makeListener(2, null, ex.expected) : makeListener(1, rootC, ex.expected);
@@ -940,7 +954,7 @@ function listen(ex, id){
         clearInterval(iv); listener = null;
         let sung = S.mode === "both" ? L.done[1] - L.done[0] : L.done[0] - rootC;
         sung = fold(sung, ex.expected);
-        resolve({sung, err: sung - ex.expected});
+        resolve(withOct({sung, err: sung - ex.expected}, L.done[L.done.length - 1], ex));
       } else if (performance.now() - start > 7000){
         clearInterval(iv); listener = null;
         // accept a partially-held last note if we have enough
@@ -949,7 +963,7 @@ function listen(ex, id){
         if (segs.length >= need){
           let sung = need === 2 ? segs[1] - segs[0] : segs[0] - rootC;
           sung = fold(sung, ex.expected);
-          resolve({sung, err: sung - ex.expected});
+          resolve(withOct({sung, err: sung - ex.expected}, segs[need - 1], ex));
         } else resolve(null);
       }
     }, 60);
@@ -978,7 +992,7 @@ function endSession(showSummary){
     const box = $("lastSummary");
     box.hidden = !n;
     box.innerHTML = `<strong>סבב אחרון: ${c} מתוך ${n}</strong><div class="summary-list">` + done.map(e =>
-      `<div><span>${e.result.ok ? "✓" : "✗"} ${byS(e.s).name} ${e.dir > 0 ? "↑" : "↓"}</span><span class="mono">${e.result.err == null ? "—" : (e.result.err > 0 ? "+" : "") + Math.round(e.result.err) + "¢"}</span></div>`).join("") + "</div>";
+      `<div><span>${e.result.ok ? "✓" : "✗"} ${byS(e.s).name} ${e.dir > 0 ? "↑" : "↓"}</span><span class="sum-r">${e.result.oct ? `<span class="octtag">${octText(e.result.oct)}</span>` : ""}<span class="mono">${e.result.err == null ? "—" : (e.result.err > 0 ? "+" : "") + Math.round(e.result.err) + "¢"}</span></span></div>`).join("") + "</div>";
   }
   session = session && showSummary ? null : session;
   if (!showSummary) session = null;
@@ -1056,8 +1070,8 @@ function drawChart(){
   }
   if (listener && live.c != null && lastRel != null){
     // in "both" mode the target is measured from your own first note, so place the dot relative to it
-    kbP.setSung(Math.round((ex.root * 100 + lastRel) / 100) + (sungRoot != null ? Math.round((sungRoot - ex.root * 100) / 100) : 0), Math.abs(lastRel - I) <= tol);
-  } else if (!listener) kbP.setSung(null, false);
+    kbP.setSung(Math.round(live.c / 100), Math.abs(lastRel - I) <= tol);
+  } else if (!listener && !kbP.keep) kbP.setSung(null, false);
   if (prevP){ cx.fillStyle = lastRel != null && Math.abs(lastRel - I) <= tol ? good : fg; cx.beginPath(); cx.arc(prevP[0], prevP[1], 6, 0, 7); cx.fill(); }
   if (listener){
     $("roTarget").textContent = (I > 0 ? "+" : "") + I + "¢";
