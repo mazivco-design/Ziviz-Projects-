@@ -393,6 +393,10 @@
     {
      "label": "גרסה ב-Claude",
      "url": "https://claude.ai/artifact/2ZiD1FjdmoNJKpqF1Bz3tp"
+    },
+    {
+     "label": "גרסה בפיתוח",
+     "url": "psycho-dev/"
     }
    ]
   },
