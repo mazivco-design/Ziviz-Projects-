@@ -155,6 +155,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .verdict small.oct.off{color:var(--accent)}
 .sum-r{display:flex;gap:10px;align-items:center}
 .octtag{font-size:.8rem;font-weight:700;color:var(--accent)}
+.drive{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.drive h4{margin:0;font-size:.95rem}
 /* settings */
 .set{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px 32px}
 .set > div:first-child{grid-column:1/-1}
@@ -173,7 +175,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <body>
 <div class="wrap">
   <header>
-    <h1>מרווח <span>בקול</span> <small class="ver">גרסה 11.11</small></h1>
+    <h1>מרווח <span>בקול</span> <small class="ver">גרסה 11.11 ב</small></h1>
   </header>
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="practice" aria-selected="true">אימון</button>
@@ -198,6 +200,15 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       </ol>
       <button class="btn big" id="startBtn">התחל סבב</button>
       <p class="note">מומלץ אוזניות, ולשיר צליל ארוך ויציב של כחצי שנייה לכל צליל.</p>
+      <div class="drive">
+        <h4>מצב נסיעה: רק בקול, בלי לגעת ובלי להסתכל</h4>
+        <div class="row">
+          <button class="btn ghost" data-drive="5">חמש דקות</button>
+          <button class="btn ghost" data-drive="10">עשר דקות</button>
+          <button class="btn ghost" data-drive="15">רבע שעה</button>
+        </div>
+        <p class="note">מקישים פעם אחת לפני שיוצאים ומניחים את הטלפון. האימון רץ עד שהזמן נגמר: שם המרווח, דוגמה, הצליל הראשון, ואתה שר את השני. אחרי טעות נשמעת התשובה הנכונה. האימון לא נעצר גם אם לא שרת.</p>
+      </div>
       <div id="lastSummary" hidden></div>
     </div>
 
@@ -428,7 +439,7 @@ function ensureCtx(){
   if (S.sound === "sing") setTimeout(preloadSing, 0);
   return ctx;
 }
-let micSrc = null, micMute = null, micTimers = [];
+let micIn = null, micSrc = null, micMute = null, micTimers = [];
 let micStream = null, gate = 0.002, noiseFloor = null, noiseSamples = [];
 try { if (navigator.audioSession) navigator.audioSession.type = "play-and-record"; } catch {}
 async function ensureMic(){
@@ -440,7 +451,11 @@ async function ensureMic(){
   if (ctx.state !== "running") { try { await ctx.resume(); } catch {} }
   const src = ctx.createMediaStreamSource(micStream);
   analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
-  src.connect(analyser);
+  // two high-pass stages at 70 Hz remove road and engine rumble that sits below any sung note
+  const hp1 = ctx.createBiquadFilter(), hp2 = ctx.createBiquadFilter();
+  hp1.type = hp2.type = "highpass"; hp1.frequency.value = hp2.frequency.value = 70;
+  src.connect(hp1).connect(hp2); micIn = hp2;
+  micIn.connect(analyser);
   // Safari only processes nodes that lead to the speakers: route through a silent gain
   const mute = ctx.createGain(); mute.gain.value = 0;
   analyser.connect(mute).connect(ctx.destination);
@@ -456,7 +471,7 @@ async function ensureMic(){
       }
       workletNode = new AudioWorkletNode(ctx, "tap", {numberOfInputs:1, numberOfOutputs:1, outputChannelCount:[1]});
       workletNode.port.onmessage = e => onSamples(e.data);
-      src.connect(workletNode); workletNode.connect(mute);
+      micIn.connect(workletNode); workletNode.connect(mute);
     }
   } catch(e){ console.warn("worklet unavailable", e); workletNode = null; }
   hopMs = workletNode ? HOP / ctx.sampleRate * 1000 : 25;
@@ -845,20 +860,29 @@ function ivlLabel(cents){
   const nm = a <= 12 ? byS(a).name : `${byS(a - 12)?.name || ""} + אוקטבה`;
   return `${nm} ${n > 0 ? "למעלה" : "למטה"}`;
 }
+function driveLeft(){ return Math.max(0, Math.round((session.endAt - performance.now()) / 1000)); }
 function renderProgress(){
+  if (session.drive){
+    const sec = driveLeft(), done = session.list.filter(e => e.result).length, ok = session.list.filter(e => e.result?.ok).length;
+    $("progress").innerHTML = "";
+    $("counter").textContent = `מצב נסיעה · נותרו ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")} · ${ok} מתוך ${done}`;
+    return;
+  }
   $("progress").innerHTML = session.list.map((e, i) =>
     `<i class="${e.result ? (e.result.ok ? "ok" : "no") : (i === session.idx ? "now" : "")}"></i>`).join("");
   $("counter").textContent = `תרגיל ${session.idx + 1} מתוך ${session.list.length}`;
 }
 
-async function startSession(){
+async function startSession(driveMin){
   $("errBox").hidden = true;
   try { ensureCtx(); await ensureMic(); }
   catch(e){ showErr(e); return; }
   if (window.speechSynthesis && S.speech === "on"){ speechSynthesis.speak(new SpeechSynthesisUtterance("")); }
   const list = []; let prev = null;
-  for (let i = 0; i < +S.count; i++){ prev = makeExercise(prev); list.push(prev); }
-  session = {list, idx:0, silent:0};
+  const drive = typeof driveMin === "number" && driveMin > 0;
+  for (let i = 0; i < (drive ? 1 : +S.count); i++){ prev = makeExercise(prev); list.push(prev); }
+  session = {list, idx:0, silent:0, drive, endAt: drive ? performance.now() + driveMin * 60000 : 0};
+  if (drive){ noiseSamples = []; noiseFloor = null; }       // measure the car's background noise afresh
   paused = false; $("pauseBtn").textContent = "השהה";
   $("idle").hidden = true; $("running").hidden = false; window.scrollTo(0, 0);
   lockScreen();
@@ -871,6 +895,8 @@ async function run(){
       renderProgress();
       await doExercise(session.list[session.idx], id);
       session.idx++;
+      // drive mode: keep adding exercises until the time is up
+      if (session.drive && session.idx >= session.list.length && performance.now() < session.endAt) session.list.push(makeExercise(session.list[session.list.length - 1]));
     }
     await finish(id);
   } catch(e){ if (e !== ABORT) { console.error(e); showErr(e); } }
@@ -884,7 +910,7 @@ async function doExercise(ex, id){
     setStatus("מקשיב לשם המרווח…");
     if (!ex.replay) await say(attempt === 1 ? [`ivl-${ex.s}-${ex.dir > 0 ? "up" : "down"}`] : ["again"], attempt === 1 ? `${I.name} ${ex.dir > 0 ? "למעלה" : "למטה"}` : "שוב", id);
     ex.replay = false;
-    const withExample = S.example === "on" || attempt > 1;
+    const withExample = S.example === "on" || attempt > 1 || session.drive;
     if (withExample){
       setStatus("דוגמה");
       const t = ctx.currentTime + 0.05;
@@ -903,6 +929,7 @@ async function doExercise(ex, id){
       setVerdict("לא שמעתי אותך", "no");
       await say(["nohear"], "לא שמעתי", id);
       session.silent++;
+      if (session.drive){ if (attempt === 2) break; continue; }   // drive mode never stops: one more try, then move on
       if (session.silent >= 2){ await say(["stopped"], "עצרתי. הקש להמשך", id); pause(true); throw ABORT; }
       continue;
     }
@@ -927,7 +954,13 @@ async function doExercise(ex, id){
     await say(sameStep ? [res.err > 0 ? "high" : "low"] : sungKeys(res.sung), hint, id);
     ex.result = {ok:false, err:res.err, oct:res.oct};
     await sleep(900, id);
-    if (attempt === 2) return;
+    if (attempt === 2){
+      if (session.drive){                                      // eyes-free: let the right answer be heard
+        const t = ctx.currentTime + 0.05; playNote(ex.root, t); const e = playNote(ex.target, t + 0.95);
+        await until(e + 0.4, id);
+      }
+      return;
+    }
   }
   if (!ex.result) ex.result = {ok:false, err:null};
 }
@@ -976,6 +1009,7 @@ function record(ex, ok){
 }
 async function finish(id){
   const n = session.list.length, c = session.list.filter(e => e.result?.ok).length;
+  if (session.drive) session.endAt = performance.now();
   renderProgress();
   setStatus(""); setVerdict(`סיימת: ${c} מתוך ${n}`, c / n >= .7 ? "ok" : "no");
   await say(NUM_OK(n) && c <= 20 ? ["done", `num-${c}`, `of-${n}`] : null, `סיימת. ${c} מתוך ${n}`, id);
@@ -1005,7 +1039,9 @@ function pause(auto){
   setStatus(auto ? "הסבב נעצר כי לא שמעתי אותך" : "מושהה");
   if (auto) setTimeout(() => {}, 0);
 }
-$("startBtn").onclick = startSession;
+$("startBtn").onclick = () => startSession();
+document.querySelectorAll("[data-drive]").forEach(b => b.onclick = () => startSession(+b.dataset.drive));
+setInterval(() => { if (session && session.drive && !paused && !$("running").hidden) renderProgress(); }, 1000);
 $("stopBtn").onclick = () => endSession(true);
 // replay: stop where we are, play the example again (without repeating the name), then listen again
 $("replayBtn").onclick = () => {
